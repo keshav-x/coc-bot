@@ -1008,7 +1008,7 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
         self._update_config_size(frame)
         strategy = self._get_strategy(method_id)
         result = strategy.execute(frame, self.stop_event)
-        self._wait_for_battle_end(is_sneaky=(method_id == 1))
+        self._wait_for_battle_end(is_sneaky=(method_id not in (2, 3, 4)))
 
         # Record raid statistics and notify webhook & native desktop notification
         self.loot_filter.stats.record_raid(*last_loot_detected, skips=skip_count)
