@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+*.spec
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local runtime states and logs
+trial_vault.json
+license.json
+*.log
