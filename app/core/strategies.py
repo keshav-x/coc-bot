@@ -543,48 +543,26 @@ class TroopSpamStrategy(AttackStrategy):
         self.status_callback = status_callback
 
     def _get_safe_perimeter_points(self, fw: int, fh: int, num_points_per_edge: int = 4) -> List[Tuple[int, int]]:
-        """Generates evenly spaced outer grass deployment points with a strict outward margin.
+        """Generates 12 safe outer grass points along the upper and side boundary arc (left -> top -> right).
 
-        Points are pushed away from the village center into guaranteed deployable green grass,
-        strictly away from the red base boundary and clamped above the bottom troop ribbon.
+        In Clash of Clans, the top and side boundaries are guaranteed 100% clear green grass,
+        completely outside the village red zone, and safely above the bottom troop ribbon.
         """
-        raw_corners = {
-            "top": self._point("top"),
-            "right": self._point("right"),
-            "bottom": self._point("bottom"),
-            "left": self._point("left"),
-        }
-        cx, cy = float(fw) * 0.50, float(fh) * 0.48
-        outward_margin = float(self.config.scale_scalar(45))
-
-        def push_outward(px: float, py: float) -> Tuple[int, int]:
-            vx, vy = px - cx, py - cy
-            dist = math.hypot(vx, vy)
-            if dist > 1.0:
-                ox = px + (vx / dist) * outward_margin
-                oy = py + (vy / dist) * outward_margin
-            else:
-                ox, oy = px, py
-            return self._quantize_deploy_to_frame(ox, oy, fw, fh)
-
-        safe_corners = [
-            push_outward(*raw_corners["top"]),
-            push_outward(*raw_corners["right"]),
-            push_outward(*raw_corners["bottom"]),
-            push_outward(*raw_corners["left"]),
+        # Horseshoe arc anchors surrounding the top and sides of the base
+        anchors = [
+            (int(fw * 0.11), int(fh * 0.60)),  # mid-left
+            (int(fw * 0.11), int(fh * 0.45)),  # left-center
+            (int(fw * 0.16), int(fh * 0.32)),  # top-left lower
+            (int(fw * 0.28), int(fh * 0.22)),  # top-left mid
+            (int(fw * 0.40), int(fh * 0.16)),  # top-left upper
+            (int(fw * 0.50), int(fh * 0.15)),  # top center
+            (int(fw * 0.60), int(fh * 0.16)),  # top-right upper
+            (int(fw * 0.72), int(fh * 0.22)),  # top-right mid
+            (int(fw * 0.84), int(fh * 0.32)),  # top-right lower
+            (int(fw * 0.89), int(fh * 0.45)),  # right-center
+            (int(fw * 0.89), int(fh * 0.60)),  # mid-right
         ]
-
-        # Interpolate points along the 4 edges
-        pts = []
-        for i in range(4):
-            p1 = safe_corners[i]
-            p2 = safe_corners[(i + 1) % 4]
-            for step in range(num_points_per_edge):
-                t = step / float(num_points_per_edge)
-                ix = p1[0] + (p2[0] - p1[0]) * t
-                iy = p1[1] + (p2[1] - p1[1]) * t
-                pts.append(self._quantize_deploy_to_frame(ix, iy, fw, fh))
-        return pts
+        return [self._quantize_deploy_to_frame(x, y, fw, fh) for x, y in anchors]
 
     def execute(self, frame: Any, stop_event: Optional[Any] = None) -> bool:
         ev = stop_event if stop_event else self.stop_event
@@ -612,70 +590,44 @@ class TroopSpamStrategy(AttackStrategy):
             tx, ty = int(fw * 0.165), int(fh * 0.90)
             logger.info(f"Using default slot 1 troop coordinates: ({tx}, {ty})")
 
-        # Initial troop selection
-        self.input.click(tx, ty, pause=0.25, rand=False)
-        if ev and ev.wait(0.12):
-            return True
-
-        # 2. Build 16 safe outer grass points (strictly pushed outwards, away from red zone)
-        perimeter_pts = self._get_safe_perimeter_points(fw, fh, num_points_per_edge=4)
+        # 2. Build safe outer grass points (horseshoe arc: left -> top -> right)
+        perimeter_pts = self._get_safe_perimeter_points(fw, fh)
         if not perimeter_pts:
             return False
 
-        # --- Wave 1: Clockwise Outer Perimeter Drag Stream ---
-        # Continuous dragging around the safe perimeter drops troops steadily on all 4 quadrants
-        start_p = perimeter_pts[0]
-        self.input.move(start_p[0], start_p[1])
-        self.input.mouse_down(start_p[0], start_p[1])
-        try:
-            for p in perimeter_pts[1:] + [start_p]:
-                if ev and ev.is_set():
-                    break
-                self.input.move(p[0], p[1], wparam=1)
-                # Dwell at each perimeter anchor to spawn troops steadily
-                if ev:
-                    ev.wait(0.14)
-                else:
-                    time.sleep(0.14)
-        finally:
-            self.input.mouse_up(start_p[0], start_p[1])
+        # --- Wave 1: Rapid deployment along outer grass (Left -> Top -> Right) ---
+        self.input.click(tx, ty, pause=0.20, rand=False)
+        for p in perimeter_pts:
+            if ev and ev.is_set():
+                return True
+            # 3 rapid clicks at each grass location
+            for _ in range(3):
+                self.input.click(p[0], p[1], pause=0.045, rand=False)
 
         if ev and ev.wait(0.15):
             return True
 
-        # --- Wave 2: Counter-Clockwise Outer Perimeter Drag Stream ---
-        # Re-select troop to ensure active selection
+        # --- Wave 2: Reverse Sweep along outer grass (Right -> Top -> Left) ---
         self.input.click(tx, ty, pause=0.15, rand=False)
-        rev_pts = list(reversed(perimeter_pts))
-        rev_start = rev_pts[0]
-        self.input.move(rev_start[0], rev_start[1])
-        self.input.mouse_down(rev_start[0], rev_start[1])
-        try:
-            for p in rev_pts[1:] + [rev_start]:
-                if ev and ev.is_set():
-                    break
-                self.input.move(p[0], p[1], wparam=1)
-                if ev:
-                    ev.wait(0.12)
-                else:
-                    time.sleep(0.12)
-        finally:
-            self.input.mouse_up(rev_start[0], rev_start[1])
+        for p in reversed(perimeter_pts):
+            if ev and ev.is_set():
+                return True
+            for _ in range(3):
+                self.input.click(p[0], p[1], pause=0.045, rand=False)
 
         if ev and ev.wait(0.15):
             return True
 
-        # --- Wave 3: Rapid Multi-Point Pulsed Grass Bursts (Dump Remaining Camp Troops) ---
-        # Rapid clicks at all 16 outer grass locations to guarantee 100% troop dump
+        # --- Wave 3: Final Camp Emptying Sweep (Rapid Pulsed Bursts) ---
+        # Guarantees 100% of army camp troops are emptied into the raid
         self.input.click(tx, ty, pause=0.12, rand=False)
         for p in perimeter_pts:
             if ev and ev.is_set():
-                break
-            # 2 rapid pulses at each anchor point
-            self.input.click(p[0], p[1], pause=0.06, rand=False)
-            self.input.click(p[0], p[1], pause=0.06, rand=False)
+                return True
+            self.input.click(p[0], p[1], pause=0.04, rand=False)
+            self.input.click(p[0], p[1], pause=0.04, rand=False)
 
-        # 4. Deploy Heroes
+        # 3. Deploy Heroes along safe top arc
         frame = self._get_screenshot()
         deployed_heroes = []
         if frame is not None:
@@ -684,22 +636,23 @@ class TroopSpamStrategy(AttackStrategy):
                 return True
             deployed_heroes = self.deploy_heroes(frame)
 
-        # 5. Deploy Spells (Earthquake / Rage / Freeze)
+        # 4. Deploy Spells (Earthquake / Rage / Freeze)
         frame = self._get_screenshot()
         if frame is not None:
             self._sync_frame_size(frame)
             self.deploy_spells(frame)
 
-        # 6. Rapid Hero Ability Trigger (early Warden / King / Queen activation)
+        # 5. Hero Ability Trigger
         if deployed_heroes:
             if ev:
-                if ev.wait(1.0):
+                if ev.wait(2.0):
                     return True
             else:
-                time.sleep(1.0)
+                time.sleep(2.0)
             self.activate_hero_abilities(deployed_heroes)
 
         return True
+
 
 
 

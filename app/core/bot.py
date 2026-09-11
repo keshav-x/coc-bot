@@ -1107,14 +1107,15 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
             )
 
     def _wait_for_battle_end(self, is_sneaky: bool) -> None:
-        """Wait for the raid to finish with immediate surrender and coordinate fallbacks.
+        """Wait for the raid to finish.
 
-        Sneaky Goblins complete collector farming within 8-10 seconds.
-        Surrendering immediately maximizes loot/hr throughput (150M+/hr) and prevents screen freezes.
+        Sneaky Goblins are given 22 seconds of active combat to sprint, path, and loot
+        all resource collectors, drills, and storages under invisibility before surrendering.
+        If the battle concludes naturally earlier (100% or army depleted), exits immediately.
         """
         cb = getattr(self, "_status_callback", None)
-        min_combat_seconds = 8 if is_sneaky else 22
-        max_timeout = 16 if is_sneaky else 35
+        min_combat_seconds = 22 if is_sneaky else 45
+        max_timeout = 45 if is_sneaky else 80
         start = time.time()
 
         logger.info(
@@ -1131,72 +1132,64 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
             frame = self.window.screenshot()
             if frame is not None:
                 self._update_config_size(frame)
-                h, w = frame.shape[:2]
 
                 # Check if battle has naturally concluded (victory/defeat summary or return home)
-                ox, oy = self.vision.find_template(frame, "okay.png", threshold=0.65)
+                ox, oy = self.vision.find_template(frame, "okay.png", threshold=0.70)
                 if ox:
                     logger.info("Battle concluded naturally: okay.png detected after %.1fs", elapsed)
                     return
 
-                rx, _ = self.vision.find_template(frame, "returnhome.png", threshold=0.65)
+                rx, _ = self.vision.find_template(frame, "returnhome.png", threshold=0.70)
                 if rx:
                     logger.info("Battle concluded naturally: returnhome.png detected after %.1fs", elapsed)
                     return
 
-                # Check for endbattle button
-                bx, by = self.vision.find_template(frame, "endbattle.png", threshold=0.65)
+                # Check for endbattle button (appears when 3 stars reached or army depleted)
+                bx, by = self.vision.find_template(frame, "endbattle.png", threshold=0.70)
                 if bx:
                     logger.info("End battle button detected after %.1fs", elapsed)
-                    self.input.click(bx, by, pause=0.15)
+                    self.input.click(bx, by, pause=0.2)
                     return
 
                 # If combat window elapsed, cleanly surrender without stalling
                 if elapsed >= min_combat_seconds:
-                    sx, sy = self.vision.find_template(frame, "surrender.png", threshold=0.60)
-                    if not sx:
-                        # Bottom-left calibrated coordinate fallback for Surrender button
-                        sx = int(w * 0.065)
-                        sy = int(h * 0.85)
-
-                    logger.info("Loot phase complete (%.1fs elapsed). Surrendering raid at (%d, %d).", elapsed, sx, sy)
-                    if cb:
-                        cb("Raid finished — surrendering")
-                    self.input.click(sx, sy, pause=0.2)
-
-                    # Handle surrender confirmation dialog ("Okay" or dialog center-right)
-                    if self.stop_event.wait(0.2):
+                    sx, sy = self.vision.find_template(frame, "surrender.png", threshold=0.65)
+                    if sx:
+                        logger.info("Loot phase complete (%.1fs elapsed). Surrendering raid.", elapsed)
+                        if cb:
+                            cb("Raid finished — surrendering")
+                        self.input.click(sx, sy, pause=0.3)
+                        # Handle surrender confirmation dialog ("Okay")
+                        if self.stop_event.wait(0.35):
+                            return
+                        c_frame = self.window.screenshot()
+                        if c_frame is not None:
+                            cx, cy = self.vision.find_template(c_frame, "okay.png", threshold=0.65)
+                            if cx:
+                                self.input.click(cx, cy, pause=0.2)
                         return
-                    c_frame = self.window.screenshot()
-                    cx, cy = (None, None)
-                    if c_frame is not None:
-                        cx, cy = self.vision.find_template(c_frame, "okay.png", threshold=0.60)
-                    if not cx:
-                        # Calibrated OK button in confirmation modal
-                        cx, cy = int(w * 0.58), int(h * 0.62)
-                    self.input.click(cx, cy, pause=0.15)
-                    return
 
-            if self.stop_event.wait(0.2):
+            if self.stop_event.wait(0.5):
                 return
 
-        # Guaranteed fallback if timeout reached
-        logger.info("Battle timeout (%ds) reached; forcing surrender fallback.", max_timeout)
-        frame = self.window.screenshot()
-        if frame is not None:
-            h, w = frame.shape[:2]
-            self.input.click(int(w * 0.065), int(h * 0.85), pause=0.2)
-            self.input.click(int(w * 0.58), int(h * 0.62), pause=0.2)
+        # Fallback if timeout reached: surrender if button is present
+        logger.info("Battle timeout (%ds) reached; attempting surrender.", max_timeout)
+        sx, sy = self._wait_for_image("surrender.png", timeout=3, error=False, threshold=0.65)
+        if sx:
+            self.input.click(sx, sy, pause=0.3)
+            c_ox, c_oy = self._wait_for_image("okay.png", timeout=2, error=False, threshold=0.65)
+            if c_ox:
+                self.input.click(c_ox, c_oy, pause=0.2)
 
     def _return_home(self) -> bool:
         """Dismiss Okay if present, then wait for ``returnhome.png`` (+ ``returnhome2.png`` on 16:10) or ``chestclaim.png`` (mutually exclusive)."""
-        ox, oy = self._wait_for_image("okay.png", timeout=2, error=False)
+        ox, oy = self._wait_for_image("okay.png", timeout=3, error=False)
         if ox:
-            self.input.click(ox, oy, pause=0.1)
-        kind, hx, hy = self._wait_for_return_home_or_chest_claim(timeout=6)
+            self.input.click(ox, oy, pause=0.15)
+        kind, hx, hy = self._wait_for_return_home_or_chest_claim(timeout=10)
         if kind == "return" and hx:
-            self.input.click(hx, hy, pause=0.1)
-            return ox is not None
+            self.input.click(hx, hy, pause=0.2)
+            return True
         elif kind == "chest" and hx:
             logger.info("Post-battle UI: chestclaim.png (replacing return home); running chest flow")
             self.input.click(hx, hy, pause=0.2)
@@ -1204,23 +1197,17 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                 return True
             self._chest_flow()
             return True
-        else:
-            # Fallback: center-bottom Return Home button on battle summary (w * 0.50, h * 0.85)
-            frame = self.window.screenshot()
-            if frame is not None:
-                h, w = frame.shape[:2]
-                self.input.click(int(w * 0.50), int(h * 0.85), pause=0.15)
-            return ox is not None
+        return ox is not None
 
     def _wait_for_return_home_or_chest_claim(
-        self, timeout: int = 4
+        self, timeout: int = 10
     ) -> Tuple[Optional[str], Optional[int], Optional[int]]:
         start = time.time()
         while time.time() - start < timeout:
             self._check_stop()
             frame = self.window.screenshot()
             if frame is None:
-                if self.stop_event.wait(0.15):
+                if self.stop_event.wait(0.2):
                     return (None, None, None)
                 continue
             self._update_config_size(frame)
@@ -1231,15 +1218,15 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                 else ("returnhome.png",)
             )
             for tpl in returnhome_tpls:
-                rx, ry = self.vision.find_template(frame, tpl, threshold=_RETURN_HOME_THRESHOLD)
+                rx, ry = self.vision.find_template(frame, tpl, threshold=0.70)
                 if rx:
                     break
             if rx:
                 return ("return", rx, ry)
-            cx, cy = self.vision.find_template(frame, "chestclaim.png", threshold=0.82)
+            cx, cy = self.vision.find_template(frame, "chestclaim.png", threshold=0.80)
             if cx:
                 return ("chest", cx, cy)
-            if self.stop_event.wait(0.15):
+            if self.stop_event.wait(0.3):
                 return (None, None, None)
         return (None, None, None)
 
@@ -1307,27 +1294,27 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
 
     def _home_screen_recovery(self) -> None:
         """Ensures we are back at home screen. Dismisses any popup via Watchdog before considering home."""
-        for _ in range(6):
+        for _ in range(12):
             self._check_stop()
             frame = self.window.screenshot()
             if frame is None:
-                if self.stop_event.wait(0.2):
+                if self.stop_event.wait(0.25):
                     return
                 continue
             self._update_config_size(frame)
             if self.watchdog.check_and_recover(frame):
                 continue
-            ox, oy = self.vision.find_template(frame, "okay.png")
+            ox, oy = self.vision.find_template(frame, "okay.png", threshold=0.70)
             if ox:
-                self.input.click(ox, oy, pause=0.1)
-                if self.stop_event.wait(0.2):
+                self.input.click(ox, oy, pause=0.15)
+                if self.stop_event.wait(0.25):
                     return
                 continue
             top_roi = VisionService.top_half_region(frame)
             hx, hy = self._find_home_village_builder(frame, top_roi)
             if hx:
                 return
-            if self.stop_event.wait(0.2):
+            if self.stop_event.wait(0.35):
                 return
 
     def _switch_account_and_load_home(self, username: str) -> None:

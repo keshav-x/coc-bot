@@ -16,14 +16,14 @@ resolutions = [(1920, 1080), (2560, 1440), (1280, 720), (1920, 1200)]
 
 for fw, fh in resolutions:
     config.set_target_size(fw, fh)
-    pts = strat._get_safe_perimeter_points(fw, fh, num_points_per_edge=4)
-    assert len(pts) == 16, f"Expected 16 perimeter points, got {len(pts)}"
+    pts = strat._get_safe_perimeter_points(fw, fh)
+    assert len(pts) == 11, f"Expected 11 perimeter points, got {len(pts)}"
 
     center_x, center_y = fw * 0.50, fh * 0.48
 
     for idx, (x, y) in enumerate(pts):
-        # Must be strictly above bottom troop ribbon (y <= 0.81 * fh)
-        assert y <= int(fh * 0.81), f"Point {idx} ({x}, {y}) touches bottom troop ribbon (max {int(fh * 0.81)})"
+        # Must be strictly above bottom troop ribbon (y <= 0.79 * fh)
+        assert y <= int(fh * 0.79), f"Point {idx} ({x}, {y}) touches bottom troop ribbon (max {int(fh * 0.79)})"
         # Must be strictly below top HUD (y >= 0.12 * fh)
         assert y >= int(fh * 0.12), f"Point {idx} ({x}, {y}) touches top HUD (min {int(fh * 0.12)})"
         # Must be inside screen borders
@@ -34,7 +34,7 @@ for fw, fh in resolutions:
         dist_from_center = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
         assert dist_from_center > 0.20 * fh, f"Point {idx} ({x}, {y}) too close to base center ({dist_from_center:.1f})"
 
-    print(f"[PASS] Geometry validated for {fw}x{fh}: 16 points safely on outer grass")
+    print(f"[PASS] Geometry validated for {fw}x{fh}: 11 points safely on outer grass arc")
 
 # Test execute method simulation
 dummy_frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
@@ -44,8 +44,7 @@ strat._get_screenshot = MagicMock(return_value=None)
 
 success = strat.execute(dummy_frame)
 assert success is True, "Strategy execute failed"
-assert input_mock.mouse_down.call_count >= 2, f"Expected at least 2 drag waves, got {input_mock.mouse_down.call_count}"
-assert input_mock.mouse_up.call_count >= 2, f"Expected mouse_up calls matching mouse_down, got {input_mock.mouse_up.call_count}"
-assert input_mock.click.call_count >= 30, f"Expected multi-point pulsed clicks to dump full camp, got {input_mock.click.call_count}"
-print(f"[PASS] Strategy execution simulation passed: {input_mock.mouse_down.call_count} drag sweeps + {input_mock.click.call_count} clicks for 100% troop dump")
+# Wave 1 (33 clicks) + Wave 2 (33 clicks) + Wave 3 (22 clicks) + 3 troop re-clicks = ~91 clicks
+assert input_mock.click.call_count >= 80, f"Expected at least 80 discrete clicks for 100% troop dump, got {input_mock.click.call_count}"
+print(f"[PASS] Strategy execution simulation passed: {input_mock.click.call_count} discrete clicks registered for 100% camp dump")
 print("\n*** ALL DEPLOYMENT GEOMETRY TESTS PASSED! ***")
