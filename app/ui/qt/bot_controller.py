@@ -38,6 +38,7 @@ class BotController(QObject):
     licenseRevoked = Signal(str)
     trialExpired = Signal()
     runningChanged = Signal(bool)
+    lootUpdated = Signal(int, int, int, float)
 
     def __init__(self, bot_version: str) -> None:
         super().__init__()
@@ -152,10 +153,14 @@ class BotController(QObject):
             def on_status(msg: str) -> None:
                 self.statusChanged.emit(msg, "not found" in msg.lower())
 
+            def on_loot(gold: int, elixir: int, dark: int, elapsed_sec: float) -> None:
+                self.lootUpdated.emit(gold, elixir, dark, elapsed_sec)
+
             try:
                 self._bot.start(
                     plan,
                     status_callback=on_status,
+                    loot_callback=on_loot,
                     earthquake_method=load_profile_settings().earthquake_method,
                 )
             except Exception as exc:

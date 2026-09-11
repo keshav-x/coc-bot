@@ -414,6 +414,7 @@ class RunPage(QWidget):
         self._controller.botStarted.connect(self._on_bot_started)
         self._controller.botFinished.connect(self._on_bot_finished_ui)
         self._controller.runningChanged.connect(self._on_running_changed)
+        self._controller.lootUpdated.connect(lambda *_: self._update_live_stats())
 
     def _build_plan_card(self) -> Card:
         card = Card()

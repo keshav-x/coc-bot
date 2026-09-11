@@ -985,14 +985,15 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
         # Smart Loot Filtration & Base Skipping (multiplayer farming)
         last_loot_detected = (0, 0, 0)
         skip_count = 0
-        if not ranked_fill and self.loot_filter.config.enabled:
+
+        # Always read enemy base loot for live telemetry and filtration
+        if not ranked_fill:
             while not self.stop_event.is_set():
                 self._check_stop()
-                # Allow HUD animation to settle on newly loaded base
-                if self.stop_event.wait(0.3):
+                if self.stop_event.wait(0.25):
                     return False
 
-                # Try reading loot numbers with retry in case HUD is still animating into view
+                # Extract loot numbers with fast retry
                 gold, elixir, dark = None, None, None
                 for _ in range(3):
                     self._check_stop()
@@ -1003,8 +1004,21 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                     gold, elixir, dark = VisionService.extract_battle_loot(frame)
                     if gold is not None and elixir is not None:
                         break
-                    if self.stop_event.wait(0.25):
+                    if self.stop_event.wait(0.2):
                         return False
+
+                if gold is not None and elixir is not None:
+                    last_loot_detected = (gold, elixir, dark or 0)
+
+                # If loot filter is not enabled, attack immediately with extracted loot
+                if not self.loot_filter.config.enabled:
+                    logger.info(
+                        "Multiplayer target locked: Gold=%s, Elixir=%s, Dark=%s",
+                        f"{last_loot_detected[0]:,}",
+                        f"{last_loot_detected[1]:,}",
+                        f"{last_loot_detected[2]:,}",
+                    )
+                    break
 
                 if gold is None or elixir is None:
                     logger.warning("Could not read enemy loot after settling; attacking current base to avoid skip loop.")
@@ -1013,9 +1027,7 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                         cb("Attacking: search read fallback")
                     break
 
-                last_loot_detected = (gold or 0, elixir or 0, dark or 0)
                 decision = self.loot_filter.evaluate(gold, elixir, dark, skip_count)
-
                 if decision.should_attack:
                     logger.info(
                         "Loot filter approved base: %s (Gold: %s, Elixir: %s, Dark: %s)",
@@ -1039,7 +1051,6 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
 
                 next_x, next_y = self._wait_for_image("findnow.png", timeout=3, error=False, threshold=0.70)
                 if not next_x:
-                    # Snappy bottom-right fallback for Next button
                     h, w = frame.shape[:2]
                     next_x, next_y = int(w * 0.85), int(h * 0.83)
 
@@ -1056,8 +1067,12 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
         result = strategy.execute(frame, self.stop_event)
         self._wait_for_battle_end(is_sneaky=(method_id not in (2, 3, 4)))
 
-        # Record raid statistics and notify webhook & native desktop notification
+        # Update live session loot telemetry & record raid statistics
         self.loot_filter.stats.record_raid(*last_loot_detected, skips=skip_count)
+        tg, te, td = self._loot_totals
+        self._loot_totals = (tg + last_loot_detected[0], te + last_loot_detected[1], td + last_loot_detected[2])
+        self._emit_loot_update()
+
         notify_raid_complete(
             last_loot_detected[0],
             last_loot_detected[1],
@@ -1092,14 +1107,14 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
             )
 
     def _wait_for_battle_end(self, is_sneaky: bool) -> None:
-        """Wait for the raid to finish.
+        """Wait for the raid to finish with immediate surrender and coordinate fallbacks.
 
-        Sneaky Goblins are given a fast 12-second window to loot all collectors and drills
-        under invisibility before clicking surrender. This maximizes loot/hr throughput (150M+/hr).
+        Sneaky Goblins complete collector farming within 8-10 seconds.
+        Surrendering immediately maximizes loot/hr throughput (150M+/hr) and prevents screen freezes.
         """
         cb = getattr(self, "_status_callback", None)
-        min_combat_seconds = 12 if is_sneaky else 40
-        max_timeout = 25 if is_sneaky else 120
+        min_combat_seconds = 8 if is_sneaky else 22
+        max_timeout = 16 if is_sneaky else 35
         start = time.time()
 
         logger.info(
@@ -1116,61 +1131,69 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
             frame = self.window.screenshot()
             if frame is not None:
                 self._update_config_size(frame)
+                h, w = frame.shape[:2]
 
                 # Check if battle has naturally concluded (victory/defeat summary or return home)
-                ox, oy = self.vision.find_template(frame, "okay.png", threshold=0.75)
+                ox, oy = self.vision.find_template(frame, "okay.png", threshold=0.65)
                 if ox:
                     logger.info("Battle concluded naturally: okay.png detected after %.1fs", elapsed)
                     return
 
-                rx, _ = self.vision.find_template(frame, "returnhome.png", threshold=0.75)
+                rx, _ = self.vision.find_template(frame, "returnhome.png", threshold=0.65)
                 if rx:
                     logger.info("Battle concluded naturally: returnhome.png detected after %.1fs", elapsed)
                     return
 
-                # Check for endbattle button (appears when 3 stars reached or army depleted)
-                bx, by = self.vision.find_template(frame, "endbattle.png", threshold=0.75)
+                # Check for endbattle button
+                bx, by = self.vision.find_template(frame, "endbattle.png", threshold=0.65)
                 if bx:
                     logger.info("End battle button detected after %.1fs", elapsed)
                     self.input.click(bx, by, pause=0.15)
                     return
 
-                # If combat duration has elapsed for sneaky goblins, safely surrender
-                if is_sneaky and elapsed >= min_combat_seconds:
-                    sx, sy = self.vision.find_template(frame, "surrender.png", threshold=0.75)
-                    if sx:
-                        logger.info("Loot phase complete (%.1fs elapsed). Surrendering raid.", elapsed)
-                        if cb:
-                            cb("Raid finished — surrendering")
-                        self.input.click(sx, sy, pause=0.2)
-                        # Handle potential surrender confirmation dialog
-                        if self.stop_event.wait(0.25):
-                            return
-                        c_frame = self.window.screenshot()
-                        if c_frame is not None:
-                            cx, cy = self.vision.find_template(c_frame, "okay.png", threshold=0.75)
-                            if cx:
-                                self.input.click(cx, cy, pause=0.15)
-                        return
+                # If combat window elapsed, cleanly surrender without stalling
+                if elapsed >= min_combat_seconds:
+                    sx, sy = self.vision.find_template(frame, "surrender.png", threshold=0.60)
+                    if not sx:
+                        # Bottom-left calibrated coordinate fallback for Surrender button
+                        sx = int(w * 0.065)
+                        sy = int(h * 0.85)
 
-            if self.stop_event.wait(0.25):
+                    logger.info("Loot phase complete (%.1fs elapsed). Surrendering raid at (%d, %d).", elapsed, sx, sy)
+                    if cb:
+                        cb("Raid finished — surrendering")
+                    self.input.click(sx, sy, pause=0.2)
+
+                    # Handle surrender confirmation dialog ("Okay" or dialog center-right)
+                    if self.stop_event.wait(0.2):
+                        return
+                    c_frame = self.window.screenshot()
+                    cx, cy = (None, None)
+                    if c_frame is not None:
+                        cx, cy = self.vision.find_template(c_frame, "okay.png", threshold=0.60)
+                    if not cx:
+                        # Calibrated OK button in confirmation modal
+                        cx, cy = int(w * 0.58), int(h * 0.62)
+                    self.input.click(cx, cy, pause=0.15)
+                    return
+
+            if self.stop_event.wait(0.2):
                 return
 
-        # Fallback if timeout reached: surrender if button is present
-        logger.info("Battle timeout (%ds) reached; attempting surrender.", max_timeout)
-        sx, sy = self._wait_for_image("surrender.png", timeout=3, error=False)
-        if sx:
-            self.input.click(sx, sy, pause=0.2)
-            c_ox, c_oy = self._wait_for_image("okay.png", timeout=2, error=False)
-            if c_ox:
-                self.input.click(c_ox, c_oy, pause=0.2)
+        # Guaranteed fallback if timeout reached
+        logger.info("Battle timeout (%ds) reached; forcing surrender fallback.", max_timeout)
+        frame = self.window.screenshot()
+        if frame is not None:
+            h, w = frame.shape[:2]
+            self.input.click(int(w * 0.065), int(h * 0.85), pause=0.2)
+            self.input.click(int(w * 0.58), int(h * 0.62), pause=0.2)
 
     def _return_home(self) -> bool:
         """Dismiss Okay if present, then wait for ``returnhome.png`` (+ ``returnhome2.png`` on 16:10) or ``chestclaim.png`` (mutually exclusive)."""
         ox, oy = self._wait_for_image("okay.png", timeout=2, error=False)
         if ox:
             self.input.click(ox, oy, pause=0.1)
-        kind, hx, hy = self._wait_for_return_home_or_chest_claim(timeout=10)
+        kind, hx, hy = self._wait_for_return_home_or_chest_claim(timeout=6)
         if kind == "return" and hx:
             self.input.click(hx, hy, pause=0.1)
             return ox is not None
@@ -1178,9 +1201,16 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
             logger.info("Post-battle UI: chestclaim.png (replacing return home); running chest flow")
             self.input.click(hx, hy, pause=0.2)
             if self.stop_event.wait(0.35):
-                return ox is not None
-            self._tap_empty_until_chest_continue()
-        return ox is not None
+                return True
+            self._chest_flow()
+            return True
+        else:
+            # Fallback: center-bottom Return Home button on battle summary (w * 0.50, h * 0.85)
+            frame = self.window.screenshot()
+            if frame is not None:
+                h, w = frame.shape[:2]
+                self.input.click(int(w * 0.50), int(h * 0.85), pause=0.15)
+            return ox is not None
 
     def _wait_for_return_home_or_chest_claim(
         self, timeout: int = 4

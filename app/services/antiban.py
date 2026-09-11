@@ -35,7 +35,7 @@ ANTIBAN_CONFIG_FILENAME = "antiban.json"
 @dataclass
 class AntiBanConfig:
     profile: str = PROFILE_BALANCED
-    breaks_enabled: bool = True
+    breaks_enabled: bool = False
     min_session_mins: int = 25
     max_session_mins: int = 45
     min_break_mins: int = 2
@@ -61,7 +61,7 @@ def load_antiban_config() -> AntiBanConfig:
             return AntiBanConfig()
         return AntiBanConfig(
             profile=str(raw.get("profile", PROFILE_BALANCED)),
-            breaks_enabled=bool(raw.get("breaks_enabled", True)),
+            breaks_enabled=bool(raw.get("breaks_enabled", False)),
             min_session_mins=int(raw.get("min_session_mins", 25)),
             max_session_mins=int(raw.get("max_session_mins", 45)),
             min_break_mins=int(raw.get("min_break_mins", 2)),

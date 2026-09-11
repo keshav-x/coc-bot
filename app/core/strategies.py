@@ -145,7 +145,7 @@ class AttackStrategy:
         min_x = max(0.0, float(fw) * 0.08)
         max_x = min(float(fw - 1), float(fw) * 0.92)
         min_y = max(0.0, float(fh) * 0.12)  # Safely below top battle HUD
-        max_y = min(float(fh - 1), float(fh) * 0.81)  # Strictly above bottom troop ribbon
+        max_y = min(float(fh - 1), float(fh) * 0.79)  # Strictly above bottom troop ribbon
         cx = max(min_x, min(max_x, float(px)))
         cy = max(min_y, min(max_y, float(py)))
         return (int(round(cx)), int(round(cy)))
@@ -542,10 +542,54 @@ class TroopSpamStrategy(AttackStrategy):
         self.duration = duration
         self.status_callback = status_callback
 
+    def _get_safe_perimeter_points(self, fw: int, fh: int, num_points_per_edge: int = 4) -> List[Tuple[int, int]]:
+        """Generates evenly spaced outer grass deployment points with a strict outward margin.
+
+        Points are pushed away from the village center into guaranteed deployable green grass,
+        strictly away from the red base boundary and clamped above the bottom troop ribbon.
+        """
+        raw_corners = {
+            "top": self._point("top"),
+            "right": self._point("right"),
+            "bottom": self._point("bottom"),
+            "left": self._point("left"),
+        }
+        cx, cy = float(fw) * 0.50, float(fh) * 0.48
+        outward_margin = float(self.config.scale_scalar(45))
+
+        def push_outward(px: float, py: float) -> Tuple[int, int]:
+            vx, vy = px - cx, py - cy
+            dist = math.hypot(vx, vy)
+            if dist > 1.0:
+                ox = px + (vx / dist) * outward_margin
+                oy = py + (vy / dist) * outward_margin
+            else:
+                ox, oy = px, py
+            return self._quantize_deploy_to_frame(ox, oy, fw, fh)
+
+        safe_corners = [
+            push_outward(*raw_corners["top"]),
+            push_outward(*raw_corners["right"]),
+            push_outward(*raw_corners["bottom"]),
+            push_outward(*raw_corners["left"]),
+        ]
+
+        # Interpolate points along the 4 edges
+        pts = []
+        for i in range(4):
+            p1 = safe_corners[i]
+            p2 = safe_corners[(i + 1) % 4]
+            for step in range(num_points_per_edge):
+                t = step / float(num_points_per_edge)
+                ix = p1[0] + (p2[0] - p1[0]) * t
+                iy = p1[1] + (p2[1] - p1[1]) * t
+                pts.append(self._quantize_deploy_to_frame(ix, iy, fw, fh))
+        return pts
+
     def execute(self, frame: Any, stop_event: Optional[Any] = None) -> bool:
         ev = stop_event if stop_event else self.stop_event
         self._sync_frame_size(frame)
-        logger.info(f"Executing {self.troop_name} strategy")
+        logger.info(f"Executing {self.troop_name} strategy (100% camp deployment on safe grass)")
         roi = self.vision.bottom_half_region(frame)
         fh, fw = frame.shape[:2]
 
@@ -568,64 +612,70 @@ class TroopSpamStrategy(AttackStrategy):
             tx, ty = int(fw * 0.165), int(fh * 0.90)
             logger.info(f"Using default slot 1 troop coordinates: ({tx}, {ty})")
 
-        # Select troop
-        self.input.click(tx, ty, pause=0.35, rand=False)
-        if ev and ev.wait(0.18):
+        # Initial troop selection
+        self.input.click(tx, ty, pause=0.25, rand=False)
+        if ev and ev.wait(0.12):
             return True
 
-        # 2. Build safe diamond perimeter corners clamped on deployable grass
-        corners = ("top", "right", "bottom", "left")
-        start_idx = random.choice((0, 1, 3))
-        direction = random.choice((1, -1))
-        ordered_corners = [corners[(start_idx + i * direction) % 4] for i in range(5)]
+        # 2. Build 16 safe outer grass points (strictly pushed outwards, away from red zone)
+        perimeter_pts = self._get_safe_perimeter_points(fw, fh, num_points_per_edge=4)
+        if not perimeter_pts:
+            return False
 
-        def get_clamped_corner(c_name: str) -> Tuple[int, int]:
-            raw_pt = self._point(c_name)
-            return self._quantize_deploy_to_frame(raw_pt[0], raw_pt[1], fw, fh)
-
-        # 3. Continuous stream deployment (mouse_down + human_move around the grass perimeter)
-        # In Clash of Clans, holding mouse down and dragging streams out troops continuously!
-        start_pt = get_clamped_corner(ordered_corners[0])
-        curr_x, curr_y = self._expand_loc(*start_pt)
-        curr_x, curr_y = self._quantize_deploy_to_frame(curr_x, curr_y, fw, fh)
-
-        self.input.mouse_down(curr_x, curr_y)
-        if ev and ev.wait(0.35):
-            self.input.mouse_up(curr_x, curr_y)
-            return True
-
+        # --- Wave 1: Clockwise Outer Perimeter Drag Stream ---
+        # Continuous dragging around the safe perimeter drops troops steadily on all 4 quadrants
+        start_p = perimeter_pts[0]
+        self.input.move(start_p[0], start_p[1])
+        self.input.mouse_down(start_p[0], start_p[1])
         try:
-            total_duration = max(1.0, float(self.duration))
-            segment_duration = total_duration / 4.0
-            for i in range(len(ordered_corners) - 1):
+            for p in perimeter_pts[1:] + [start_p]:
                 if ev and ev.is_set():
                     break
-                next_c = ordered_corners[i + 1]
-                target_pt = get_clamped_corner(next_c)
-                tx_exp, ty_exp = self._expand_loc(*target_pt)
-                target_x, target_y = self._quantize_deploy_to_frame(tx_exp, ty_exp, fw, fh)
-                dur = random.uniform(segment_duration * 0.9, segment_duration * 1.1)
-                self.input.human_move(curr_x, curr_y, target_x, target_y, duration=dur)
-                curr_x, curr_y = target_x, target_y
+                self.input.move(p[0], p[1], wparam=1)
+                # Dwell at each perimeter anchor to spawn troops steadily
+                if ev:
+                    ev.wait(0.14)
+                else:
+                    time.sleep(0.14)
         finally:
-            self.input.mouse_up(curr_x, curr_y)
+            self.input.mouse_up(start_p[0], start_p[1])
 
-        if ev and ev.wait(0.2):
+        if ev and ev.wait(0.15):
             return True
 
-        # 4. Secondary Wave: Rapid reinforcement sweep to empty remaining troops
+        # --- Wave 2: Counter-Clockwise Outer Perimeter Drag Stream ---
+        # Re-select troop to ensure active selection
         self.input.click(tx, ty, pause=0.15, rand=False)
-        p_left = get_clamped_corner("left")
-        p_top = get_clamped_corner("top")
-        p_right = get_clamped_corner("right")
-        self.input.mouse_down(p_left[0], p_left[1])
+        rev_pts = list(reversed(perimeter_pts))
+        rev_start = rev_pts[0]
+        self.input.move(rev_start[0], rev_start[1])
+        self.input.mouse_down(rev_start[0], rev_start[1])
         try:
-            self.input.human_move(p_left[0], p_left[1], p_top[0], p_top[1], duration=0.45)
-            self.input.human_move(p_top[0], p_top[1], p_right[0], p_right[1], duration=0.45)
+            for p in rev_pts[1:] + [rev_start]:
+                if ev and ev.is_set():
+                    break
+                self.input.move(p[0], p[1], wparam=1)
+                if ev:
+                    ev.wait(0.12)
+                else:
+                    time.sleep(0.12)
         finally:
-            self.input.mouse_up(p_right[0], p_right[1])
+            self.input.mouse_up(rev_start[0], rev_start[1])
 
-        # 5. Deploy Heroes
+        if ev and ev.wait(0.15):
+            return True
+
+        # --- Wave 3: Rapid Multi-Point Pulsed Grass Bursts (Dump Remaining Camp Troops) ---
+        # Rapid clicks at all 16 outer grass locations to guarantee 100% troop dump
+        self.input.click(tx, ty, pause=0.12, rand=False)
+        for p in perimeter_pts:
+            if ev and ev.is_set():
+                break
+            # 2 rapid pulses at each anchor point
+            self.input.click(p[0], p[1], pause=0.06, rand=False)
+            self.input.click(p[0], p[1], pause=0.06, rand=False)
+
+        # 4. Deploy Heroes
         frame = self._get_screenshot()
         deployed_heroes = []
         if frame is not None:
@@ -634,19 +684,19 @@ class TroopSpamStrategy(AttackStrategy):
                 return True
             deployed_heroes = self.deploy_heroes(frame)
 
-        # 6. Deploy Spells (Earthquake / Rage / Freeze)
+        # 5. Deploy Spells (Earthquake / Rage / Freeze)
         frame = self._get_screenshot()
         if frame is not None:
             self._sync_frame_size(frame)
             self.deploy_spells(frame)
 
-        # 7. Rapid Hero Ability Trigger (early Warden / King / Queen activation)
+        # 6. Rapid Hero Ability Trigger (early Warden / King / Queen activation)
         if deployed_heroes:
             if ev:
-                if ev.wait(1.5):
+                if ev.wait(1.0):
                     return True
             else:
-                time.sleep(1.5)
+                time.sleep(1.0)
             self.activate_hero_abilities(deployed_heroes)
 
         return True

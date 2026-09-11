@@ -1903,17 +1903,18 @@ class VisionService:
             return (None, None, None)
 
         h_s, w_s = screen_img.shape[:2]
-        rx = int(w_s * 0.02)
-        ry = int(h_s * 0.06)
-        rw = int(w_s * 0.28)
-        rh = int(h_s * 0.28)
+        rx = int(w_s * 0.015)
+        ry = int(h_s * 0.02)
+        rw = int(w_s * 0.32)
+        rh = int(h_s * 0.35)
         roi = screen_img[ry : ry + rh, rx : rx + rw]
         if roi.size == 0:
             return (None, None, None)
 
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        _, thresh = cv2.threshold(gray, 140, 255, cv2.THRESH_BINARY)
-        passes = [gray, thresh]
+        _, thresh_bin = cv2.threshold(gray, 140, 255, cv2.THRESH_BINARY)
+        _, thresh_otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        passes = [thresh_bin, thresh_otsu, gray]
 
         for img_pass in passes:
             try:
@@ -1935,7 +1936,7 @@ class VisionService:
                 left = int(data["left"][i])
                 words.append((top, left, raw, conf))
                 low = raw.lower()
-                if any(w in low for w in ("available", "loot", "botin", "butin", "beute")):
+                if any(w in low for w in ("avail", "loot", "botin", "butin", "beute", "dispo", "saque", "zugreif")):
                     if header_y is None or top < header_y:
                         header_y = top
 
@@ -1943,7 +1944,7 @@ class VisionService:
 
             candidates = []
             for top, left, raw, conf in filtered:
-                # Exclude any word with letters (opponent name, clan name, level badges)
+                # Exclude any word with letters (opponent name, clan name)
                 if any(c.isalpha() for c in raw):
                     continue
                 # Exclude trophy changes (+XX or -YY)
@@ -1958,7 +1959,8 @@ class VisionService:
                 continue
 
             # Sort first by vertical row band, then left-to-right
-            candidates.sort(key=lambda c: (c[0] // 16, c[1]))
+            line_band = max(14, int(rh * 0.08))
+            candidates.sort(key=lambda c: (c[0] // line_band, c[1]))
 
             # Cluster space-separated number chunks on the same line
             clustered = []
@@ -1967,11 +1969,20 @@ class VisionService:
                     clustered.append(c)
                 else:
                     prev = clustered[-1]
-                    if abs(c[0] - prev[0]) < 16:
+                    if abs(c[0] - prev[0]) < line_band:
                         merged_digits = prev[2] + c[2]
                         clustered[-1] = (prev[0], min(prev[1], c[1]), merged_digits, prev[3] + " " + c[3])
                     else:
                         clustered.append(c)
+
+            # Filter out any isolated small level/clan badge numbers (e.g. <= 500) appearing before large loot
+            while len(clustered) >= 3:
+                first_val = int(clustered[0][2]) if clustered[0][2].isdigit() else 0
+                second_val = int(clustered[1][2]) if clustered[1][2].isdigit() else 0
+                if first_val <= 500 and second_val >= 5000:
+                    clustered.pop(0)
+                else:
+                    break
 
             if len(clustered) >= 2:
                 try:
@@ -1985,3 +1996,4 @@ class VisionService:
                     pass
 
         return (None, None, None)
+
