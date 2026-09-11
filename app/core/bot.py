@@ -326,23 +326,16 @@ visited. Turning collection off must never strand the run in the wrong village.
             self.input.mouse_up(drag_x, y_top)
 
     def _should_upgrade_walls(self) -> bool:
-        """True when either full gold or full elixir hero-bar icon matches on the current home frame."""
-        frame = self.window.screenshot()
-        if frame is None:
-            return False
-        self._update_config_size(frame)
-        gx, gy = VisionService.find_active_hgoldfull(frame)
-        ex, ey = VisionService.find_active_helixirfull(frame)
-        return (gx is not None) or (ex is not None)
+        """True when upgrade walls is requested in the plan."""
+        return True
 
     def _maybe_upgrade_walls(self, upgrade_walls: bool) -> None:
-        """Upgrade walls on home when enabled and storages look full."""
-        if not upgrade_walls or not self._should_upgrade_walls():
+        """Upgrade walls on home when enabled in plan."""
+        if not upgrade_walls:
             return
         self._loot_snapshot_before_attack()
-        for _ in range(2):
-            self._check_stop()
-            self._upgrade_walls()
+        self._check_stop()
+        self._upgrade_walls()
         self._suppress_loot_negative_error_once = True
 
     def _upgrade_walls_pick_resource_and_okay(self) -> None:
@@ -991,17 +984,42 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
         if not ranked_fill and self.loot_filter.config.enabled:
             while not self.stop_event.is_set():
                 self._check_stop()
-                frame = self.window.screenshot()
-                if frame is None:
+                # Allow HUD animation to settle on newly loaded base
+                if self.stop_event.wait(0.3):
+                    return False
+
+                # Try reading loot numbers with retry in case HUD is still animating into view
+                gold, elixir, dark = None, None, None
+                for _ in range(3):
+                    self._check_stop()
+                    frame = self.window.screenshot()
+                    if frame is None:
+                        break
+                    self._update_config_size(frame)
+                    gold, elixir, dark = VisionService.extract_battle_loot(frame)
+                    if gold is not None and elixir is not None:
+                        break
+                    if self.stop_event.wait(0.25):
+                        return False
+
+                if gold is None or elixir is None:
+                    logger.warning("Could not read enemy loot after settling; attacking current base to avoid skip loop.")
+                    cb = getattr(self, "_status_callback", None)
+                    if cb:
+                        cb("Attacking: search read fallback")
                     break
-                self._update_config_size(frame)
-                gold, elixir, dark = VisionService.extract_battle_loot(frame)
+
+                last_loot_detected = (gold or 0, elixir or 0, dark or 0)
                 decision = self.loot_filter.evaluate(gold, elixir, dark, skip_count)
-                if gold or elixir or dark:
-                    last_loot_detected = (gold or 0, elixir or 0, dark or 0)
 
                 if decision.should_attack:
-                    logger.info(f"Loot filter approved base: {decision.reason}")
+                    logger.info(
+                        "Loot filter approved base: %s (Gold: %s, Elixir: %s, Dark: %s)",
+                        decision.reason,
+                        f"{gold:,}",
+                        f"{elixir:,}",
+                        f"{dark:,}",
+                    )
                     cb = getattr(self, "_status_callback", None)
                     if cb:
                         cb(f"Attacking: {decision.reason}")
@@ -1015,13 +1033,13 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                     cb(f"Skipping base (#{skip_count}): {decision.reason}")
                 logger.info(f"Loot filter: skipping base #{skip_count} ({decision.reason})")
 
-                next_x, next_y = self._wait_for_image("findnow.png", timeout=6, error=False, threshold=0.70)
+                next_x, next_y = self._wait_for_image("findnow.png", timeout=5, error=False, threshold=0.70)
                 if not next_x:
                     logger.warning("Next button (findnow.png) not found during base search; attacking current base.")
                     break
                 self.input.click(next_x, next_y, pause=0.25)
-                self._wait_for_any_image(("surrender.png", "endbattle.png"), timeout=25)
-                if self.stop_event.wait(0.35):
+                self._wait_for_any_image(("surrender.png", "endbattle.png"), timeout=15)
+                if self.stop_event.wait(0.25):
                     return False
 
         frame = self.window.screenshot()
@@ -1183,7 +1201,7 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                     break
             if rx:
                 return ("return", rx, ry)
-            cx, cy = self.vision.find_template(frame, "chestclaim.png")
+            cx, cy = self.vision.find_template(frame, "chestclaim.png", threshold=0.82)
             if cx:
                 return ("chest", cx, cy)
             if self.stop_event.wait(0.5):
@@ -1206,7 +1224,7 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
 
     def _tap_empty_until_chest_continue(self) -> None:
         """After ``chestclaim`` was clicked: tap center-right (±85px) until ``chestcontinue.png``, then click it (home)."""
-        CHEST_TAP_TIMEOUT = 120.0
+        CHEST_TAP_TIMEOUT = 12.0
         deadline = time.time() + CHEST_TAP_TIMEOUT
         while time.time() < deadline:
             self._check_stop()
@@ -1451,7 +1469,7 @@ dimensions and dragging.
             self._update_config_size(frame)
             self._dismiss_okay_or_exit_on_frame(frame)
         self._bb_pan_down_left_from_center()
-        nx, ny = self._wait_for_image("nboat.png", timeout=12, error=False)
+        nx, ny = self._wait_for_image("nboat.png", timeout=5, error=False)
         if nx:
             self.input.click(nx, ny, pause=0.25)
             return
@@ -1494,12 +1512,12 @@ same visit, so it follows the same toggle as the resource bubbles.
             self.input.click(cx, cy, pause=0.2)
             if self.stop_event.wait(1.0):
                 self._check_stop()
-            cbx, cby = self._wait_for_image("clockboost.png", timeout=10, error=False)
+            cbx, cby = self._wait_for_image("clockboost.png", timeout=2.5, error=False)
             if cbx:
                 self.input.click(cbx, cby, pause=0.2)
-            if self.stop_event.wait(1.0):
+            if self.stop_event.wait(0.5):
                 self._check_stop()
-            bux, buy = self._wait_for_image("boost.png", timeout=10, error=False)
+            bux, buy = self._wait_for_image("boost.png", timeout=2.0, error=False)
             if bux:
                 self.input.click(bux, buy, pause=0.15)
 

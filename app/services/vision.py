@@ -15,6 +15,8 @@ from PIL import Image
 
 try:
     import pytesseract
+    from app.utils.tesseract_env import configure_tesseract
+    configure_tesseract()
 except ImportError:
     pytesseract = None
 
@@ -1891,17 +1893,95 @@ class VisionService:
 
     @staticmethod
     def extract_battle_loot(screen_img: np.ndarray) -> Tuple[Optional[int], Optional[int], Optional[int]]:
-        """Extracts enemy available Gold, Elixir, and Dark Elixir from the top-left HUD in matchmaking."""
-        h, w = screen_img.shape[:2]
-        roi = (int(w * 0.02), int(h * 0.05), int(w * 0.28), int(h * 0.26))
-        groups = VisionService.extract_grouped_numbers_in_region(screen_img, roi, min_confidence=20)
-        numbers = []
-        for g in groups:
-            val = VisionService.parse_loot_amount_from_grouped_text(g.text)
-            if val is not None and val > 0:
-                numbers.append((g.top, val))
-        numbers.sort(key=lambda t: t[0])
-        gold = numbers[0][1] if len(numbers) >= 1 else None
-        elixir = numbers[1][1] if len(numbers) >= 2 else None
-        dark = numbers[2][1] if len(numbers) >= 3 else None
-        return (gold, elixir, dark)
+        """Extracts enemy available Gold, Elixir, and Dark Elixir from the top-left HUD in matchmaking.
+
+        Returns (gold, elixir, dark_elixir) as integers.
+        Dark elixir may be 0 (TH6 and below) or a positive integer.
+        Returns (None, None, None) if the loot numbers cannot be detected.
+        """
+        if pytesseract is None or screen_img is None or getattr(screen_img, "size", 0) == 0:
+            return (None, None, None)
+
+        h_s, w_s = screen_img.shape[:2]
+        rx = int(w_s * 0.02)
+        ry = int(h_s * 0.06)
+        rw = int(w_s * 0.28)
+        rh = int(h_s * 0.28)
+        roi = screen_img[ry : ry + rh, rx : rx + rw]
+        if roi.size == 0:
+            return (None, None, None)
+
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 140, 255, cv2.THRESH_BINARY)
+        passes = [gray, thresh]
+
+        for img_pass in passes:
+            try:
+                data = pytesseract.image_to_data(img_pass, config="--psm 6", output_type=pytesseract.Output.DICT)
+            except Exception:
+                continue
+
+            words = []
+            header_y = None
+            for i in range(len(data.get("text", []))):
+                raw = str(data["text"][i] or "").strip()
+                try:
+                    conf = float(data["conf"][i])
+                except (ValueError, TypeError):
+                    conf = 0.0
+                if not raw or conf < 15:
+                    continue
+                top = int(data["top"][i])
+                left = int(data["left"][i])
+                words.append((top, left, raw, conf))
+                low = raw.lower()
+                if any(w in low for w in ("available", "loot", "botin", "butin", "beute")):
+                    if header_y is None or top < header_y:
+                        header_y = top
+
+            filtered = [w for w in words if header_y is None or w[0] > (header_y - 5)]
+
+            candidates = []
+            for top, left, raw, conf in filtered:
+                # Exclude any word with letters (opponent name, clan name, level badges)
+                if any(c.isalpha() for c in raw):
+                    continue
+                # Exclude trophy changes (+XX or -YY)
+                if "+" in raw or "-" in raw:
+                    continue
+                digits = "".join(c for c in raw if c.isdigit())
+                if not digits:
+                    continue
+                candidates.append((top, left, digits, raw))
+
+            if not candidates:
+                continue
+
+            # Sort first by vertical row band, then left-to-right
+            candidates.sort(key=lambda c: (c[0] // 16, c[1]))
+
+            # Cluster space-separated number chunks on the same line
+            clustered = []
+            for c in candidates:
+                if not clustered:
+                    clustered.append(c)
+                else:
+                    prev = clustered[-1]
+                    if abs(c[0] - prev[0]) < 16:
+                        merged_digits = prev[2] + c[2]
+                        clustered[-1] = (prev[0], min(prev[1], c[1]), merged_digits, prev[3] + " " + c[3])
+                    else:
+                        clustered.append(c)
+
+            if len(clustered) >= 2:
+                try:
+                    gold = int(clustered[0][2])
+                    elixir = int(clustered[1][2])
+                    dark = int(clustered[2][2]) if len(clustered) >= 3 else 0
+                    if gold >= 0 and elixir >= 0:
+                        logger.info("Matchmaking loot extracted: Gold=%d, Elixir=%d, Dark=%d", gold, elixir, dark)
+                        return (gold, elixir, dark)
+                except (ValueError, TypeError):
+                    pass
+
+        return (None, None, None)
