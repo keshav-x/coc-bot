@@ -92,7 +92,8 @@ class Bot:
         self._earthquake_method = earthquake_method
         if not self.window.find_window():
             raise RuntimeError("Clash of Clans window not found. Please ensure the game is open.")
-        if plan.is_empty():
+        is_empty_val = plan.is_empty() if callable(getattr(plan, "is_empty", None)) else getattr(plan, "is_empty", False)
+        if is_empty_val:
             raise RuntimeError("Run plan is empty — include a village or resource collection.")
         self._reset_loot_session()
         self._emit_loot_update()

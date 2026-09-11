@@ -66,7 +66,6 @@ class RunPlan:
             return ()
         return tuple(p for p in self.players if p.enabled and p.name.strip())
 
-    @property
     def is_empty(self) -> bool:
         """Nothing to do — no village sessions and no collecting."""
         return not self.steps and not self.collect_resources
