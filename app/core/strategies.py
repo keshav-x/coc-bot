@@ -613,23 +613,17 @@ class TroopSpamStrategy(AttackStrategy):
         if ev and ev.wait(0.2):
             return True
 
-        # 4. Secondary Wave: Re-click troop slot and deploy rapid reinforcement taps to empty remaining troops
-        self.input.click(tx, ty, pause=0.25, rand=False)
+        # 4. Secondary Wave: Rapid reinforcement sweep to empty remaining troops
+        self.input.click(tx, ty, pause=0.15, rand=False)
         p_left = get_clamped_corner("left")
         p_top = get_clamped_corner("top")
         p_right = get_clamped_corner("right")
-        p_bottom = get_clamped_corner("bottom")
-
-        reinforce_segments = [
-            (p_left, p_top),
-            (p_top, p_right),
-            (p_right, p_bottom),
-            (p_bottom, p_left),
-        ]
-        for p1, p2 in reinforce_segments:
-            if ev and ev.is_set():
-                return True
-            self.deploy_multi_wave(tx, ty, p1, p2, count_per_wave=3, num_waves=1, delay=0.07)
+        self.input.mouse_down(p_left[0], p_left[1])
+        try:
+            self.input.human_move(p_left[0], p_left[1], p_top[0], p_top[1], duration=0.45)
+            self.input.human_move(p_top[0], p_top[1], p_right[0], p_right[1], duration=0.45)
+        finally:
+            self.input.mouse_up(p_right[0], p_right[1])
 
         # 5. Deploy Heroes
         frame = self._get_screenshot()
@@ -646,12 +640,13 @@ class TroopSpamStrategy(AttackStrategy):
             self._sync_frame_size(frame)
             self.deploy_spells(frame)
 
-        # 7. Tactical delay before triggering hero abilities
+        # 7. Rapid Hero Ability Trigger (early Warden / King / Queen activation)
         if deployed_heroes:
             if ev:
-                ev.wait(8.0)
+                if ev.wait(1.5):
+                    return True
             else:
-                time.sleep(8.0)
+                time.sleep(1.5)
             self.activate_hero_abilities(deployed_heroes)
 
         return True

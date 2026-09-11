@@ -534,7 +534,10 @@ visited. Turning collection off must never strand the run in the wrong village.
                 "Star bonus mode: no star bonus template matched on home — nothing to collect. Finishing without attacks."
             )
             return
-        self._maybe_upgrade_walls(upgrade_walls)
+        raids_completed = 0
+        if upgrade_walls:
+            self._maybe_upgrade_walls(upgrade_walls)
+
         while time.time() - start_time < duration_seconds:
             self._check_stop()
             if self.antiban.execute_break_if_due(self.stop_event, status_callback=self._status_callback):
@@ -545,8 +548,11 @@ visited. Turning collection off must never strand the run in the wrong village.
             self._home_screen_recovery()
             if troop_failed:
                 return
-            self._maybe_upgrade_walls(upgrade_walls)
-            if self.stop_event.wait(random.uniform(0.15, 0.25)):
+            raids_completed += 1
+            # Perform wall upgrades periodically (every 3 raids) so it never bottlenecks hyper-speed farming
+            if upgrade_walls and (raids_completed % 3 == 0):
+                self._maybe_upgrade_walls(upgrade_walls)
+            if self.stop_event.wait(random.uniform(0.1, 0.18)):
                 return
             if star_bonus and self._is_star_bonus_claimed():
                 logger.info("Star bonus claimed (star icons no longer visible). Stopping.")
@@ -935,7 +941,7 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
         ax, ay = self._wait_for_attack_with_nudge()
         if not ax:
             return False
-        self.input.click(ax, ay, pause=0.6)
+        self.input.click(ax, ay, pause=0.18)
 
         if ranked_fill:
             battle_template = "rankedbattle.png"
@@ -947,25 +953,23 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                 if cb:
                     cb(msg)
                 return True
-            self.input.click(fx, fy, pause=0.6)
+            self.input.click(fx, fy, pause=0.2)
             a2x, a2y = self._wait_for_image("attack2.png", timeout=6, threshold=0.70)
             if a2x:
-                self.input.click(a2x, a2y, pause=0.5)
+                self.input.click(a2x, a2y, pause=0.2)
             rx, ry = self._wait_for_image("rankedattackconfirm.png", timeout=8, threshold=0.70)
             if rx:
-                self.input.click(rx, ry, pause=0.4)
+                self.input.click(rx, ry, pause=0.2)
         else:
-            # Regular multiplayer farming
-            # Check for farmbattle.png (Find a Match) or attack2.png directly
+            # Regular multiplayer farming (Turbo Matchmaking)
             fx, fy = self._wait_for_any_image(
-                ("farmbattle.png", "attack2.png"), timeout=5, threshold=0.70, error=False
+                ("farmbattle.png", "attack2.png"), timeout=3, threshold=0.70, error=False
             )
             if fx:
-                self.input.click(fx, fy, pause=0.6)
-                # If farmbattle was clicked, attack2 (confirmation) might pop up
-                a2x, a2y = self._wait_for_image("attack2.png", timeout=3, error=False, threshold=0.70)
+                self.input.click(fx, fy, pause=0.18)
+                a2x, a2y = self._wait_for_image("attack2.png", timeout=2, error=False, threshold=0.70)
                 if a2x:
-                    self.input.click(a2x, a2y, pause=0.5)
+                    self.input.click(a2x, a2y, pause=0.18)
             else:
                 # Modal fallback click: Find a Match is located at ~72% W, ~75% H in attack dialog
                 frame = self.window.screenshot()
@@ -974,9 +978,9 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                     fb_x = int(w * 0.72)
                     fb_y = int(h * 0.74)
                     logger.info(f"Using modal fallback coordinates for Find a Match: ({fb_x}, {fb_y})")
-                    self.input.click(fb_x, fb_y, pause=0.6)
+                    self.input.click(fb_x, fb_y, pause=0.2)
 
-        self._wait_for_any_image(("surrender.png", "endbattle.png", "findnow.png"), timeout=35)
+        self._wait_for_any_image(("surrender.png", "endbattle.png", "findnow.png"), timeout=15)
 
         # Smart Loot Filtration & Base Skipping (multiplayer farming)
         last_loot_detected = (0, 0, 0)
@@ -1033,13 +1037,15 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                     cb(f"Skipping base (#{skip_count}): {decision.reason}")
                 logger.info(f"Loot filter: skipping base #{skip_count} ({decision.reason})")
 
-                next_x, next_y = self._wait_for_image("findnow.png", timeout=5, error=False, threshold=0.70)
+                next_x, next_y = self._wait_for_image("findnow.png", timeout=3, error=False, threshold=0.70)
                 if not next_x:
-                    logger.warning("Next button (findnow.png) not found during base search; attacking current base.")
-                    break
-                self.input.click(next_x, next_y, pause=0.25)
-                self._wait_for_any_image(("surrender.png", "endbattle.png"), timeout=15)
-                if self.stop_event.wait(0.25):
+                    # Snappy bottom-right fallback for Next button
+                    h, w = frame.shape[:2]
+                    next_x, next_y = int(w * 0.85), int(h * 0.83)
+
+                self.input.click(next_x, next_y, pause=0.15)
+                self._wait_for_any_image(("surrender.png", "endbattle.png"), timeout=10)
+                if self.stop_event.wait(0.15):
                     return False
 
         frame = self.window.screenshot()
@@ -1066,15 +1072,15 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
         eq = getattr(self, "_earthquake_method", EARTHQUAKE_METHOD_CURVE)
         if method_id == 1:
             return TroopSpamStrategy(
-                self.input, self.vision, self.config, self.stop_event, "sneaky", 15, status_callback=cb, earthquake_method=eq
+                self.input, self.vision, self.config, self.stop_event, "sneaky", 3.5, status_callback=cb, earthquake_method=eq
             )
         elif method_id == 2:
             return TroopSpamStrategy(
-                self.input, self.vision, self.config, self.stop_event, "superminion", 3.1, status_callback=cb, earthquake_method=eq
+                self.input, self.vision, self.config, self.stop_event, "superminion", 3.0, status_callback=cb, earthquake_method=eq
             )
         elif method_id == 3:
             return TroopSpamStrategy(
-                self.input, self.vision, self.config, self.stop_event, "valkyrie", 5.5, status_callback=cb, earthquake_method=eq
+                self.input, self.vision, self.config, self.stop_event, "valkyrie", 4.0, status_callback=cb, earthquake_method=eq
             )
         elif method_id == 4:
             return EdragStrategy(
@@ -1082,19 +1088,18 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
             )
         else:
             return TroopSpamStrategy(
-                self.input, self.vision, self.config, self.stop_event, "sneaky", 15, status_callback=cb, earthquake_method=eq
+                self.input, self.vision, self.config, self.stop_event, "sneaky", 3.5, status_callback=cb, earthquake_method=eq
             )
 
     def _wait_for_battle_end(self, is_sneaky: bool) -> None:
         """Wait for the raid to finish.
 
-        Sneaky Goblins are given 35-45s of active combat to path and loot resources
-        before checking for surrender. If the battle concludes naturally earlier
-        (all troops defeated or 100% destruction), exits immediately.
+        Sneaky Goblins are given a fast 12-second window to loot all collectors and drills
+        under invisibility before clicking surrender. This maximizes loot/hr throughput (150M+/hr).
         """
         cb = getattr(self, "_status_callback", None)
-        min_combat_seconds = 35 if is_sneaky else 60
-        max_timeout = 50 if is_sneaky else 150
+        min_combat_seconds = 12 if is_sneaky else 40
+        max_timeout = 25 if is_sneaky else 120
         start = time.time()
 
         logger.info(
@@ -1127,7 +1132,7 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                 bx, by = self.vision.find_template(frame, "endbattle.png", threshold=0.75)
                 if bx:
                     logger.info("End battle button detected after %.1fs", elapsed)
-                    self.input.click(bx, by, pause=0.2)
+                    self.input.click(bx, by, pause=0.15)
                     return
 
                 # If combat duration has elapsed for sneaky goblins, safely surrender
@@ -1137,18 +1142,18 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                         logger.info("Loot phase complete (%.1fs elapsed). Surrendering raid.", elapsed)
                         if cb:
                             cb("Raid finished — surrendering")
-                        self.input.click(sx, sy, pause=0.35)
+                        self.input.click(sx, sy, pause=0.2)
                         # Handle potential surrender confirmation dialog
-                        if self.stop_event.wait(0.5):
+                        if self.stop_event.wait(0.25):
                             return
                         c_frame = self.window.screenshot()
                         if c_frame is not None:
                             cx, cy = self.vision.find_template(c_frame, "okay.png", threshold=0.75)
                             if cx:
-                                self.input.click(cx, cy, pause=0.2)
+                                self.input.click(cx, cy, pause=0.15)
                         return
 
-            if self.stop_event.wait(0.8):
+            if self.stop_event.wait(0.25):
                 return
 
         # Fallback if timeout reached: surrender if button is present
@@ -1178,14 +1183,14 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
         return ox is not None
 
     def _wait_for_return_home_or_chest_claim(
-        self, timeout: int = 10
+        self, timeout: int = 4
     ) -> Tuple[Optional[str], Optional[int], Optional[int]]:
         start = time.time()
         while time.time() - start < timeout:
             self._check_stop()
             frame = self.window.screenshot()
             if frame is None:
-                if self.stop_event.wait(0.5):
+                if self.stop_event.wait(0.15):
                     return (None, None, None)
                 continue
             self._update_config_size(frame)
@@ -1204,9 +1209,8 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
             cx, cy = self.vision.find_template(frame, "chestclaim.png", threshold=0.82)
             if cx:
                 return ("chest", cx, cy)
-            if self.stop_event.wait(0.5):
+            if self.stop_event.wait(0.15):
                 return (None, None, None)
-        logger.warning("Timeout waiting for returnhome.png / returnhome2.png (16:10) or chestclaim.png")
         return (None, None, None)
 
     def _random_point_chest_tap_through(self) -> Tuple[int, int]:
@@ -1273,11 +1277,11 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
 
     def _home_screen_recovery(self) -> None:
         """Ensures we are back at home screen. Dismisses any popup via Watchdog before considering home."""
-        for _ in range(15):
+        for _ in range(6):
             self._check_stop()
             frame = self.window.screenshot()
             if frame is None:
-                if self.stop_event.wait(1):
+                if self.stop_event.wait(0.2):
                     return
                 continue
             self._update_config_size(frame)
@@ -1285,15 +1289,15 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                 continue
             ox, oy = self.vision.find_template(frame, "okay.png")
             if ox:
-                self.input.click(ox, oy)
-                if self.stop_event.wait(0.3):
+                self.input.click(ox, oy, pause=0.1)
+                if self.stop_event.wait(0.2):
                     return
                 continue
             top_roi = VisionService.top_half_region(frame)
             hx, hy = self._find_home_village_builder(frame, top_roi)
             if hx:
                 return
-            if self.stop_event.wait(1):
+            if self.stop_event.wait(0.2):
                 return
 
     def _switch_account_and_load_home(self, username: str) -> None:
