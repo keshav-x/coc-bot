@@ -600,11 +600,10 @@ class TroopSpamStrategy(AttackStrategy):
         for p in perimeter_pts:
             if ev and ev.is_set():
                 return True
-            # 3 rapid clicks at each grass location
             for _ in range(3):
                 self.input.click(p[0], p[1], pause=0.045, rand=False)
 
-        if ev and ev.wait(0.15):
+        if ev and ev.wait(0.12):
             return True
 
         # --- Wave 2: Reverse Sweep along outer grass (Right -> Top -> Left) ---
@@ -615,13 +614,24 @@ class TroopSpamStrategy(AttackStrategy):
             for _ in range(3):
                 self.input.click(p[0], p[1], pause=0.045, rand=False)
 
-        if ev and ev.wait(0.15):
+        if ev and ev.wait(0.12):
             return True
 
-        # --- Wave 3: Final Camp Emptying Sweep (Rapid Pulsed Bursts) ---
-        # Guarantees 100% of army camp troops are emptied into the raid
-        self.input.click(tx, ty, pause=0.12, rand=False)
+        # --- Wave 3: Concentrated Forward Sweep along outer grass (Left -> Top -> Right) ---
+        self.input.click(tx, ty, pause=0.15, rand=False)
         for p in perimeter_pts:
+            if ev and ev.is_set():
+                return True
+            for _ in range(3):
+                self.input.click(p[0], p[1], pause=0.045, rand=False)
+
+        if ev and ev.wait(0.12):
+            return True
+
+        # --- Wave 4: Final Camp Emptying Sweep (Rapid Pulsed Bursts) ---
+        # Guarantees 100% of army camp troops (up to 320 camp capacity + CC = 121 drops) are emptied
+        self.input.click(tx, ty, pause=0.12, rand=False)
+        for p in reversed(perimeter_pts):
             if ev and ev.is_set():
                 return True
             self.input.click(p[0], p[1], pause=0.04, rand=False)

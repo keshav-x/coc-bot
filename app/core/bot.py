@@ -141,8 +141,8 @@ visited. Turning collection off must never strand the run in the wrong village.
 """
         home_step = plan.step_for(RP_HOME)
         builder_step = plan.step_for(RP_BUILDER)
-        visit_builder = (builder_step is not None) or plan.collect_resources
-        builder_only = (home_step is None) and (not plan.collect_resources)
+        visit_builder = builder_step is not None
+        builder_only = (home_step is None) and visit_builder
         if builder_only:
             self._ensure_correct_village(builder_base=True)
         else:
@@ -284,46 +284,40 @@ visited. Turning collection off must never strand the run in the wrong village.
     def _wall_menu_drag_to_bottom(self) -> None:
         """Scrolls the builder upgrade list downward to reveal 'Wall' at the bottom.
 
-        Uses mouse wheel scroll (non-intrusive, impossible to accidentally click building items)
-        and a safe edge swipe along the right margin.
+        Uses safe center-column upward swiping with immediate displacement to guarantee
+        scroll mode initiation (never clicks on building cards or upgrade buttons).
         """
         w, h = self.config.width, self.config.height
-        cx, cy = w // 2, h // 2
-        # 1. Primary: mouse wheel scroll down (clean, never clicks on items)
-        self.input.scroll(cx, cy, 10, upward=False)
-        if self.stop_event.wait(0.08):
-            return
-
-        # 2. Secondary: safe upward swipe along the right edge of the dialog (x ~ 0.70*w)
-        # Keeps cursor away from building buttons in the center of the list
-        drag_x = int(w * 0.70)
+        drag_x = int(w * 0.48)
         y_bot = int(h * 0.72)
-        y_top = int(h * 0.28)
+        y_top = int(h * 0.26)
         self.input.move(drag_x, y_bot)
         self.input.mouse_down(drag_x, y_bot)
+        # Immediate displacement to ensure the touch system triggers drag, never a card click
+        self.input.move(drag_x, y_bot - 25, 0x0001)  # 0x0001 = MK_LBUTTON
         try:
-            self.input.human_move(drag_x, y_bot, drag_x, y_top, duration=0.25)
+            self.input.human_move(drag_x, y_bot - 25, drag_x, y_top, duration=0.35)
         finally:
             self.input.mouse_up(drag_x, y_top)
+        # Settle delay so list kinetic inertia comes to a complete standstill
+        if self.stop_event.wait(0.35):
+            return
 
     def _wall_menu_drag_retry_nudge(self) -> None:
-        """Gentle downward scroll if 'wall' OCR misses (never scrolls back up or clicks top items)."""
+        """Gentle downward scroll retry in the safe center column."""
         w, h = self.config.width, self.config.height
-        cx, cy = w // 2, h // 2
-        # Gentle wheel scroll down
-        self.input.scroll(cx, cy, 3, upward=False)
-        if self.stop_event.wait(0.05):
-            return
-        # Gentle upward swipe along right margin
-        drag_x = int(w * 0.70)
-        y_bot = int(h * 0.65)
-        y_top = int(h * 0.55)
+        drag_x = int(w * 0.48)
+        y_bot = int(h * 0.68)
+        y_top = int(h * 0.32)
         self.input.move(drag_x, y_bot)
         self.input.mouse_down(drag_x, y_bot)
+        self.input.move(drag_x, y_bot - 25, 0x0001)
         try:
-            self.input.human_move(drag_x, y_bot, drag_x, y_top, duration=0.15)
+            self.input.human_move(drag_x, y_bot - 25, drag_x, y_top, duration=0.30)
         finally:
             self.input.mouse_up(drag_x, y_top)
+        if self.stop_event.wait(0.35):
+            return
 
     def _should_upgrade_walls(self) -> bool:
         """True when upgrade walls is requested in the plan."""
@@ -375,10 +369,10 @@ visited. Turning collection off must never strand the run in the wrong village.
         self.input.click(bx, by, pause=0.5)
 
         # 1. Scroll builder list down to the bottom (where Walls are located)
-        for _ in range(5):
+        for _ in range(6):
             self._check_stop()
             self._wall_menu_drag_to_bottom()
-            if self.stop_event.wait(0.12):
+            if self.stop_event.is_set():
                 return
 
         # 2. Locate the Wall item row in the list via robust OCR
@@ -394,7 +388,7 @@ visited. Turning collection off must never strand the run in the wrong village.
                 break
             if attempt < 5:
                 self._wall_menu_drag_retry_nudge()
-                if self.stop_event.wait(0.12):
+                if self.stop_event.is_set():
                     return
 
         if not wall_pt:
@@ -406,10 +400,10 @@ visited. Turning collection off must never strand the run in the wrong village.
             return
 
         logger.info("Selecting Wall item at (%d, %d)...", wall_pt[0], wall_pt[1])
-        self.input.click(wall_pt, pause=0.7)
+        self.input.click(wall_pt, pause=0.8)
 
         # 3. Wait for camera pan to wall and 'upgrademore.png' button to appear
-        umx, umy = self._wait_for_image("upgrademore.png", timeout=5, threshold=0.65, error=False)
+        umx, umy = self._wait_for_image("upgrademore.png", timeout=6, threshold=0.62, error=False)
         if not umx:
             logger.warning("upgrademore.png button not found after clicking wall; dismissing selection.")
             empty_pt = self.config.get_point("empty")
@@ -437,6 +431,8 @@ visited. Turning collection off must never strand the run in the wrong village.
                     continue
                 else:
                     self._upgrade_walls_pick_resource_and_okay()
+                    empty_pt = self.config.get_point("empty")
+                    self.input.click(empty_pt, pause=0.25, rand=False)
                     return
             else:
                 break
@@ -450,11 +446,15 @@ visited. Turning collection off must never strand the run in the wrong village.
             pair = VisionService.upgrade_cost_redness_by_resource_icons(frame)
             if pair.gold.redness < 0.2 or pair.elixir.redness < 0.2:
                 self._upgrade_walls_pick_resource_and_okay()
+                empty_pt = self.config.get_point("empty")
+                self.input.click(empty_pt, pause=0.25, rand=False)
                 return
             bot_roi = VisionService.bottom_half_region(frame)
             rwx, rwy = VisionService.find_active_removewall(frame, region=bot_roi)
             if not rwx:
                 self._upgrade_walls_pick_resource_and_okay()
+                empty_pt = self.config.get_point("empty")
+                self.input.click(empty_pt, pause=0.25, rand=False)
                 return
             self.input.click(rwx, rwy, pause=0.35)
 
@@ -549,8 +549,7 @@ visited. Turning collection off must never strand the run in the wrong village.
             if troop_failed:
                 return
             raids_completed += 1
-            # Perform wall upgrades periodically (every 3 raids) so it never bottlenecks hyper-speed farming
-            if upgrade_walls and (raids_completed % 3 == 0):
+            if upgrade_walls:
                 self._maybe_upgrade_walls(upgrade_walls)
             if self.stop_event.wait(random.uniform(0.1, 0.18)):
                 return
@@ -1114,8 +1113,8 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
         If the battle concludes naturally earlier (100% or army depleted), exits immediately.
         """
         cb = getattr(self, "_status_callback", None)
-        min_combat_seconds = 22 if is_sneaky else 45
-        max_timeout = 45 if is_sneaky else 80
+        min_combat_seconds = 25 if is_sneaky else 45
+        max_timeout = 50 if is_sneaky else 80
         start = time.time()
 
         logger.info(

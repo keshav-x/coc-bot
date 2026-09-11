@@ -52,8 +52,8 @@ mouse_events = []
 class MockInput:
     def scroll(self, x, y, amount, upward=True):
         scroll_events.append(('scroll', x, y, amount, upward))
-    def move(self, x, y):
-        mouse_events.append(('move', x, y))
+    def move(self, x, y, wparam=0):
+        mouse_events.append(('move', x, y, wparam))
     def mouse_down(self, x, y):
         mouse_events.append(('down', x, y))
     def mouse_up(self, x, y):
@@ -67,33 +67,27 @@ bot.input = MockInput()
 
 # Call _wall_menu_drag_to_bottom
 bot._wall_menu_drag_to_bottom()
-# Verify it called scroll down (upward=False)
-assert len(scroll_events) >= 1
-assert scroll_events[0][4] is False, "Expected downward mouse wheel scroll"
-print("[PASS] _wall_menu_drag_to_bottom uses non-intrusive downward wheel scroll")
 
-# Verify swipe is on right margin (x >= 0.65 * w) to avoid clicking cards
+# Verify swipe is in the safe center-neutral column (0.45*w <= x <= 0.52*w) away from right-side upgrade buttons
 assert len(mouse_events) >= 1
 for ev in mouse_events:
     if ev[0] in ('move', 'down', 'up'):
-        assert ev[1] >= int(1920 * 0.65), f"Mouse event X too close to center cards: {ev[1]}"
+        assert int(1920 * 0.45) <= ev[1] <= int(1920 * 0.52), f"Mouse event X outside safe center column: {ev[1]}"
     elif ev[0] == 'drag':
-        assert ev[1] >= int(1920 * 0.65) and ev[3] >= int(1920 * 0.65)
+        assert int(1920 * 0.45) <= ev[1] <= int(1920 * 0.52)
         # Verify drag is upward (scrolling down), y1 > y2
         assert ev[2] > ev[4], f"Drag should be upward swipe, got {ev[2]} -> {ev[4]}"
-print("[PASS] Safe edge swipe is positioned strictly in the right margin gutter (x ~ 0.70*w)")
+print("[PASS] Safe list swipe is positioned strictly in the center neutral column (x ~ 0.48*w)")
 
 # Test 4: _wall_menu_drag_retry_nudge
 scroll_events.clear()
 mouse_events.clear()
 bot._wall_menu_drag_retry_nudge()
-assert len(scroll_events) >= 1
-assert scroll_events[0][4] is False, "Expected downward nudge"
 for ev in mouse_events:
     if ev[0] == 'drag':
         # Must be upward swipe, never downward
         assert ev[2] > ev[4], f"Retry nudge dragged downward back to top: {ev[2]} -> {ev[4]}"
-print("[PASS] _wall_menu_drag_retry_nudge never scrolls back up or clicks top cards")
+print("[PASS] _wall_menu_drag_retry_nudge safely scrolls downward in the center column")
 
 # Test 5: Clean dismissal when no walls available
 empty_clicks = []

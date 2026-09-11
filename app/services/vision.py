@@ -1559,7 +1559,7 @@ class VisionService:
         screen_img: np.ndarray,
         *,
         side: Optional[int] = None,
-        min_confidence: int = 25,
+        min_confidence: int = 40,
         white_text: bool = True,
         brightness_floor: Optional[int] = None,
         cc_filter_blobs: bool = False,
@@ -1568,24 +1568,31 @@ class VisionService:
         tesseract_config: Optional[str] = None,
         save_debug_preprocess: bool = False,
     ) -> Optional[Tuple[int, int]]:
-        """Locates the 'Wall' / 'Walls' item in the Builder Suggested / Available Upgrades menu.
+        """Locates the 'Wall' / 'Walls' item in the Builder Available Upgrades menu.
 
-        Covers the full vertical span of the menu (y=0.12*h to 0.90*h) so scrolled walls at the bottom
-        are never cut off. Uses robust OCR matching that handles 'Wall (14)', 'Walls', and prevents
-        false matches on 'Town Hall' or other non-wall buildings.
+        Excludes the top Suggested Upgrades section (y < 0.22*h) to prevent any false matches
+        on Town Hall or high-priority defenses. Uses strict exact word matching for 'Wall' / 'Walls'
+        with an exhaustive non-wall building exclusion blacklist.
         """
         if screen_img is None or getattr(screen_img, "size", 0) == 0:
             return None
 
         h_s, w_s = screen_img.shape[:2]
-        # Builder menu ROI: covers horizontal center (24% to 76%) and vertical (12% to 90%)
-        rx = int(w_s * 0.24)
-        ry = int(h_s * 0.12)
-        rw = int(w_s * 0.52)
-        rh = int(h_s * 0.78)
+        # Builder menu Available Upgrades ROI: center column (28% to 72%) and vertical (22% to 92%)
+        rx = int(w_s * 0.28)
+        ry = int(h_s * 0.22)
+        rw = int(w_s * 0.44)
+        rh = int(h_s * 0.70)
         roi = (rx, ry, rw, rh)
 
         passes_cfg = ["--psm 11", "--psm 6"] if tesseract_config is None else [tesseract_config]
+
+        blacklist = (
+            "town", "hall", "clan", "castle", "cannon", "tower", "mortar", "tesla",
+            "trap", "mine", "collector", "storage", "barracks", "factory", "camp",
+            "workshop", "hero", "pet", "lab", "laboratory", "blacksmith", "artillery",
+            "monolith", "suggested", "available", "builder"
+        )
 
         for cfg in passes_cfg:
             # Pass 1: Grayscale directly (uses Tesseract native Otsu Leptonica binarization)
@@ -1615,11 +1622,11 @@ class VisionService:
                     continue
                 # Clean punctuation, numbers, and symbols: "Wall(14)" -> "wall", "Walls" -> "walls"
                 cleaned = re.sub(r"[^a-zA-Z]", "", raw).lower()
-                if cleaned in ("wall", "walls") or "wall" in cleaned or (cleaned.startswith("wal") and len(cleaned) <= 6):
+                if cleaned in ("wall", "walls"):
                     # Check line context to exclude "Town Hall", "Clan Castle", etc.
-                    line_words = [other.text.lower() for other in words if abs(other.top - b.top) < int(h_s * 0.04)]
+                    line_words = [other.text.lower() for other in words if abs(other.top - b.top) < int(h_s * 0.045)]
                     line_text = " ".join(line_words)
-                    if any(bad in line_text for bad in ("town", "hall", "clan", "castle", "suggested")):
+                    if any(bad in line_text for bad in blacklist):
                         continue
                     matches.append(b)
 

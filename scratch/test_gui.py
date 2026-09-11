@@ -66,4 +66,10 @@ print("   -> LicensePage verified.")
 assert main_win._logs_page is not None
 print("   -> LogsPage verified.")
 
+# Verify pre-default setting: Builder Base fully disabled, Home Village enabled
+plan = main_win._run_page.build_plan()
+assert plan.includes("home"), "Expected Home Village to be included by default"
+assert not plan.includes("builder"), "Expected Builder Base to be FULLY DISABLED by default"
+print("   -> Run plan verified: Builder Base is FULLY DISABLED by default, Home Village enabled!")
+
 print("\n*** ALL GUI HEADLESS TESTS PASSED WITH ZERO CRASHES! ***")

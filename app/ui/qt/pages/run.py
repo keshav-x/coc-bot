@@ -454,7 +454,10 @@ class RunPage(QWidget):
             if i:
                 inc_row.addSpacing(SPACING["lg"])
             switch = ToggleSwitch(INCLUDE_LABELS[key], parent=card)
-            switch.setChecked(True)
+            is_default = (key != BUILDER)
+            switch.setChecked(is_default)
+            if not is_default and key not in self._off_order:
+                self._off_order.append(key)
             switch.toggled.connect(lambda checked, k=key: self._on_include_toggled(k, checked))
             self._include_switches[key] = switch
             inc_row.addWidget(switch)
