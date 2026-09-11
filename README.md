@@ -1,160 +1,277 @@
-# Clash AutoLoot Bot (Recovered Source Code)
+<div align="center">
 
-Fully reconstructed, clean Python source code for **Clash AutoLoot**, reverse-engineered directly from `ClashAutoLoot.exe`.
+<img src="assets/apex_clash_logo.png" alt="ApexClash Pro Logo" width="160" style="border-radius: 24px; box-shadow: 0 8px 32px rgba(0, 229, 255, 0.25);" />
 
-## Project Structure
+# ⚔️ ApexClash Pro
+### *The Next-Generation Autonomous Combat, Farming & Anti-Ban Suite for Clash of Clans*
 
-```
-ClashAutoLoot_recovered/
-├── assets/                    # Application logos and icon assets
-├── templates/                 # Image templates for CV recognition
-│   ├── 16_9/                  # 16:9 aspect ratio game templates
-│   ├── 16_10/                 # 16:10 aspect ratio game templates
-│   ├── icons/                 # Resource icons (gold, elixir, dark elixir)
-│   └── data.json              # Template metadata coordinates & anchors
-├── tessdata/                  # Tesseract OCR language training data
-├── app/
-│   ├── __init__.py            # Package root (__version__ = "1.0.0")
-│   ├── config.py              # Aspect ratio, resolutions, path detection
-│   ├── core/                  # Core bot algorithms & state machine
-│   │   ├── __init__.py
-│   │   ├── bot.py             # Bot execution loops, attack logic, village navigation
-│   │   ├── loot_filter.py     # Smart Loot Filtration engine & real-time analytics
-│   │   ├── run_plan.py        # RunPlan, VillageStep, player rotation definitions
-│   │   └── strategies.py      # BaseStrategy, StrategyResult, troop deployment
-│   ├── services/              # OS, Vision, Input & Licensing services
-│   │   ├── __init__.py
-│   │   ├── antiban.py         # Humanized Bezier paths, Gaussian scatter, fatigue breaks
-│   │   ├── input.py           # Win32 PostMessage mouse clicks and drags
-│   │   ├── license.py         # License verification, device pairing, and heartbeat
-│   │   ├── taskbar_thumb.py   # Windows taskbar thumbnail toolbar buttons
-│   │   ├── trial.py           # 2-Hour free trial wallet tracking & verification
-│   │   ├── vision.py          # OpenCV template matching & OCR battle loot extraction
-│   │   ├── webhook.py         # Discord Webhook raid summaries & alerts dispatcher
-│   │   └── window.py          # Win32 window detection & GDI screenshot capture
-│   ├── ui/                    # User interface
-│   │   ├── __init__.py
-│   │   └── qt/                # PySide6 Qt GUI
-│   │       ├── __init__.py
-│   │       ├── _constants.py  # Attack strategies, pricing constants ($5/device/mo, 2h trial)
-│   │       ├── app.py         # GUI entry point (run_gui)
-│   │       ├── bot_controller.py # QObject controller bridging UI with bot thread
-│   │       ├── branding.py    # App icon and logo loading
-│   │       ├── dialogs.py     # Modal dialogs (confirmations, errors, help)
-│   │       ├── main_window.py # Main application window and sidebar shell
-│   │       ├── taskbar_thumb_qt.py # Qt Windows taskbar integration
-│   │       ├── theme.py       # Design tokens, color palette, dimensions
-│   │       ├── widgets.py     # Custom styled Qt components (StatCard, Card, Buttons, etc.)
-│   │       └── pages/         # Application pages
-│   │           ├── __init__.py
-│   │           ├── antiban_page.py # Anti-Ban profiles (Stealth/Balanced/Fast) & break settings
-│   │           ├── license.py # $5/mo Subscription activation & 2-hour trial status
-│   │           ├── logs.py    # Real-time scrolling log viewer page
-│   │           ├── loot_filter_page.py # Minimum loot thresholds & auto-skip controls
-│   │           ├── players.py # Supercell ID player list & account rotation page
-│   │           ├── run.py     # Real-time dashboard (4 StatCards), strategy selector & cockpit
-│   │           └── settings.py# Earthquake placement & window detection settings page
-│   └── utils/                 # Utility functions & storage
-│       ├── __init__.py
-│       ├── common.py          # Resource path resolution (_MEIPASS / dev)
-│       ├── logger.py          # Centralized logging configuration
-│       ├── player_list_store.py # Persistent player list JSON storage
-│       ├── profile_settings_store.py # Earthquake profile JSON storage
-│       ├── tesseract_env.py   # Tesseract environment initialization
-│       └── window_settings_store.py  # Pinned window selection JSON storage
-├── scratch/                   # Automated verification test suites
-│   ├── test_suite.py          # Logic, filtration, anti-ban, trial, and webhook tests
-│   └── test_gui.py            # Headless Qt GUI integration tests
-├── main.py                    # Application launch entry point
-└── requirements.txt           # Python package dependencies
-```
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://microsoft.com/windows)
+[![GUI](https://img.shields.io/badge/GUI-PySide6%20%2F%20Qt-41CD52?style=for-the-badge&logo=qt&logoColor=white)](https://qt.io)
+[![Computer Vision](https://img.shields.io/badge/Vision-OpenCV%20%2B%20Tesseract-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)](https://opencv.org)
+[![Anti-Ban](https://img.shields.io/badge/Security-Humanized%20B%C3%A9zier%203.0-00E5FF?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
+[![License](https://img.shields.io/badge/License-Proprietary%20%2F%20Commercial-FFB300?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
+
+<p align="center">
+  <b>High-Precision Game Automation</b> • <b>Zero-Lag Modern Qt Cockpit</b> • <b>Undetectable Behavioral Physics</b> • <b>Cryptographic Key Activation</b>
+</p>
+
+</div>
 
 ---
 
-## Key Features
-
-- **Pricing & Free Trial**:
-  - **$5.00 / Device / Month** billing tier.
-  - **2-Hour Free Trial** (7,200 seconds) with machine fingerprinting.
-- **Intelligent Anti-Ban Suite**:
-  - Humanized Cubic Bezier cursor paths with physiological acceleration profiles.
-  - Micro-tremor simulation and Gaussian spatial scatter.
-  - Natural click dwell durations (45–85ms contact time).
-  - Configurable fatigue break scheduler (Stealth, Balanced, Fast profiles) with idle inspections.
-  - APM (Actions Per Minute) rate limiter.
-- **Smart Loot Filtration & Auto-Skip**:
-  - Configurable minimum thresholds for Gold, Elixir, and Dark Elixir.
-  - Matching modes: *Either Gold or Elixir* (OR), *Both Gold and Elixir* (AND), and *Dark Elixir Priority*.
-  - Automatic base skipping until profitable targets are found.
-  - Max skip safety budget override.
-- **Modernized GUI & Out-of-the-Box Features**:
-  - Live analytics dashboard displaying **Gold/hr**, **Elixir/hr**, **Dark Elixir/hr**, and **Raids / Skips**.
-  - Asynchronous Discord Webhook dispatching rich embed raid summaries and break alerts.
-  - PySide6 dark-mode interface with zero lag and non-blocking background workers.
+## 📖 Table of Contents
+- [✨ Key Features](#-key-features)
+- [🛡️ Anti-Ban Engine 3.0](#️-anti-ban-engine-30)
+- [💰 Smart Loot Filtration](#-smart-loot-filtration)
+- [⚔️ Combat Strategies](#️-combat-strategies)
+- [🚀 Quickstart Guide](#-quickstart-guide)
+- [🎮 Game & Emulator Setup](#-game--emulator-setup)
+- [🔑 Activation Key System](#-activation-key-system)
+- [📊 Cockpit & Discord Webhooks](#-cockpit--discord-webhooks)
+- [🧪 Verification & Tests](#-verification--tests)
+- [📦 Compiling to Standalone `.exe`](#-compiling-to-standalone-exe)
+- [📁 Project Architecture](#-project-architecture)
+- [⚖️ Disclaimer](#️-disclaimer)
 
 ---
 
-## Setup & Running
+## ✨ Key Features
+
+- **🎯 Sub-Pixel Precision Direct Win32 Input**: Automatic client area offset calibration (`GetClientRect` & `ClientToScreen`) eliminates title bar offsets across all window modes, Google Play Games PC, and emulators.
+- **🛡️ Undetectable Humanized Movement**: Physiological cubic Bézier trajectories, Gaussian spatial micro-scatter (±2px), realistic contact dwell (45–85ms), and randomized APM throttling.
+- **💰 Smart Loot Filtration & Auto-Skip**: Real-time battle HUD optical character recognition (OCR). Dynamically skips unprofitable targets until configurable Gold, Elixir, and Dark Elixir thresholds are satisfied.
+- **⚔️ Masterclass Combat Algorithms**: High-performance multi-finger perimeter waves (no camera dragging or map panning), intelligent bottom-bar troop auto-fallback, delayed hero ability timing, and defensive cluster spell penetration.
+- **🌙 Aurora Dark Theme Cockpit**: Responsive PySide6 UI featuring live StatCards (**Gold/hr**, **Elixir/hr**, **DE/hr**, **Raids Completed**, **Bases Skipped**), real-time scrolling logs, and custom telemetry history.
+- **📢 Discord Webhooks & Desktop Notifications**: Instant rich embed raid reports, loot summaries, and break alerts sent directly to your Discord server or Windows Action Center.
+- **🔐 Hardware-Locked Licensing System**: Cryptographically signed HMAC-SHA256 activation with automated 2-hour free trials and 1-device monthly/lifetime binding.
+
+---
+
+## 🛡️ Anti-Ban Engine 3.0
+
+ApexClash Pro incorporates state-of-the-art behavioral simulation engineered to bypass heuristic detection:
+
+| Anti-Ban Component | Implementation Specification |
+|:---|:---|
+| **Trajectory Modeling** | Cubic Bézier curves with randomized control point inflection and ease-in/ease-out acceleration |
+| **Spatial Dispersion** | Human hand jitter modeled with Gaussian normal distribution ($\sigma = 2.0\text{px}$) |
+| **Contact Dwell** | Realistic physical mouse press duration varying between $45\text{ms}$ and $85\text{ms}$ |
+| **APM Governor** | Dynamic Actions-Per-Minute limiter preventing repetitive robotic bursts |
+| **Fatigue Scheduler** | Automated break intervals with randomized duration and human-like idle village inspections |
+| **Stealth Profiles** | Pre-calibrated **Stealth**, **Balanced**, and **Fast** operating profiles |
+
+---
+
+## 💰 Smart Loot Filtration
+
+Never waste troops on empty bases. The integrated vision engine inspects enemy storage levels in matchmaking before committing:
+
+```
+[Matchmaking Search] ──► [Inspect Top-Left HUD] ──► [Evaluate Thresholds]
+                                                             │
+                  ┌──────────────────────────────────────────┴──────────────────────────────────────────┐
+                  ▼                                                                                     ▼
+    [Criteria Met: Gold ≥ 500k, Elixir ≥ 500k]                                        [Below Thresholds: Gold < 500k]
+                  │                                                                                     │
+                  ▼                                                                                     ▼
+       Deploy Combat Strategy                                                            Click 'Next' & Record Skip
+```
+
+- **OR Mode**: Attacks if **either** Gold or Elixir satisfies your quota.
+- **AND Mode**: Requires **both** Gold and Elixir to be met simultaneously.
+- **Dark Elixir Priority**: Specifically hunts for Dark Elixir reservoirs.
+- **Max Skips Safety Override**: Attacks the best available base after reaching a search budget limit.
+
+---
+
+## ⚔️ Combat Strategies
+
+### 1. 🟢 Sneaky Goblins (High-Velocity Resource Sniping)
+- **Deployment**: Surgical 4-quadrant diamond perimeter taps along all boundaries (`left->top`, `top->right`, `right->bottom`, `bottom->left`).
+- **Objective**: Rapidly extracts outer resource collectors and drills, penetrates compartments, and secures the Town Hall.
+- **No Map-Panning**: Tap-based multi-wave deployment ensures the emulator camera stays locked in place.
+
+### 2. ⚡ Electro Dragons (Chain Lightning Front)
+- **Deployment**: Wide, evenly-spaced perimeter arc along the defense front line.
+- **Objective**: Destroys high-density defensive clusters and core installations with bouncing lightning strikes.
+
+### 3. 🪓 Valkyries & Super Minions (Core Penetration)
+- **Deployment**: Fast perimeter funneling followed by concentrated core assault with Earthquake wall destruction.
+
+### 4. 👑 Tactical Hero Ability Timing
+- Deploys Barbarian King, Archer Queen, Grand Warden, and Royal Champion at designated funnel points.
+- **Delayed Ability Activation (8–12s)**: Hero abilities are held until troops breach the outer defense ring, unleashing King Iron Fist, Queen Royal Cloak, and Warden Eternal Tome precisely when defenses focus fire.
+
+### 5. 🔄 Intelligent Auto-Troop Fallback
+- If a specific troop icon isn't matched due to visual skins or custom armies, ApexClash Pro automatically detects and selects alternative available troops or defaults to **Troop Slot 1**. Attacks are **never aborted** due to missing templates.
+
+---
+
+## 🚀 Quickstart Guide
 
 ### 1. Prerequisites
-- **Python**: Python 3.10, 3.11, 3.12, 3.13, or 3.14 (64-bit).
-- **Windows OS**: Windows 10 / 11 for Win32 API interactions and Google Play Games capture.
+- **Operating System**: Windows 10 or Windows 11 (64-bit).
+- **Python**: Python 3.10 to 3.14 (64-bit). Download from [python.org](https://www.python.org/downloads/).
+- *(Optional for OCR Loot Filtration)* **Tesseract OCR**:
+  ```powershell
+  winget install UB-Mannheim.TesseractOCR
+  ```
 
-### 2. Install Dependencies
-Open PowerShell in the project directory:
+### 2. Installation
+Open PowerShell in your project folder:
 ```powershell
+# 1. Clone the repository
+git clone https://github.com/keshav-x/coc-bot.git
+cd coc-bot
+
+# 2. (Recommended) Create and activate a virtual environment
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# 3. Install required dependencies
 python -m pip install -r requirements.txt
 ```
 
-### 3. Generate & Manage Activation Keys (Seller Utility)
-Clash AutoLoot uses a cryptographically signed HMAC-SHA256 licensing scheme requiring zero external auth servers:
+### 3. Launching ApexClash Pro
 ```powershell
-# 1. Generate a 30-day $5/month key (binds to 1st device activated on):
-python keygen.py --generate --type monthly --days 30
-
-# 2. Generate a lifetime key:
-python keygen.py --generate --type lifetime
-
-# 3. Generate a key pre-locked to a specific customer Machine ID:
-python keygen.py --generate --type monthly --days 30 --machine <CUSTOMER_MACHINE_ID>
-
-# 4. Verify any key:
-python keygen.py --verify <KEY>
-
-# 5. Check local PC hardware fingerprint:
-python keygen.py --my-id
-```
-
-### 4. Run Automated Tests
-```powershell
-python scratch/test_suite.py
-python scratch/test_gui.py
-```
-
-### 5. Run the Application
-Launch the graphical user interface with Aurora Cyber-Clash theme:
-```powershell
+# Launch the full Modern Dark-Mode GUI:
 python main.py
-```
 
-Or run headless in CLI mode:
-```powershell
+# Or launch in lightweight CLI headless mode:
 python main.py --cli
 ```
 
 ---
 
-## Packaging into Standalone `.exe` (PyInstaller)
+## 🎮 Game & Emulator Setup
 
-To compile a standalone Windows executable:
+ApexClash Pro is engineered to work out of the box with the most popular Windows game clients:
+
+1. **Supported Clients**:
+   - **Google Play Games on PC** *(Recommended official client)*
+   - **BlueStacks 5**
+   - **LDPlayer 9**
+   - **MuMu Player / Nox**
+2. **Display Settings**:
+   - Set game resolution to **1920×1080** (16:9) or **1920×1200** (16:10).
+   - Set game language to **English**.
+3. **Window Selection**:
+   - Launch Clash of Clans.
+   - In ApexClash Pro, navigate to **Settings → Game Window** to select or auto-detect your game window.
+
+---
+
+## 🔑 Activation Key System
+
+ApexClash Pro includes a standalone seller licensing utility (`keygen.py`) backed by HMAC-SHA256 signatures:
+
+```powershell
+# Generate a standard 30-day $5/month key (binds on first machine used):
+python keygen.py --generate --type monthly --days 30
+
+# Generate a Lifetime key:
+python keygen.py --generate --type lifetime
+
+# Generate a key pre-locked to a specific customer's Machine ID:
+python keygen.py --generate --type monthly --days 30 --machine <CUSTOMER_MACHINE_ID>
+
+# Verify validity and expiration of any key:
+python keygen.py --verify <KEY>
+
+# Check your current PC hardware fingerprint:
+python keygen.py --my-id
+```
+
+---
+
+## 📊 Cockpit & Discord Webhooks
+
+Stay updated on your farming progress from anywhere:
+
+- **Live StatCards**: Displays real-time estimated hourly loot velocity and raid counts.
+- **Discord Webhooks**: Configure your webhook URL under **Settings → Webhook** to receive automatic raid completion embeds, loot snapshots, and break notifications.
+- **Native Desktop Notifications**: Windows Action Center banners alert you when mega raids are completed or scheduled breaks begin.
+
+---
+
+## 🧪 Verification & Tests
+
+ApexClash Pro ships with automated test suites verifying all core modules:
+
+```powershell
+# Run full logic, trial, anti-ban, and filtration tests:
+python scratch/test_suite.py
+
+# Run coordinate calibration, precision scatter, and combat strategy tests:
+python scratch/test_attack_logic.py
+
+# Run headless PySide6 GUI integration test:
+python scratch/test_gui.py
+```
+
+---
+
+## 📦 Compiling to Standalone `.exe`
+
+To package ApexClash Pro into a portable Windows executable:
+
 ```powershell
 python -m pip install pyinstaller
 pyinstaller --noconfirm --onedir --windowed `
-  --name "ClashAutoLoot" `
-  --icon "assets/clash_autoloot_logo.ico" `
+  --name "ApexClashPro" `
+  --icon "assets/apex_clash_logo.ico" `
   --add-data "assets;assets" `
   --add-data "templates;templates" `
   --add-data "tessdata;tessdata" `
   main.py
 ```
 
+The compiled binary will be generated under `dist/ApexClashPro/ApexClashPro.exe`.
+
+---
+
+## 📁 Project Architecture
+
+```
+coc-bot/
+├── assets/                       # High-resolution logos & ICO files
+│   ├── apex_clash_logo.png
+│   └── apex_clash_logo.ico
+├── templates/                    # Computer vision matching templates
+│   ├── 16_9/                     # 16:9 reference graphics
+│   ├── 16_10/                    # 16:10 reference graphics
+│   └── icons/                    # Resource icons (Gold, Elixir, Dark Elixir)
+├── app/
+│   ├── core/                     # Bot execution & strategy logic
+│   │   ├── bot.py                # Main state loop & village navigation
+│   │   ├── loot_filter.py        # Smart Loot Filtration engine
+│   │   ├── run_plan.py           # Multi-account rotation plan
+│   │   ├── strategies.py         # Multi-wave combat algorithms
+│   │   └── watchdog.py           # Auto-recovery watchdog
+│   ├── services/                 # Hardware & system service bridges
+│   │   ├── antiban.py            # Bézier paths, Gaussian jitter & breaks
+│   │   ├── input.py              # Win32 PostMessage mouse dispatch
+│   │   ├── license.py            # Cryptographic key validation
+│   │   ├── notifications.py      # Native Windows notifications
+│   │   ├── trial.py              # 2-hour free trial tracker
+│   │   ├── vision.py             # OpenCV template matching & OCR
+│   │   ├── webhook.py            # Discord embed webhook dispatcher
+│   │   └── window.py             # Win32 client area capture & cropping
+│   └── ui/qt/                    # PySide6 desktop GUI
+│       ├── branding.py           # Brand identities & logo loaders
+│       ├── main_window.py        # Sidebar & central stack coordinator
+│       ├── theme.py              # Design tokens & Aurora Cyber palette
+│       ├── widgets.py            # Custom cards, buttons, & toggles
+│       └── pages/                # Individual app pages
+├── scratch/                      # Automated test suites
+├── keygen.py                     # Standalone licensing CLI
+├── main.py                       # Application bootstrap
+└── requirements.txt              # Project dependencies
+```
+
+---
+
+## ⚖️ Disclaimer
+
+*ApexClash Pro is developed solely for educational, reverse-engineering, and computer vision research purposes. Clash of Clans is a registered trademark of Supercell Oy. This project is not affiliated with, endorsed, or sponsored by Supercell. Users are responsible for complying with all applicable terms of service.*
