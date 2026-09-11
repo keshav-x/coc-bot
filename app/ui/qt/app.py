@@ -12,7 +12,7 @@ from app.ui.qt.theme import apply_theme
 
 def run_gui() -> None:
     app = QApplication(sys.argv)
-    app.setApplicationName("Clash AutoLoot")
+    app.setApplicationName("ApexClash Pro")
     apply_app_icon(app)
     apply_theme(app)
     window = MainWindow()

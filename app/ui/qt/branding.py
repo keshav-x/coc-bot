@@ -7,22 +7,26 @@ from app.utils.common import get_resource_path
 
 _ICON: QIcon | None = None
 
-LOGO_PNG = "assets/clash_autoloot_logo.png"
-LOGO_ICO = "assets/clash_autoloot_logo.ico"
+APP_NAME = "ApexClash Pro"
+APP_SUBTITLE = "AUTONOMOUS COMBAT SUITE"
+APP_FULL_TITLE = "ApexClash Pro — Autonomous Combat & Farming Suite"
+
+LOGO_PNG = "assets/apex_clash_logo.png"
+LOGO_ICO = "assets/apex_clash_logo.ico"
+LEGACY_LOGO_PNG = "assets/clash_autoloot_logo.png"
+LEGACY_LOGO_ICO = "assets/clash_autoloot_logo.ico"
 
 
 def app_icon() -> QIcon:
     global _ICON
     if _ICON is not None:
         return _ICON
-    ico = get_resource_path(LOGO_ICO)
-    png = get_resource_path(LOGO_PNG)
-    if ico.is_file():
-        _ICON = QIcon(str(ico))
-    elif png.is_file():
-        _ICON = QIcon(str(png))
-    else:
-        _ICON = QIcon()
+    for path in (LOGO_ICO, LOGO_PNG, LEGACY_LOGO_ICO, LEGACY_LOGO_PNG):
+        f = get_resource_path(path)
+        if f.is_file():
+            _ICON = QIcon(str(f))
+            return _ICON
+    _ICON = QIcon()
     return _ICON
 
 

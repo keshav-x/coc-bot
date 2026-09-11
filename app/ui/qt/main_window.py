@@ -23,7 +23,13 @@ from PySide6.QtWidgets import (
 from app import __version__
 from app.services.license import LicenseState
 from app.services.notifications import set_system_tray
-from app.ui.qt.branding import apply_app_icon, logo_pixmap
+from app.ui.qt.branding import (
+    APP_FULL_TITLE,
+    APP_NAME,
+    APP_SUBTITLE,
+    apply_app_icon,
+    logo_pixmap,
+)
 from app.ui.qt.bot_controller import BotController
 from app.ui.qt.dialogs import show_error
 from app.ui.qt.pages.antiban_page import AntiBanPage
@@ -50,11 +56,11 @@ PAGE_LABELS = ["Cockpit", "Loot Filter", "Anti-Ban", "Settings", "Players", "Lic
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Clash AutoLoot Bot")
+        self.setWindowTitle(APP_FULL_TITLE)
         self.resize(*WINDOW_DEFAULT)
         self.setMinimumSize(*WINDOW_MIN)
 
-        self._settings = QSettings("ClashAutoLoot", "UI")
+        self._settings = QSettings("ApexClash", "UI")
         self._controller = BotController(bot_version=__version__)
         self._taskbar = None
         self._taskbar_setup_attempts = 0
@@ -70,17 +76,26 @@ class MainWindow(QMainWindow):
         sidebar_panel.setFixedWidth(SIDEBAR_WIDTH)
         sidebar_col = QVBoxLayout(sidebar_panel)
         sidebar_col.setContentsMargins(12, 16, 12, 8)
-        sidebar_col.setSpacing(8)
+        sidebar_col.setSpacing(6)
 
         logo = QLabel()
         logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        logo.setPixmap(logo_pixmap(48))
+        logo.setPixmap(logo_pixmap(56))
         sidebar_col.addWidget(logo)
 
-        brand = QLabel("Clash AutoLoot")
+        brand = QLabel(APP_NAME)
         brand.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        brand.setStyleSheet(f"font-weight: bold; color: {TOKENS['text']};")
+        brand.setStyleSheet(
+            f"font-size: 15px; font-weight: 800; letter-spacing: 0.5px; color: {TOKENS['text']};"
+        )
         sidebar_col.addWidget(brand)
+
+        subtitle = QLabel(APP_SUBTITLE)
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtitle.setStyleSheet(
+            f"font-size: 9px; font-weight: 700; letter-spacing: 1.5px; color: {TOKENS['primary']};"
+        )
+        sidebar_col.addWidget(subtitle)
 
         self._sidebar = QListWidget()
         self._sidebar.setObjectName("Sidebar")

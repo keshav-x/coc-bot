@@ -195,7 +195,7 @@ class SettingsPage(QWidget):
             notify_on_stop=True,
         )
         save_webhook_config(cfg)
-        notify_bot_started("Test Ping from Clash AutoLoot Settings")
+        notify_bot_started("Test Ping from ApexClash Pro Settings")
         QMessageBox.information(
             self,
             "Ping Sent",
