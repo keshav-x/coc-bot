@@ -1559,7 +1559,7 @@ class VisionService:
         screen_img: np.ndarray,
         *,
         side: Optional[int] = None,
-        min_confidence: int = 40,
+        min_confidence: int = 0,
         white_text: bool = True,
         brightness_floor: Optional[int] = None,
         cc_filter_blobs: bool = False,
@@ -1568,75 +1568,60 @@ class VisionService:
         tesseract_config: Optional[str] = None,
         save_debug_preprocess: bool = False,
     ) -> Optional[Tuple[int, int]]:
-        """Locates the 'Wall' / 'Walls' item in the Builder Available Upgrades menu.
+        """Locate the 'Wall' row in the open builder popup.
 
-        Excludes the top Suggested Upgrades section (y < 0.22*h) to prevent any false matches
-        on Town Hall or high-priority defenses. Uses strict exact word matching for 'Wall' / 'Walls'
-        with an exhaustive non-wall building exclusion blacklist.
+        Same pipeline as :meth:`ocr_letters_top_center`, using the same ROI
+        (top-center square). Returns the **lowest** word-box center whose text
+        contains 'wall' (case-insensitive). ``None`` if no such word.
+
+        Blob filter is intentionally left off (kills small label glyphs at this
+        capture size). Dual-polarity is the caller's job: call this twice with
+        ``white_text=False`` then ``white_text=True``.
         """
         if screen_img is None or getattr(screen_img, "size", 0) == 0:
             return None
 
-        h_s, w_s = screen_img.shape[:2]
-        # Builder menu Available Upgrades ROI: center column (28% to 72%) and vertical (22% to 92%)
-        rx = int(w_s * 0.28)
-        ry = int(h_s * 0.22)
-        rw = int(w_s * 0.44)
-        rh = int(h_s * 0.70)
-        roi = (rx, ry, rw, rh)
-
-        passes_cfg = ["--psm 11", "--psm 6"] if tesseract_config is None else [tesseract_config]
-
-        blacklist = (
-            "town", "hall", "clan", "castle", "cannon", "tower", "mortar", "tesla",
-            "trap", "mine", "collector", "storage", "barracks", "factory", "camp",
-            "workshop", "hero", "pet", "lab", "laboratory", "blacksmith", "artillery",
-            "monolith", "suggested", "available", "builder"
+        cfg = (
+            "--psm 11 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            if tesseract_config is None
+            else str(tesseract_config).strip()
         )
 
-        for cfg in passes_cfg:
-            # Pass 1: Grayscale directly (uses Tesseract native Otsu Leptonica binarization)
-            words = VisionService.find_words_ocr(
-                screen_img,
-                roi,
-                min_confidence=min_confidence,
-                preprocess=False,
-                tesseract_config=cfg,
-            )
-            # Pass 2: If no words returned, try with mild binarization floor 130
-            if not words:
-                words = VisionService.find_words_ocr(
-                    screen_img,
-                    roi,
-                    min_confidence=min_confidence,
-                    preprocess=True,
-                    white_text=True,
-                    brightness_floor=130,
-                    tesseract_config=cfg,
-                )
+        save_png = None
+        if save_debug_preprocess:
+            from app.utils.common import get_resource_path
+            save_png = get_resource_path("glyph_debug/wall_find_preprocess.png")
 
-            matches = []
-            for b in words:
-                raw = b.text.strip()
-                if not raw:
-                    continue
-                # Clean punctuation, numbers, and symbols: "Wall(14)" -> "wall", "Walls" -> "walls"
-                cleaned = re.sub(r"[^a-zA-Z]", "", raw).lower()
-                if cleaned in ("wall", "walls"):
-                    # Check line context to exclude "Town Hall", "Clan Castle", etc.
-                    line_words = [other.text.lower() for other in words if abs(other.top - b.top) < int(h_s * 0.045)]
-                    line_text = " ".join(line_words)
-                    if any(bad in line_text for bad in blacklist):
-                        continue
-                    matches.append(b)
+        words = VisionService.ocr_letters_top_center(
+            screen_img,
+            side=side,
+            min_confidence=min_confidence,
+            white_text=white_text,
+            brightness_floor=brightness_floor,
+            cc_filter_blobs=cc_filter_blobs,
+            cc_min_area=cc_min_area,
+            cc_max_area=cc_max_area,
+            tesseract_config=cfg,
+            save_preprocess_png=save_png,
+        )
 
-            if matches:
-                # In Clash of Clans builder menu, Wall is always at the bottom of available upgrades
-                best = max(matches, key=lambda b: b.top + b.height)
-                logger.info("Found wall label %r at (%d, %d)", best.text, best.center[0], best.center[1])
-                return best.center
+        # Fence: only consider words in the label column (x 39-50% of frame width)
+        h_s, w_s = screen_img.shape[:2]
+        x_min = int(w_s * 0.39)
+        x_max = int(w_s * 0.50)
+        y_min = int(h_s * 0.09)
+        words = [
+            b for b in words
+            if x_min <= b.left < x_max and b.top >= y_min
+        ]
 
-        return None
+        matches = [b for b in words if "wall" in b.text.lower()]
+        if not matches:
+            return None
+        # Choose the lowest match (Wall is at bottom of the upgrades list)
+        best = max(matches, key=lambda b: b.top + b.height)
+        logger.info("Found wall label %r at (%d, %d)", best.text, best.center[0], best.center[1])
+        return best.center
 
     @staticmethod
     def _ocr_word_y_center(box: OcrWordBox) -> float:
@@ -1844,16 +1829,22 @@ class VisionService:
     def parse_hud_resources_triplet(
         groups: List[GroupedNumber],
     ) -> Optional[Tuple[int, int, int]]:
-        """From :meth:`extract_top_right_hud_numbers` clusters, derive ``(gold, elixir, dark_elixir)``."""
+        """From :meth:`extract_top_right_hud_numbers` clusters, derive ``(gold, elixir, dark_elixir)``.
+        
+        The HUD stacks resource bars vertically (gold, elixir, dark from top to bottom),
+        so the decoded numbers must be ordered vertically by cy.
+        """
         scored = []
         for g in groups:
             v = VisionService.parse_loot_amount_from_grouped_text(g.text)
             if v is not None:
-                cx = g.left + g.width * 0.5
-                scored.append((cx, v))
-        if len(scored) < 3:
+                cy = float(g.top) + float(g.height) * 0.5
+                scored.append((cy, v))
+        if len(scored) < 2:
             return None
         scored.sort(key=lambda t: t[0])
+        if len(scored) == 2:
+            return (scored[0][1], scored[1][1], 0)
         return (scored[0][1], scored[1][1], scored[2][1])
 
     @staticmethod

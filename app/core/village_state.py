@@ -1,0 +1,134 @@
+'''Home-village state snapshot for the auto-maxer's idle gate and the UI status panel.
+
+Reads everything the home screen shows about "is there anything productive to do":
+free builders (top-HUD builder chip), laboratory research slots (flask chip left of
+it), and full gold/elixir storages (the hero-bar full-storage icons). All fields are
+Optional — a chip that is absent or unreadable yields ``None``, never a guess, so the
+caller can be conservative. TH-agnostic by construction: villages without a lab (or
+with fewer builders) simply read as ``None`` / smaller totals.
+
+The Pet House has NO home-screen indicator (verified on live TH15 frames: a busy pet
+upgrade appears neither as a HUD chip nor as a builder-popup in-progress row), so pet
+state is not tracked here — pets remain a manual job and never block idling.
+'''
+import time
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
+from app.core.upgrade_menu import parse_builder_chip, parse_lab_chip
+from app.services.vision import VisionService
+from app.utils.logger import setup_logger
+
+logger = setup_logger('VillageState')
+
+
+@dataclass(frozen = True)
+class VillageState:
+    builders: Optional[Tuple[int, int]]  # (free, total) from the builder chip
+    lab: Optional[Tuple[int, int]]  # (free, total) research slots from the lab chip
+    gold_full: bool  # hero-bar full-storage icon visible
+    elixir_full: bool
+    captured_at: float  # time.monotonic() of the frame
+
+    @property
+    def free_builders(self):
+        return self.builders[0] if self.builders else None
+
+    @property
+    def storages_full(self):
+        '''Both main storages at cap — farming would earn (almost) nothing.
+        Dark elixir has no full-storage icon; DE overflow alone never blocks idling.'''
+        return self.gold_full and self.elixir_full
+
+    @property
+    def lab_idle(self):
+        '''True when the lab chip is readable and shows a free research slot.'''
+        return bool(self.lab) and self.lab[0] > 0
+
+    def summary(self):
+        # The full-storage templates are flat bar-fill swatches — they fire from
+        # ~90% up, not at exactly 100% — so phrase it honestly as "~full".
+        b = f'{self.builders[0]}/{self.builders[1]}' if self.builders else '?'
+        l = f'{self.lab[0]}/{self.lab[1]}' if self.lab else '?'
+        s = '~full' if self.storages_full else ('gold ~full' if self.gold_full else ('elixir ~full' if self.elixir_full else 'filling'))
+        return f'builders {b} free, lab {l} free, storages {s}'
+
+
+def read_village_state(frame):
+    '''Parse a home-screen frame → :class:`VillageState`. Chip reads are OCR — callers
+    that gate behavior on them should tolerate ``None`` (busy frames misread; the
+    idle gate re-reads on its next wake anyway).'''
+    if frame is None or frame.size == 0:
+        return None
+    (gx, _gy) = VisionService.find_active_hgoldfull(frame)
+    (ex, _ey) = VisionService.find_active_helixirfull(frame)
+    state = VillageState(
+        builders = parse_builder_chip(frame),
+        lab = parse_lab_chip(frame),
+        gold_full = gx is not None,
+        elixir_full = ex is not None,
+        captured_at = time.monotonic())
+    logger.debug('village state: %s', state.summary())
+    return state
+
+
+def read_hud_triplet_stable(capture, wait, attempts = 5):
+    '''Top-right HUD (gold, elixir, dark) with multi-frame agreement and corruption filter.
+    Single reads can get corrupted by animations/popups crossing the HUD, but two agreeing
+    parses or the consensus plausible triplet is trustworthy.'''
+    seen = []
+    prev = None
+    for i in range(max(2, attempts)):
+        if i and wait(0.25):
+            return None
+        frame = capture()
+        if frame is None or getattr(frame, 'size', 0) == 0:
+            continue
+        triplet = VisionService.parse_hud_resources_triplet(VisionService.extract_top_right_hud_numbers(frame))
+        if triplet is None:
+            prev = None
+            continue
+        g, el, de = triplet
+        # Sanity check: individual resource storages never exceed 35,000,000 in CoC
+        if g > 35_000_000 or el > 35_000_000 or de > 1_000_000:
+            continue
+        if triplet == prev:
+            return triplet
+        prev = triplet
+        seen.append(triplet)
+        if seen.count(triplet) >= 2:
+            return triplet
+
+    if seen:
+        from collections import Counter
+        return Counter(seen).most_common(1)[0][0]
+    return None
+
+
+def read_village_state_stable(capture, wait, attempts = 3):
+    '''Multi-frame :func:`read_village_state`: the translucent HUD chips flicker against
+    the animated village, so single-frame chip reads drop out (live repro). Merges up
+    to ``attempts`` frames — first readable value per field wins; full-storage icons
+    OR across frames. ``capture()`` → frame or None; ``wait(seconds)`` → True to abort
+    (stop-event semantics).'''
+    merged = None
+    for i in range(max(1, attempts)):
+        if i and wait(0.4):
+            return merged
+        state = read_village_state(capture())
+        if state is None:
+            continue
+        if merged is None:
+            merged = state
+        else:
+            merged = VillageState(
+                builders = merged.builders or state.builders,
+                lab = merged.lab or state.lab,
+                gold_full = merged.gold_full or state.gold_full,
+                elixir_full = merged.elixir_full or state.elixir_full,
+                captured_at = state.captured_at)
+        if merged.builders and merged.lab:
+            break
+    if merged is not None:
+        logger.info('village state: %s', merged.summary())
+    return merged

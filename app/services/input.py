@@ -155,7 +155,7 @@ class InputService:
 
         self.move(x2, y2, MK_LBUTTON)
 
-    def scroll(self, x, y, amount, upward=True):
+    def scroll(self, x, y, amount, upward=False):
         hwnd = self.window_service.hwnd
         if not hwnd:
             return

@@ -30,3 +30,7 @@ venv/
 trial_vault.json
 license.json
 *.log
+
+# Reference & scratch files
+reference/
+scratch/

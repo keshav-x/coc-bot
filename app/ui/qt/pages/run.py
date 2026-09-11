@@ -414,7 +414,7 @@ class RunPage(QWidget):
         self._controller.botStarted.connect(self._on_bot_started)
         self._controller.botFinished.connect(self._on_bot_finished_ui)
         self._controller.runningChanged.connect(self._on_running_changed)
-        self._controller.lootUpdated.connect(lambda *_: self._update_live_stats())
+        self._controller.lootUpdated.connect(self._on_loot_updated)
 
     def _build_plan_card(self) -> Card:
         card = Card()
@@ -523,17 +523,71 @@ class RunPage(QWidget):
         self._stats_timer.start()
         return card
 
-    def _update_live_stats(self) -> None:
-        stats = LootFilterEngine().stats
-        self._stat_gold.set_value(f"{stats.total_gold:,}", f"{stats.gold_per_hour:,} / hr")
-        self._stat_elixir.set_value(f"{stats.total_elixir:,}", f"{stats.elixir_per_hour:,} / hr")
-        self._stat_dark.set_value(f"{stats.total_dark_elixir:,}", f"{stats.dark_elixir_per_hour:,} / hr")
-        self._stat_raids.set_value(f"{stats.raids_completed} / {stats.bases_skipped}", f"{stats.raids_completed} completed")
+    @staticmethod
+    def _fmt_amount(value: float | int) -> str:
+        v = float(value)
+        if abs(v) >= 1_000_000_000:
+            return f"{v / 1_000_000_000:.2f}B"
+        if abs(v) >= 1_000_000:
+            return f"{v / 1_000_000:.1f}M"
+        if abs(v) >= 1_000:
+            return f"{v / 1_000:.0f}k"
+        return str(int(v))
 
-        if self._raid_table.rowCount() < len(stats.raid_history):
-            current_count = self._raid_table.rowCount()
-            for rec in stats.raid_history[current_count:]:
+
+    def _on_loot_updated(self, gold: int, elixir: int, dark: int, elapsed_sec: float) -> None:
+        self._current_loot = (gold, elixir, dark)
+        self._update_live_stats()
+
+    def _update_live_stats(
+        self,
+        gold: Optional[int] = None,
+        elixir: Optional[int] = None,
+        dark: Optional[int] = None,
+        elapsed: Optional[float] = None,
+    ) -> None:
+        stats = LootFilterEngine().stats
+        if gold is not None and elixir is not None and dark is not None:
+            self._current_loot = (gold, elixir, dark)
+
+        if hasattr(self, "_current_loot"):
+            tg, te, td = self._current_loot
+        else:
+            tg = stats.total_gold
+            te = stats.total_elixir
+            td = stats.total_dark_elixir
+
+        is_running = self._controller.is_running()
+        if is_running and hasattr(self, "_run_start_mono"):
+            active_elapsed = max(0.0, time.monotonic() - self._run_start_mono)
+        elif hasattr(self, "_last_run_duration"):
+            active_elapsed = self._last_run_duration
+        else:
+            active_elapsed = 0.0
+
+        if active_elapsed < 60.0:
+            gh_str = "calculating..." if is_running else "0 / hr"
+            eh_str = "calculating..." if is_running else "0 / hr"
+            dh_str = "calculating..." if is_running else "0 / hr"
+        else:
+            hours = active_elapsed / 3600.0
+            gh = int(tg / hours) if tg > 0 else 0
+            eh = int(te / hours) if te > 0 else 0
+            dh = int(td / hours) if td > 0 else 0
+            gh_str = f"{self._fmt_amount(gh)} / hr"
+            eh_str = f"{self._fmt_amount(eh)} / hr"
+            dh_str = f"{self._fmt_amount(dh)} / hr"
+
+        self._stat_gold.set_value(f"{tg:,}", gh_str)
+        self._stat_elixir.set_value(f"{te:,}", eh_str)
+        self._stat_dark.set_value(f"{td:,}", dh_str)
+        self._stat_raids.set_value(f"{stats.raids_completed} raids", f"{stats.bases_skipped} skipped")
+
+        last_rendered = getattr(self, "_last_rendered_raid_count", 0)
+        if len(stats.raid_history) > last_rendered:
+            for rec in stats.raid_history[last_rendered:]:
                 self._raid_table.add_raid_row(rec)
+            self._last_rendered_raid_count = len(stats.raid_history)
 
     def _include_switch(self, key: str) -> ToggleSwitch:
         return self._include_switches[key]
@@ -725,10 +779,20 @@ class RunPage(QWidget):
     def _on_bot_started(self) -> None:
         self._btn_start.setEnabled(False)
         self._btn_stop.setEnabled(True)
+        self._run_start_mono = time.monotonic()
+        self._current_loot = (0, 0, 0)
+        self._last_rendered_raid_count = 0
+        self._raid_table.setRowCount(0)
+        self._update_live_stats()
 
     def _on_bot_finished_ui(self, _error: Optional[str] = None) -> None:
         self._btn_start.setEnabled(True)
         self._btn_stop.setEnabled(False)
+        if hasattr(self, "_run_start_mono"):
+            self._last_run_duration = max(0.0, time.monotonic() - self._run_start_mono)
+        self._update_live_stats()
+        if _error:
+            show_error(self.window(), "Bot Stopped / Error", _error)
 
     def _on_running_changed(self, running: bool) -> None:
         self._btn_start.setEnabled(not running)
