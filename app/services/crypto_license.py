@@ -25,13 +25,17 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger("CryptoLicense")
 
-# Master secret key for HMAC-SHA256 signature verification
-_SIGNING_SALT = b"CLASH_AUTOLOOT_2026_MASTER_SECRET_KEY_v2_PRODUCTION"
+# Official Public Verification Key for Clash AutoLoot (Ed25519)
+# The matching Private Key is kept offline by the developer to sign valid licenses.
+PUBLIC_KEY_PEM = """-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEApHskl5I35iw8dPqMWQDbRy1B0tguVjJPT40pC9ySDBo=
+-----END PUBLIC KEY-----"""
 
 LICENSE_PREFIX = "CAL"
-TIER_MONTHLY = "M30"
-TIER_ANNUAL = "Y36"
-TIER_LIFETIME = "LIFE"
+TIER_WEEKLY = "W07"    # 7 Days ($1.00)
+TIER_MONTHLY = "M30"   # 30 Days ($3.00)
+TIER_ANNUAL = "Y36"    # 365 Days ($10.00)
+TIER_LIFETIME = "LIFE" # Permanent VIP
 
 TRIAL_TOTAL_SECONDS = 7200  # 2 Hours
 
@@ -61,23 +65,21 @@ class CryptoLicenseEngine:
         from app.services.license import HardwareFingerprint
         return HardwareFingerprint.compute()
 
-    @staticmethod
-    def _compute_hmac(payload_str: str) -> str:
-        h = hmac.new(_SIGNING_SALT, payload_str.encode("utf-8"), hashlib.sha256)
-        # 8-character hex checksum (32 bits of entropy is plenty for readable product keys)
-        return h.hexdigest()[:8].upper()
-
     @classmethod
     def generate_key(
         cls,
+        private_key_pem: str,
         tier: str = TIER_MONTHLY,
         days: int = 30,
         machine_id: Optional[str] = None,
     ) -> str:
-        """Generates a cryptographically signed license key.
+        """Generates an unforgeable license key signed with the seller's offline Ed25519 Private Key.
 
-        Format: CAL-[TIER]-[EXPDATE_OR_PERP]-[MACHINE_SALT]-[CHECKSUM]
+        Format: CAL-[TIER]-[EXPDATE_OR_PERP]-[MACHINE_HASH]-[ED25519_SIG]
         """
+        from Crypto.PublicKey import ECC
+        from Crypto.Signature import eddsa
+
         if tier == TIER_LIFETIME:
             exp_code = "PERP"
             exp_ts = 0
@@ -87,15 +89,18 @@ class CryptoLicenseEngine:
 
         # Hardware binding segment
         if machine_id:
-            m_hash = hashlib.sha256(machine_id.strip().encode()).hexdigest()[:4].upper()
+            m_hash = hashlib.sha256(machine_id.strip().encode()).hexdigest()[:8].upper()
         else:
             m_hash = "UNIV"  # Universal key that binds to first device activated on
 
-        # Core payload signed with HMAC-SHA256
-        raw_payload = f"{tier}:{exp_code}:{m_hash}"
-        checksum = cls._compute_hmac(raw_payload)
+        # Asymmetric digital signature over payload
+        raw_payload = f"CAL:{tier}:{exp_code}:{m_hash}".encode("utf-8")
+        priv_key = ECC.import_key(private_key_pem)
+        signer = eddsa.new(priv_key, "rfc8032")
+        sig = signer.sign(raw_payload)
+        sig_b64 = base64.urlsafe_b64encode(sig).decode("ascii").rstrip("=")
 
-        return f"{LICENSE_PREFIX}-{tier}-{exp_code}-{m_hash}-{checksum}"
+        return f"{LICENSE_PREFIX}-{tier}-{exp_code}-{m_hash}-{sig_b64}"
 
     @classmethod
     def verify_key(
@@ -104,20 +109,31 @@ class CryptoLicenseEngine:
         current_machine_id: str,
         saved_bound_machine: Optional[str] = None,
     ) -> LicenseValidationResult:
-        """Validates key integrity, hardware binding, and expiry."""
+        """Validates key integrity via Ed25519 public key, hardware binding, and expiry."""
         if not key or not key.strip():
             return LicenseValidationResult(is_valid=False, reason="empty")
 
-        parts = key.strip().upper().split("-")
-        if len(parts) != 5 or parts[0] != LICENSE_PREFIX:
+        parts = key.strip().split("-", 4)
+        if len(parts) != 5 or parts[0].upper() != LICENSE_PREFIX:
             return LicenseValidationResult(is_valid=False, reason="invalid_format")
 
-        tier, exp_code, m_hash, checksum = parts[1], parts[2], parts[3], parts[4]
+        tier = parts[1].upper()
+        exp_code = parts[2].upper()
+        m_hash = parts[3].upper()
+        sig_b64 = parts[4]
 
-        # Verify HMAC signature first
-        expected_raw = f"{tier}:{exp_code}:{m_hash}"
-        expected_sig = cls._compute_hmac(expected_raw)
-        if not hmac.compare_digest(checksum, expected_sig):
+        # Verify Ed25519 asymmetric signature with embedded Public Key
+        raw_payload = f"CAL:{tier}:{exp_code}:{m_hash}".encode("utf-8")
+        try:
+            from Crypto.PublicKey import ECC
+            from Crypto.Signature import eddsa
+
+            pub_key = ECC.import_key(PUBLIC_KEY_PEM)
+            verifier = eddsa.new(pub_key, "rfc8032")
+            pad_len = (-len(sig_b64)) % 4
+            sig_bytes = base64.urlsafe_b64decode((sig_b64 + "=" * pad_len).encode("ascii"))
+            verifier.verify(raw_payload, sig_bytes)
+        except Exception:
             return LicenseValidationResult(is_valid=False, reason="not_found")
 
         # Parse expiration timestamp
@@ -125,7 +141,6 @@ class CryptoLicenseEngine:
             exp_ts = 0
         else:
             try:
-                # End of day (23:59:59 UTC) on the expiration date
                 dt = datetime.strptime(exp_code, "%Y%m%d").replace(
                     hour=23, minute=59, second=59, tzinfo=timezone.utc
                 )
@@ -144,7 +159,7 @@ class CryptoLicenseEngine:
             )
 
         # Verify Hardware Binding
-        curr_m_hash = hashlib.sha256(current_machine_id.strip().encode()).hexdigest()[:4].upper()
+        curr_m_hash = hashlib.sha256(current_machine_id.strip().encode()).hexdigest()[:8].upper()
         if m_hash != "UNIV":
             # Key was pre-locked to a specific machine ID
             if m_hash != curr_m_hash:

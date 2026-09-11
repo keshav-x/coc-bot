@@ -1,0 +1,150 @@
+name: Build & Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: ClashAutoLoot-Windows-x64.zip
+            platform: windows
+          - os: ubuntu-latest
+            artifact_name: ClashAutoLoot-Linux-x64.tar.gz
+            platform: linux
+          - os: macos-latest
+            artifact_name: ClashAutoLoot-macOS-x64.zip
+            platform: macos
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Linux GUI Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-glx libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build Executable with PyInstaller
+        run: |
+          pyinstaller ClashAutoLoot.spec
+
+      - name: Package Release (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/ClashAutoLoot/* -DestinationPath ${{ matrix.artifact_name }}
+
+      - name: Package Release (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          tar -czf ${{ matrix.artifact_name }} -C dist ClashAutoLoot
+
+      - name: Package Release (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd dist && zip -r ../${{ matrix.artifact_name }} ClashAutoLoot
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-build
+          path: ${{ matrix.artifact_name }}
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download All Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: List Artifacts
+        run: ls -la release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: ${{ github.ref_name || 'v1.0.0' }}
+          name: Clash AutoLoot ${{ github.ref_name || 'v1.0.0' }} — Autonomous Farming Suite
+          draft: false
+          prerelease: false
+          files: release-assets/*
+          body: |
+            # Clash AutoLoot (ApexClash Pro) — Official Multi-Platform Release
+
+            High-velocity autonomous farming bot for **Clash of Clans** powered by OpenCV template matching, Tesseract OCR loot filtration, and human-like Bézier antiban movement.
+
+            ---
+
+            ## 📥 Downloads
+
+            | Operating System | Package | Architecture |
+            | :--- | :--- | :--- |
+            | 🪟 **Windows** | `ClashAutoLoot-Windows-x64.zip` | 64-bit (Windows 10/11) |
+            | 🐧 **Linux** | `ClashAutoLoot-Linux-x64.tar.gz` | x86_64 |
+            | 🍎 **macOS** | `ClashAutoLoot-macOS-x64.zip` | Apple Silicon / Intel |
+
+            ---
+
+            ## ⚡ Features
+            - **Live Session Analytics**: Real-time Total Loot, Gold/hr, Elixir/hr, Dark Elixir, and raid telemetry table.
+            - **Smart Loot Filter**: Configurable minimum loot thresholds with automatic base skipping.
+            - **Autonomous Combat Strategies**: Surgical Sneaky Goblin drops, Electro Dragons, Valkyries, and delayed Hero abilities.
+            - **Wall Upgrader**: Smart background wall spending to prevent overflowing storages.
+            - **Advanced Antiban Suite**: Randomized Gaussian tap scatter, Bézier mouse trajectories, and configurable break schedules.
+            - **Discord Webhooks**: Live raid completion embeds, loot snapshots, and notification alerts.
+            - **2-Hour Free Trial**: Automatic offline trial included on first launch.
+
+            ---
+
+            ## 🔑 Access Passes & Purchase Information
+
+            Clash AutoLoot includes an automatic **2-Hour Free Trial** on first launch. To purchase an activation key:
+
+            | Pass Tier | Price | Duration | Features |
+            | :--- | :--- | :--- | :--- |
+            | **Weekly Pass** | **$1.00** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+            | **Monthly Pass** | **$3.00** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+            | **Annual Pass** | **$10.00** | 365 Days | Full Access, All Updates, Priority Support |
+
+            ### 🛒 How to Order
+            1. Download and run Clash AutoLoot on your PC.
+            2. Go to the **License** page and click **📋 Copy HW ID**.
+            3. Contact the developer with your Machine ID and preferred pass tier:
+               - 📧 **Email**: [cockingkeshav@gmail.com](mailto:cockingkeshav@gmail.com)
+               - 💬 **Discord**: `matrix0456`
+               - 🌐 **Reddit**: `u/post_matrix`
+            4. Accepted payment methods: **PayPal, Crypto (USDT/BTC/LTC), UPI, Cards**.
+            5. Keys are cryptographically signed with private Ed25519 signatures and delivered immediately!

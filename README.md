@@ -162,26 +162,27 @@ ApexClash Pro is engineered to work out of the box with the most popular Windows
 
 ---
 
-## 🔑 Activation Key System
+## 🔑 Access Passes & Purchase Information
 
-ApexClash Pro includes a standalone seller licensing utility (`keygen.py`) backed by HMAC-SHA256 signatures:
+Clash AutoLoot includes a **2-Hour Free Trial** automatically activated on first launch — test all features risk-free with zero setup or registration required.
 
-```powershell
-# Generate a standard 30-day $5/month key (binds on first machine used):
-python keygen.py --generate --type monthly --days 30
+To continue unlimited farming after your trial, purchase an activation key directly from the developer:
 
-# Generate a Lifetime key:
-python keygen.py --generate --type lifetime
+| Pass Tier | Price | Duration | Features |
+| :--- | :--- | :--- | :--- |
+| **Weekly Pass** | **$1.00** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+| **Monthly Pass** | **$3.00** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+| **Annual Pass** | **$10.00** | 365 Days | Full Access, All Updates, Priority Support |
 
-# Generate a key pre-locked to a specific customer's Machine ID:
-python keygen.py --generate --type monthly --days 30 --machine <CUSTOMER_MACHINE_ID>
-
-# Verify validity and expiration of any key:
-python keygen.py --verify <KEY>
-
-# Check your current PC hardware fingerprint:
-python keygen.py --my-id
-```
+### 🛒 How to Purchase
+1. Launch Clash AutoLoot and navigate to the **License** page.
+2. Click **📋 Copy HW ID** to copy your unique PC Hardware Fingerprint.
+3. Contact the developer via any of the channels below with your Machine ID:
+   - 📧 **Email**: [cockingkeshav@gmail.com](mailto:cockingkeshav@gmail.com)
+   - 💬 **Discord**: `matrix0456`
+   - 🌐 **Reddit**: `u/post_matrix`
+4. Accepted payment methods: **PayPal, Crypto (USDT / BTC / LTC), UPI, Cards**.
+5. Your activation key is signed with private Ed25519 asymmetric cryptography and delivered instantly upon payment!
 
 ---
 
@@ -264,8 +265,6 @@ coc-bot/
 │       ├── theme.py              # Design tokens & Aurora Cyber palette
 │       ├── widgets.py            # Custom cards, buttons, & toggles
 │       └── pages/                # Individual app pages
-├── scratch/                      # Automated test suites
-├── keygen.py                     # Standalone licensing CLI
 ├── main.py                       # Application bootstrap
 └── requirements.txt              # Project dependencies
 ```

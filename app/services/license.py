@@ -96,7 +96,7 @@ class LicenseClient:
         Returns parsed dict matching {"ok": bool, "valid": bool, "expires_at": str, "tier": str}
         or {"ok": False, "valid": False, "reason": str}.
         """
-        normalized_key = license_key.strip().upper()
+        normalized_key = license_key.strip()
         if not normalized_key:
             return {"ok": False, "valid": False, "reason": "empty"}
 
@@ -142,7 +142,7 @@ def _key_file() -> Path:
 def load_saved_key() -> str:
     try:
         data = json.loads(_key_file().read_text(encoding="utf-8"))
-        return str(data.get("license_key", "")).strip().upper()
+        return str(data.get("license_key", "")).strip()
     except Exception:
         return ""
 

@@ -12,7 +12,9 @@ build/
 dist/
 *.egg-info/
 *.egg
-*.spec
+
+# Allow tracked PyInstaller spec
+!ClashAutoLoot.spec
 
 # Environments
 .env
@@ -31,6 +33,13 @@ trial_vault.json
 license.json
 *.log
 
+# Private Licensing Keys & Generator (DO NOT COMMIT TO GITHUB)
+private_key.pem
+*.pem
+keygen.py
+private_keygen/
+
 # Reference & scratch files
 reference/
 scratch/
+

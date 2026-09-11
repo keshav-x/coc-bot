@@ -72,9 +72,9 @@ class LicensePage(QWidget):
 
         # Pricing Banner Card
         plan_card = Card()
-        plan_card.card_layout.addWidget(SectionTitle("Official Subscription & Trial"))
+        plan_card.card_layout.addWidget(SectionTitle("Official Access Passes & Pricing"))
         plan_header = QHBoxLayout()
-        plan_title = QLabel("Device License — $5.00 / Month")
+        plan_title = QLabel("Weekly: $1.00  |  Monthly: $3.00  |  Annual: $10.00")
         plan_title.setStyleSheet(f"color: {TOKENS['accent_gold']}; font-size: 15px; font-weight: bold;")
         plan_header.addWidget(plan_title)
         plan_header.addStretch()
@@ -84,9 +84,10 @@ class LicensePage(QWidget):
         plan_card.card_layout.addLayout(plan_header)
 
         plan_desc = QLabel(
-            "• 1 PC Active Hardware Binding (Cryptographic HMAC offline validation)\n"
+            "• Weekly Pass: $1.00 (7 Days)  •  Monthly Pass: $3.00 (30 Days)  •  Annual Pass: $10.00 (365 Days)\n"
+            "• Unforgeable Ed25519 asymmetric cryptographic license with 1-PC hardware binding\n"
             "• Full Access: Autonomous Watchdog, Smart Loot Filtration, Advanced Anti-Ban Suite\n"
-            "• 2 Hours of free trial automatically active on first launch — no account required"
+            "• 2 Hours of free trial automatically active on first launch — test everything risk-free"
         )
         plan_desc.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px; line-height: 1.4;")
         plan_card.card_layout.addWidget(plan_desc)
@@ -107,6 +108,22 @@ class LicensePage(QWidget):
         hw_row.addWidget(self._btn_copy_hw)
         hw_card.card_layout.addLayout(hw_row)
         layout.addWidget(hw_card)
+
+        # Official Purchase Channels Card
+        contact_card = Card()
+        contact_card.card_layout.addWidget(SectionTitle("Buy an Activation Key (Instant Delivery)"))
+        contact_desc = QLabel(
+            "Copy your <b>Machine ID</b> above and message the developer to purchase your key:<br>"
+            "• <b>Email:</b> <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
+            "• <b>Discord:</b> <span style='color: #22c55e;'>matrix0456</span><br>"
+            "• <b>Reddit:</b> <span style='color: #f59e0b;'>u/post_matrix</span><br>"
+            "Accepted payments: PayPal, Crypto, UPI, Cards. Keys are delivered immediately upon confirmation!"
+        )
+        contact_desc.setTextFormat(Qt.TextFormat.RichText)
+        contact_desc.setOpenExternalLinks(True)
+        contact_desc.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px; line-height: 1.5;")
+        contact_card.card_layout.addWidget(contact_desc)
+        layout.addWidget(contact_card)
 
         self._status_text = QTextEdit()
         self._status_text.setReadOnly(True)
@@ -261,26 +278,25 @@ class LicensePage(QWidget):
         QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy HW ID"))
 
     def _open_subscribe_checkout(self) -> None:
-        url = (SUBSCRIBE_CHECKOUT_URL or "").strip()
-        if not url:
-            QMessageBox.information(
-                self.window(),
-                "Monthly subscription",
-                "The subscription checkout URL is not set in this build yet.\n\nContact support to purchase.",
-            )
-            return
-        webbrowser.open(url)
+        QGuiApplication.clipboard().setText(self._machine_id)
+        QMessageBox.information(
+            self.window(),
+            "Purchase Access Pass",
+            f"Official Pricing:\n"
+            f"• Weekly Pass: $1.00 (7 Days)\n"
+            f"• Monthly Pass: $3.00 (30 Days)\n"
+            f"• Annual Pass: $10.00 (365 Days)\n\n"
+            f"Your Machine ID: {self._machine_id}\n"
+            f"(Copied to your clipboard!)\n\n"
+            f"To get your key, message the developer with your Machine ID:\n"
+            f"• Email: cockingkeshav@gmail.com\n"
+            f"• Discord: matrix0456\n"
+            f"• Reddit: u/post_matrix\n\n"
+            f"Accepted: PayPal, Crypto, UPI, Cards. Fast delivery!",
+        )
 
     def _open_lifetime_checkout(self) -> None:
-        url = (STRIPE_LIFETIME_URL or "").strip()
-        if not url:
-            QMessageBox.information(
-                self.window(),
-                "Lifetime license",
-                "The lifetime checkout URL is not set in this build yet.\n\nContact support to purchase.",
-            )
-            return
-        webbrowser.open(url)
+        self._open_subscribe_checkout()
 
     def _open_billing_portal(self) -> None:
         key = self._entry.text().strip()
