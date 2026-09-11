@@ -218,6 +218,20 @@ class VisionService:
         return (x0, 0, w - x0, y1)
 
     @staticmethod
+    def find_image_in_frame(
+        screen_img: np.ndarray,
+        template_name: str,
+        threshold: float = 0.8,
+    ) -> Optional[Tuple[int, int]]:
+        """Finds center (x, y) of template in frame, or None if not found."""
+        if not template_name.endswith(".png"):
+            template_name = f"{template_name}.png"
+        x, y = VisionService.find_template(screen_img, template_name, threshold=threshold)
+        if x is not None and y is not None:
+            return (x, y)
+        return None
+
+    @staticmethod
     def find_template(
         screen_img: np.ndarray,
         template_name: str,
@@ -653,7 +667,8 @@ class VisionService:
         c_off, rw, rh = _MULTIUPGRADE_COST_REDNESS_ABOVE_AT_BASELINE.get(
             key, _MULTIUPGRADE_COST_REDNESS_ABOVE_AT_BASELINE[ASPECT_16_9]
         )
-        scale = screen_h / ASPECT_BASELINE[1]
+        base_dim = ASPECT_BASELINE.get(key, ASPECT_BASELINE[ASPECT_16_9])
+        scale = screen_h / base_dim[1]
         return (
             max(1, int(round(c_off * scale))),
             max(1, int(round(rw * scale))),
@@ -952,7 +967,8 @@ class VisionService:
         base_lo, base_hi = _CC_INK_AREA_AT_BASELINE.get(
             key, _CC_INK_AREA_AT_BASELINE[ASPECT_16_9]
         )
-        scale = (screen_h / ASPECT_BASELINE[1]) ** 2
+        base_dim = ASPECT_BASELINE.get(key, ASPECT_BASELINE[ASPECT_16_9])
+        scale = (screen_h / base_dim[1]) ** 2
         return (max(1, int(round(base_lo * scale))), max(2, int(round(base_hi * scale))))
 
     @staticmethod
@@ -962,7 +978,8 @@ class VisionService:
         base = _TOP_CENTER_MENU_SQUARE_SIDE_AT_BASELINE.get(
             key, _TOP_CENTER_MENU_SQUARE_SIDE_AT_BASELINE[ASPECT_16_9]
         )
-        scale = screen_h / ASPECT_BASELINE[1]
+        base_dim = ASPECT_BASELINE.get(key, ASPECT_BASELINE[ASPECT_16_9])
+        scale = screen_h / base_dim[1]
         return max(10, int(round(base * scale)))
 
     @staticmethod
@@ -972,7 +989,8 @@ class VisionService:
         base_lo, base_hi = _WALL_MENU_LETTER_CC_AT_BASELINE.get(
             key, _WALL_MENU_LETTER_CC_AT_BASELINE[ASPECT_16_9]
         )
-        scale = (screen_h / ASPECT_BASELINE[1]) ** 2
+        base_dim = ASPECT_BASELINE.get(key, ASPECT_BASELINE[ASPECT_16_9])
+        scale = (screen_h / base_dim[1]) ** 2
         return (max(1, int(round(base_lo * scale))), max(2, int(round(base_hi * scale))))
 
     @staticmethod
@@ -1476,8 +1494,9 @@ class VisionService:
         base_w, base_h = _NUMBERS_HUD_ROI_AT_BASELINE.get(
             key, _NUMBERS_HUD_ROI_AT_BASELINE[ASPECT_16_9]
         )
-        scale_x = screen_w / ASPECT_BASELINE[0]
-        scale_y = screen_h / ASPECT_BASELINE[1]
+        base_dim = ASPECT_BASELINE.get(key, ASPECT_BASELINE[ASPECT_16_9])
+        scale_x = screen_w / base_dim[0]
+        scale_y = screen_h / base_dim[1]
         w = max(10, int(round(base_w * scale_x)))
         h = max(10, int(round(base_h * scale_y)))
         x = max(0, screen_w - w)
@@ -1707,7 +1726,7 @@ class VisionService:
             med_h = float(
                 np.median([c.height for c in digit_chars])
                 if digit_chars
-                else _NUMBERS_REF_LINE_HEIGHT_PX * (h_s / ASPECT_BASELINE[1])
+                else _NUMBERS_REF_LINE_HEIGHT_PX * (h_s / ASPECT_BASELINE[ASPECT_16_9][1])
             )
             y_tol = max(8.0, med_h * 0.45)
 

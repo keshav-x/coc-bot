@@ -159,7 +159,7 @@ class BotController(QObject):
                     earthquake_method=load_profile_settings().earthquake_method,
                 )
             except Exception as exc:
-                error_msg = str(exc)
+                error_msg = f"{type(exc).__name__}: {exc}" if str(exc) else f"{type(exc).__name__}"
                 logger.exception("Bot thread failed")
             finally:
                 self.botFinished.emit(error_msg)
