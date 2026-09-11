@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "======================================================="
-echo "   ⚡ Clash AutoLoot — 1-Click Linux & Raspberry Pi Setup"
+echo "   ⚡ ApexClash Pro — 1-Click Linux & Raspberry Pi Setup"
 echo "======================================================="
 
 # Detect System & Architecture
@@ -134,8 +134,8 @@ create_desktop_shortcut() {
     fi
 
     DESKTOP_ENTRY="[Desktop Entry]
-Name=Clash AutoLoot
-Comment=Autonomous Farming Suite for Clash of Clans
+Name=ApexClash Pro
+Comment=Autonomous Combat & Farming Suite for Clash of Clans
 Exec=\"$SCRIPT_DIR/start_linux.sh\"
 Icon=$ICON_PATH
 Terminal=false
@@ -146,19 +146,19 @@ StartupNotify=true"
     # Application Menu entry
     APPS_DIR="$HOME/.local/share/applications"
     mkdir -p "$APPS_DIR"
-    echo "$DESKTOP_ENTRY" > "$APPS_DIR/ClashAutoLoot.desktop"
-    chmod +x "$APPS_DIR/ClashAutoLoot.desktop"
-    echo "[*] Installed application launcher to: $APPS_DIR/ClashAutoLoot.desktop"
+    echo "$DESKTOP_ENTRY" > "$APPS_DIR/ApexClashPro.desktop"
+    chmod +x "$APPS_DIR/ApexClashPro.desktop"
+    echo "[*] Installed application launcher to: $APPS_DIR/ApexClashPro.desktop"
 
     # Desktop shortcut (if ~/Desktop exists)
     if [ -d "$HOME/Desktop" ]; then
-        echo "$DESKTOP_ENTRY" > "$HOME/Desktop/ClashAutoLoot.desktop"
-        chmod +x "$HOME/Desktop/ClashAutoLoot.desktop"
+        echo "$DESKTOP_ENTRY" > "$HOME/Desktop/ApexClashPro.desktop"
+        chmod +x "$HOME/Desktop/ApexClashPro.desktop"
         # On modern GNOME / Ubuntu / Pi OS, allow launching
         if command -v gio >/dev/null 2>&1; then
-            gio set "$HOME/Desktop/ClashAutoLoot.desktop" metadata::trusted true 2>/dev/null || true
+            gio set "$HOME/Desktop/ApexClashPro.desktop" metadata::trusted true 2>/dev/null || true
         fi
-        echo "[*] Created Desktop icon at: $HOME/Desktop/ClashAutoLoot.desktop"
+        echo "[*] Created Desktop icon at: $HOME/Desktop/ApexClashPro.desktop"
     fi
 }
 
@@ -168,15 +168,15 @@ echo ""
 echo "======================================================="
 echo "   ✅ Installation Complete!"
 echo "======================================================="
-echo "You can now run Clash AutoLoot at any time by:"
-echo "  1. Double-clicking the 'Clash AutoLoot' Desktop icon"
+echo "You can now run ApexClash Pro at any time by:"
+echo "  1. Double-clicking the 'ApexClash Pro' Desktop icon"
 echo "  2. Running: ./start_linux.sh"
 echo "======================================================="
 echo ""
 
 # If user executed directly and wants to run now
 if [ -t 0 ] && [ "$1" != "--no-run" ]; then
-    read -p "Would you like to start Clash AutoLoot now? [Y/n] " -n 1 -r
+    read -p "Would you like to start ApexClash Pro now? [Y/n] " -n 1 -r
     echo ""
     if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
         exec "$SCRIPT_DIR/start_linux.sh"

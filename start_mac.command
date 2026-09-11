@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Clash AutoLoot — macOS 1-Click Launcher (Double-Clickable in Finder)
+# ApexClash Pro — macOS 1-Click Launcher (Double-Clickable in Finder)
 # ==============================================================================
 
 set -e
@@ -11,7 +11,7 @@ cd "$SCRIPT_DIR"
 VENV_DIR="$SCRIPT_DIR/.venv"
 
 echo "======================================================="
-echo "   ⚡ Clash AutoLoot — macOS Launcher"
+echo "   ⚡ ApexClash Pro — macOS Launcher"
 echo "======================================================="
 
 # If virtual environment is missing, run installer automatically

@@ -39,7 +39,7 @@ def _show_window_not_found_dialog(parent, on_configure):
 
         box = QMessageBox(parent)
         box.setIcon(QMessageBox.Icon.Critical)
-        box.setWindowTitle("Clash AutoLoot")
+        box.setWindowTitle("ApexClash Pro")
         box.setText("Clash of Clans window not found.\nOpen the game, then press Start.")
         box.setInformativeText(
             "If the game is already open, choose the correct window manually in Settings → Game window."
@@ -77,7 +77,7 @@ def check_game_window_aspect_for_start(parent=None, on_configure=None) -> bool:
         from PySide6.QtWidgets import QMessageBox
 
         msg = "Aspect ratio not supported (resize the game window to ~16:9 or ~16:10)."
-        QMessageBox.critical(parent, "Clash AutoLoot", msg)
+        QMessageBox.critical(parent, "ApexClash Pro", msg)
     except Exception as e:
         logger.error(f"Game window aspect not supported (~{w}x{h}). Could not show dialog: {e}")
         print("Aspect ratio not supported", file=sys.stderr)

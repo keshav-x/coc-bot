@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Clash AutoLoot — macOS 1-Click Installer (Double-Clickable in Finder)
+# ApexClash Pro — macOS 1-Click Installer (Double-Clickable in Finder)
 # ==============================================================================
 
 set -e
@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "======================================================="
-echo "   ⚡ Clash AutoLoot — macOS 1-Click Setup"
+echo "   ⚡ ApexClash Pro — macOS 1-Click Setup"
 echo "======================================================="
 
 # Check Python 3
@@ -52,12 +52,12 @@ echo ""
 echo "======================================================="
 echo "   ✅ Installation Complete!"
 echo "======================================================="
-echo "You can launch Clash AutoLoot at any time by simply"
+echo "You can launch ApexClash Pro at any time by simply"
 echo "double-clicking 'start_mac.command' in Finder!"
 echo "======================================================="
 echo ""
 
 if [ "$1" != "--no-run" ]; then
-    echo "[*] Starting Clash AutoLoot..."
+    echo "[*] Starting ApexClash Pro..."
     exec "$SCRIPT_DIR/start_mac.command"
 fi

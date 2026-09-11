@@ -1,13 +1,18 @@
 @echo off
-title Clash AutoLoot - 1-Click Launcher
+title ApexClash Pro - 1-Click Launcher
 cd /d "%~dp0"
 
 echo =======================================================
-echo    ⚡ Clash AutoLoot - Windows 1-Click Launcher
+echo    ⚡ ApexClash Pro - Windows 1-Click Launcher
 echo =======================================================
 
+if exist "dist\ApexClashPro\ApexClashPro.exe" (
+    echo [*] Starting compiled ApexClash Pro...
+    start "" "dist\ApexClashPro\ApexClashPro.exe"
+    exit /b
+)
 if exist "dist\ClashAutoLoot\ClashAutoLoot.exe" (
-    echo [*] Starting compiled Clash AutoLoot...
+    echo [*] Starting compiled ApexClash Pro...
     start "" "dist\ClashAutoLoot\ClashAutoLoot.exe"
     exit /b
 )

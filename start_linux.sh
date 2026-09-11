@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Clash AutoLoot — Linux & Raspberry Pi 1-Click Launcher
+# ApexClash Pro — Linux & Raspberry Pi 1-Click Launcher
 # ==============================================================================
 
 set -e

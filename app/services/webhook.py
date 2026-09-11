@@ -88,7 +88,7 @@ def notify_bot_started(plan_summary: str) -> None:
     payload = {
         "embeds": [
             {
-                "title": "⚔️ Clash AutoLoot Started",
+                "title": "⚔️ ApexClash Pro Started",
                 "description": f"Bot initiated with plan: **{plan_summary}**",
                 "color": 0x0EA5E9,
             }
@@ -141,7 +141,7 @@ def notify_bot_stopped(reason: str = "User stopped") -> None:
     payload = {
         "embeds": [
             {
-                "title": "🛑 Clash AutoLoot Stopped",
+                "title": "🛑 ApexClash Pro Stopped",
                 "description": f"Session ended. Reason: **{reason}**",
                 "color": 0xEF4444,
             }

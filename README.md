@@ -111,23 +111,23 @@ Never waste troops on empty bases. The integrated vision engine inspects enemy s
 ## 🚀 1-Click Installation & Launch Guide
 
 ### 🪟 Windows (1-Click Run)
-- **Standalone Binary**: Download `ClashAutoLoot-Windows-x64.zip` from [Releases](https://github.com/keshav-x/coc-bot/releases), extract, and double-click `ClashAutoLoot.exe`.
+- **Standalone Binary**: Download `ApexClashPro-Windows-x64.zip` from [Releases](https://github.com/keshav-x/coc-bot/releases), extract, and double-click `ApexClashPro.exe`.
 - **From Source**: Double-click `start_windows.bat` — it automatically creates the environment, installs packages, and launches the app!
 
 ### 🐧 Linux & 🍓 Raspberry Pi (1-Click Setup)
 Supports all Debian/Ubuntu flavors, Fedora, Arch, and **Raspberry Pi OS (ARM64 / aarch64 / armv7l)**:
 ```bash
-# 1. Download and extract ClashAutoLoot-Linux-RaspberryPi-Universal.tar.gz
-tar -xzf ClashAutoLoot-Linux-RaspberryPi-Universal.tar.gz
-cd ClashAutoLoot
+# 1. Download and extract ApexClashPro-Linux-RaspberryPi-Universal.tar.gz
+tar -xzf ApexClashPro-Linux-RaspberryPi-Universal.tar.gz
+cd ApexClashPro
 
 # 2. Run the 1-Click Installer (Installs system deps, venv, and Desktop shortcut):
 ./install_linux.sh
 ```
-*After install, simply double-click the **Clash AutoLoot** desktop icon or run `./start_linux.sh`!*
+*After install, simply double-click the **ApexClash Pro** desktop icon or run `./start_linux.sh`!*
 
 ### 🍎 macOS (1-Click Finder Launch)
-- Download `ClashAutoLoot-macOS-Universal.zip` from [Releases](https://github.com/keshav-x/coc-bot/releases).
+- Download `ApexClashPro-macOS-Universal.zip` from [Releases](https://github.com/keshav-x/coc-bot/releases).
 - Extract and **double-click** `start_mac.command` directly in macOS Finder!
 - It automatically configures the environment, installs requirements, and boots the application.
 
@@ -153,7 +153,7 @@ ApexClash Pro is engineered to work out of the box with the most popular Windows
 
 ## 🔑 Access Passes & Purchase Information
 
-Clash AutoLoot includes a **2-Hour Free Trial** automatically activated on first launch — test all features risk-free with zero setup or registration required.
+ApexClash Pro includes a **2-Hour Free Trial** automatically activated on first launch — test all features risk-free with zero setup or registration required.
 
 To continue unlimited farming after your trial, purchase an activation key directly from the developer:
 
@@ -165,7 +165,7 @@ To continue unlimited farming after your trial, purchase an activation key direc
 | **Lifetime Pass** | **$15.00** | Lifetime | Permanent VIP Access, All Future Updates, Priority Support |
 
 ### 🛒 How to Purchase
-1. Launch Clash AutoLoot and navigate to the **License** page.
+1. Launch ApexClash Pro and navigate to the **License** page.
 2. Click **📋 Copy HW ID** to copy your unique PC Hardware Fingerprint.
 3. Contact the developer via any of the channels below with your Machine ID:
    - 📧 **Email**: [cockingkeshav@gmail.com](mailto:cockingkeshav@gmail.com)
