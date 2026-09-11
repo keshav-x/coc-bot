@@ -290,6 +290,13 @@ class WindowService:
             return None
 
         try:
+            client_rect = wintypes.RECT()
+            if self.user32.GetClientRect(self.hwnd, ctypes.byref(client_rect)):
+                cw = client_rect.right - client_rect.left
+                ch = client_rect.bottom - client_rect.top
+                if cw > 0 and ch > 0:
+                    return (int(cw), int(ch))
+
             rect = wintypes.RECT()
             self.user32.GetWindowRect(self.hwnd, ctypes.byref(rect))
             w = rect.right - rect.left
@@ -316,6 +323,19 @@ class WindowService:
             height = rect.bottom - rect.top
             if width <= 0 or height <= 0:
                 return None
+
+            client_rect = wintypes.RECT()
+            self.user32.GetClientRect(self.hwnd, ctypes.byref(client_rect))
+            client_w = client_rect.right - client_rect.left
+            client_h = client_rect.bottom - client_rect.top
+
+            class POINT(ctypes.Structure):
+                _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+            pt = POINT(0, 0)
+            self.user32.ClientToScreen(self.hwnd, ctypes.byref(pt))
+            offset_x = max(0, pt.x - rect.left)
+            offset_y = max(0, pt.y - rect.top)
 
             hwndDC = self.user32.GetWindowDC(self.hwnd)
             if not hwndDC:
@@ -369,6 +389,12 @@ class WindowService:
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
             else:
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+            if client_w > 0 and client_h > 0:
+                end_y = min(frame.shape[0], offset_y + client_h)
+                end_x = min(frame.shape[1], offset_x + client_w)
+                if offset_y < end_y and offset_x < end_x:
+                    frame = frame[offset_y:end_y, offset_x:end_x]
 
             return frame
         except Exception as e:

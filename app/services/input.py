@@ -75,14 +75,14 @@ class InputService:
             logger.warning(f"click called with invalid coordinates: x={x}, y={y}")
             return
         if rand:
-            x += random.randint(-12, 12)
-            y += random.randint(-12, 12)
+            x += random.randint(-2, 2)
+            y += random.randint(-2, 2)
         self._inject_click(x, y)
         sleep_time = random.uniform(pause - pause * 0.2, pause + pause * 0.2)
         if self.stop_event:
-            self.stop_event.wait(max(0.08, sleep_time))
+            self.stop_event.wait(max(0.05, sleep_time))
         else:
-            time.sleep(max(0.08, sleep_time))
+            time.sleep(max(0.05, sleep_time))
 
     def _inject_click(self, x, y):
         hwnd = self.window_service.hwnd
@@ -104,8 +104,8 @@ class InputService:
         if y is None:
             return
         if rand:
-            x += random.randint(-12, 12)
-            y += random.randint(-12, 12)
+            x += random.randint(-2, 2)
+            y += random.randint(-2, 2)
         self._inject_click(int(x), int(y))
 
     def mouse_down(self, x, y):
@@ -164,5 +164,10 @@ class InputService:
         sx, sy = self._client_to_screen(x, y)
         lparam = self._make_wheel_lparam(sx, sy)
         for _ in range(amount):
+            if self.stop_event and self.stop_event.is_set():
+                break
             self.user32.SendMessageW(hwnd, WM_MOUSEWHEEL, wparam, lparam)
-            time.sleep(random.uniform(0.05, 0.2))
+            if self.stop_event:
+                self.stop_event.wait(0.02)
+            else:
+                time.sleep(0.02)

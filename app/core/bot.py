@@ -270,9 +270,9 @@ visited. Turning collection off must never strand the run in the wrong village.
         return (x, y)
 
     def _nudge_view_to_reveal_attack(self) -> None:
-        """Click ``empty`` (``data.json``) and scroll at anchor to nudge village until Attack is findable."""
-        self.input.click(self.config.get_point("empty"), pause=0.15)
-        self.input.scroll(*self._scroll_point(), 5)
+        """Click neutral empty space to dismiss any loose popup overlays (without zooming)."""
+        empty_pt = self.config.get_point("empty")
+        self.input.click(empty_pt, pause=0.15, rand=False)
 
     def _find_home_village_builder(self, frame, region=None) -> Tuple[Optional[int], Optional[int]]:
         for name in _HOME_VILLAGE_BUILDER_TEMPLATES:
@@ -455,13 +455,14 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
     def _wait_for_attack_with_nudge(
         self, timeout: int = 10, error: bool = True
     ) -> Tuple[Optional[int], Optional[int]]:
-        """Poll bottom-half ``attack.png``; dismiss ``okay`` / ``exit`` popups first; else empty + scroll."""
+        """Poll bottom-half ``attack.png``; dismiss ``okay`` / ``exit`` popups first; else empty click + fallback."""
         start = time.time()
+        attempts = 0
         while time.time() - start < timeout:
             self._check_stop()
             frame = self.window.screenshot()
             if frame is None:
-                if self.stop_event.wait(0.5):
+                if self.stop_event.wait(0.3):
                     return (None, None)
                 continue
             self._update_config_size(frame)
@@ -470,11 +471,25 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                     return (None, None)
                 continue
             search_region = self._search_region_for_template(frame, "attack.png", None, None, 200)
-            ax, ay = self.vision.find_template(frame, "attack.png", region=search_region)
+            ax, ay = self.vision.find_template(frame, "attack.png", threshold=0.70, region=search_region)
             if ax:
                 return (ax, ay)
+            # Try lower threshold on bottom half
+            ax, ay = self.vision.find_template(
+                frame, "attack.png", threshold=0.62, region=VisionService.bottom_half_region(frame)
+            )
+            if ax:
+                return (ax, ay)
+            attempts += 1
+            if attempts >= 3:
+                # Guaranteed fallback: Attack button is at bottom-left corner of Home Village
+                h, w = frame.shape[:2]
+                fallback_x = int(w * 0.058)
+                fallback_y = int(h * 0.915)
+                logger.info(f"Using bottom-left calibrated fallback for Attack button: ({fallback_x}, {fallback_y})")
+                return (fallback_x, fallback_y)
             self._nudge_view_to_reveal_attack()
-            if self.stop_event.wait(0.35):
+            if self.stop_event.wait(0.25):
                 return (None, None)
         if error:
             logger.warning("Timeout waiting for attack.png")
@@ -489,14 +504,14 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         upgrade_walls: bool,
     ) -> None:
         start_time = time.time()
-        if self.stop_event.wait(1):
+        if self.stop_event.wait(0.5):
             return
         frame = self.window.screenshot()
-        self._update_config_size(frame)
+        if frame is not None:
+            self._update_config_size(frame)
         empty_pt = self.config.get_point("empty")
-        self.input.click(empty_pt, pause=0.2)
-        self.input.scroll(*self._scroll_point(), 20)
-        delay = random.uniform(0.1, 0.3)
+        self.input.click(empty_pt, pause=0.2, rand=False)
+        delay = random.uniform(0.1, 0.2)
         if self.stop_event.wait(delay):
             return
         if star_bonus and self._is_star_bonus_claimed():
@@ -516,7 +531,6 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             if troop_failed:
                 return
             self._maybe_upgrade_walls(upgrade_walls)
-            self.input.scroll(*self._scroll_point(), 5)
             if self.stop_event.wait(random.uniform(0.15, 0.25)):
                 return
             if star_bonus and self._is_star_bonus_claimed():
@@ -557,9 +571,8 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
         if frame is not None:
             self._update_config_size(frame)
         empty_pt = self.config.get_point("empty")
-        self.input.click(empty_pt, pause=0.2)
-        self.input.scroll(*self._scroll_point(), 20)
-        if self.stop_event.wait(random.uniform(0.1, 0.3)):
+        self.input.click(empty_pt, pause=0.2, rand=False)
+        if self.stop_event.wait(random.uniform(0.1, 0.2)):
             return
         if star_bonus and self._is_bb_star_bonus_finished():
             msg = "Builder Base star bonus: bstar.png not visible — nothing to collect. Finishing without attacks."
@@ -569,20 +582,19 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
             return
         while time.time() - start_time < duration_seconds:
             self._check_stop()
-            self.input.scroll(*self._scroll_point(), 20)
-            if self.stop_event.wait(random.uniform(0.1, 0.25)):
+            if self.stop_event.wait(random.uniform(0.1, 0.2)):
                 return
-            ax, ay = self._wait_for_image("attack.png", timeout=10)
+            ax, ay = self._wait_for_image("attack.png", timeout=10, threshold=0.70)
             if not ax:
                 logger.warning("Builder Base: attack.png not found")
                 continue
-            self.input.click(ax, ay, pause=0.15)
-            fx, fy = self._wait_for_image("findnow.png", timeout=10)
+            self.input.click(ax, ay, pause=0.3)
+            fx, fy = self._wait_for_image("findnow.png", timeout=10, threshold=0.70)
             if not fx:
                 logger.warning("Builder Base: findnow.png not found")
                 continue
-            self.input.click(fx, fy, pause=0.15)
-            bx, by = self._wait_for_image(troop_template, timeout=30, error=False)
+            self.input.click(fx, fy, pause=0.3)
+            bx, by = self._wait_for_image(troop_template, timeout=30, error=False, threshold=0.70)
             if not bx:
                 msg = f"Builder Base: {troop_template} not found after Find Now"
                 logger.warning(msg)
@@ -593,14 +605,6 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
             if frame is None:
                 continue
             self._update_config_size(frame)
-            h, w = frame.shape[:2]
-            cx, cy = w // 2, h // 2
-            self.input.move(cx, cy)
-            if self.stop_event.wait(0.05):
-                return
-            self.input.scroll(cx, cy, 4)
-            if self.stop_event.wait(0.15):
-                return
             frame = self.window.screenshot()
             if frame is None:
                 continue
@@ -916,37 +920,59 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
         ax, ay = self._wait_for_attack_with_nudge()
         if not ax:
             return False
-        self.input.click(ax, ay, pause=0.1)
-        battle_template = "rankedbattle.png" if ranked_fill else "farmbattle.png"
-        fx, fy = self._wait_for_image(battle_template)
-        if not fx:
-            if ranked_fill:
+        self.input.click(ax, ay, pause=0.6)
+
+        if ranked_fill:
+            battle_template = "rankedbattle.png"
+            fx, fy = self._wait_for_image(battle_template, timeout=6, threshold=0.70)
+            if not fx:
                 msg = "Ranked battle button not found — daily limit may be reached. Stopping."
                 logger.info(msg)
                 cb = getattr(self, "_status_callback", None)
                 if cb:
                     cb(msg)
                 return True
-            return False
-        self.input.click(fx, fy, pause=0.1)
+            self.input.click(fx, fy, pause=0.6)
+            a2x, a2y = self._wait_for_image("attack2.png", timeout=6, threshold=0.70)
+            if a2x:
+                self.input.click(a2x, a2y, pause=0.5)
+            rx, ry = self._wait_for_image("rankedattackconfirm.png", timeout=8, threshold=0.70)
+            if rx:
+                self.input.click(rx, ry, pause=0.4)
+        else:
+            # Regular multiplayer farming
+            # Check for farmbattle.png (Find a Match) or attack2.png directly
+            fx, fy = self._wait_for_any_image(
+                ("farmbattle.png", "attack2.png"), timeout=5, threshold=0.70, error=False
+            )
+            if fx:
+                self.input.click(fx, fy, pause=0.6)
+                # If farmbattle was clicked, attack2 (confirmation) might pop up
+                a2x, a2y = self._wait_for_image("attack2.png", timeout=3, error=False, threshold=0.70)
+                if a2x:
+                    self.input.click(a2x, a2y, pause=0.5)
+            else:
+                # Modal fallback click: Find a Match is located at ~72% W, ~75% H in attack dialog
+                frame = self.window.screenshot()
+                if frame is not None:
+                    h, w = frame.shape[:2]
+                    fb_x = int(w * 0.72)
+                    fb_y = int(h * 0.74)
+                    logger.info(f"Using modal fallback coordinates for Find a Match: ({fb_x}, {fb_y})")
+                    self.input.click(fb_x, fb_y, pause=0.6)
+
         if method_id == 3:
-            if not self._ensure_valkyrie_army_from_recipes():
-                return False
-        a2x, a2y = self._wait_for_image("attack2.png")
-        if a2x:
-            self.input.click(a2x, a2y, pause=0.1)
-            if ranked_fill:
-                rx, ry = self._wait_for_image("rankedattackconfirm.png", timeout=10)
-                if not rx:
-                    logger.warning("rankedattackconfirm.png not found after attack2.png")
-                else:
-                    self.input.click(rx, ry, pause=0.1)
-        self._wait_for_any_image(("surrender.png", "endbattle.png"), timeout=30)
+            try:
+                self._ensure_valkyrie_army_from_recipes()
+            except Exception as e:
+                logger.warning(f"Valkyrie recipe check exception: {e}; proceeding with active army.")
+
+        self._wait_for_any_image(("surrender.png", "endbattle.png", "findnow.png"), timeout=35)
 
         # Smart Loot Filtration & Base Skipping (multiplayer farming)
         last_loot_detected = (0, 0, 0)
+        skip_count = 0
         if not ranked_fill and self.loot_filter.config.enabled:
-            skip_count = 0
             while not self.stop_event.is_set():
                 self._check_stop()
                 frame = self.window.screenshot()
@@ -973,7 +999,7 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                     cb(f"Skipping base (#{skip_count}): {decision.reason}")
                 logger.info(f"Loot filter: skipping base #{skip_count} ({decision.reason})")
 
-                next_x, next_y = self._wait_for_image("findnow.png", timeout=6, error=False)
+                next_x, next_y = self._wait_for_image("findnow.png", timeout=6, error=False, threshold=0.70)
                 if not next_x:
                     logger.warning("Next button (findnow.png) not found during base search; attacking current base.")
                     break
@@ -982,16 +1008,6 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                 if self.stop_event.wait(0.35):
                     return False
 
-        frame = self.window.screenshot()
-        if frame is None:
-            return False
-        self._update_config_size(frame)
-        h, w = frame.shape[:2]
-        cx, cy = w // 2, h // 2
-        self.input.move(cx, cy)
-        if self.stop_event.wait(0.05):
-            return False
-        self.input.scroll(cx, cy, 3)
         frame = self.window.screenshot()
         if frame is None:
             return False
@@ -1254,9 +1270,8 @@ Each iteration dismisses ``okay.png`` / ``exit.png`` if present, then village / 
         frame = self.window.screenshot()
         self._update_config_size(frame)
         empty_pt = self.config.get_point("empty")
-        self.input.click(empty_pt, pause=0.2)
-        self.input.scroll(*self._scroll_point(), 20)
-        delay = random.uniform(0.1, 0.3)
+        self.input.click(empty_pt, pause=0.2, rand=False)
+        delay = random.uniform(0.1, 0.2)
         if self.stop_event.wait(delay):
             return (None, None)
         start = time.time()

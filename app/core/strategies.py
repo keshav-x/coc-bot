@@ -84,35 +84,43 @@ class AttackStrategy:
                 dy = int(y1 + (y2 - y1) * t + random.randint(-8, 8))
                 self.input.click(dx, dy, pause=delay, rand=False)
 
-    def deploy_heroes(self, frame: Any) -> None:
+    def deploy_heroes(self, frame: Any) -> List[Tuple[int, int]]:
         heroes = ["king", "queen", "warden", "RC", "prince"]
         deployed_heroes = []
         roi = self.vision.bottom_half_region(frame)
 
-        ix, iy = self.vision.find_template(frame, "loglauncher.png", threshold=0.7, region=roi)
+        ix, iy = self.vision.find_template(frame, "loglauncher.png", threshold=0.68, region=roi)
         if not ix:
-            ix, iy = self.vision.find_template(frame, "siegebarracks.png", threshold=0.7, region=roi)
+            ix, iy = self.vision.find_template(frame, "siegebarracks.png", threshold=0.68, region=roi)
 
         if ix:
             deploy_point = self._get_hero_deploy_point(frame)
             self.input.click(ix, iy, pause=0.2, rand=False)
-            self.input.click(*deploy_point, pause=0.2)
+            self.input.click(*deploy_point, pause=0.2, rand=False)
 
         for hero in heroes:
-            bx, by = self.vision.find_template(frame, f"{hero}.png", threshold=0.7, region=roi)
+            bx, by = self.vision.find_template(frame, f"{hero}.png", threshold=0.68, region=roi)
             if not bx:
                 continue
             deploy_point = self._get_hero_deploy_point(frame)
             self.input.click(bx, by, pause=0.2, rand=False)
-            self.input.click(*deploy_point, pause=0.2)
+            self.input.click(*deploy_point, pause=0.2, rand=False)
             deployed_heroes.append((bx, by))
+            if self.stop_event and self.stop_event.wait(0.12):
+                break
 
+        return deployed_heroes
+
+    def activate_hero_abilities(self, deployed_heroes: List[Tuple[int, int]]) -> None:
+        """Activates abilities for previously deployed heroes."""
         for hx, hy in deployed_heroes:
-            self.input.click(hx, hy, pause=0.2)
+            if self.stop_event and self.stop_event.is_set():
+                break
+            self.input.click(hx, hy, pause=0.15, rand=False)
             if self.stop_event:
-                self.stop_event.wait(random.uniform(0.1, 0.2))
+                self.stop_event.wait(random.uniform(0.12, 0.25))
             else:
-                time.sleep(random.uniform(0.1, 0.2))
+                time.sleep(random.uniform(0.12, 0.25))
 
     def _hero_corner_xy(self, corner: str) -> Tuple[int, int]:
         """Corner used when building hero deploy lines; on ``16_9``, ``top`` is nudge-scaled."""
@@ -527,59 +535,82 @@ class TroopSpamStrategy(AttackStrategy):
         self._sync_frame_size(frame)
         logger.info(f"Executing {self.troop_name} strategy")
         roi = self.vision.bottom_half_region(frame)
-        tx, ty = self.vision.find_template(frame, f"{self.troop_name}.png", threshold=0.7, region=roi)
+        tx, ty = self.vision.find_template(frame, f"{self.troop_name}.png", threshold=0.68, region=roi)
+
+        # Smart fallback if selected troop template isn't matched
         if tx is None:
-            msg = f"Troop {self.troop_name} not found!"
-            logger.warning(msg)
-            if self.status_callback:
-                self.status_callback(msg)
-            return False
-
-        self.input.click(tx, ty, pause=0.3, rand=False)
-        if ev and ev.wait(0.2):
-            return True
-
-        corners = ("top", "right", "bottom", "left")
-        start_idx = random.choice((0, 1, 3))
-        direction = random.choice((1, -1))
-        ordered_corners = [corners[(start_idx + i * direction) % 4] for i in range(5)]
-        start_corner = ordered_corners[0]
-        curr_x, curr_y = self._expand_loc(*self._point(start_corner))
-
-        self.input.mouse_down(curr_x, curr_y)
-        if ev and ev.wait(0.65):
-            self.input.mouse_up(curr_x, curr_y)
-            return True
-
-        try:
-            total_duration = self.duration
-            segment_duration = total_duration / 4
-            for i in range(len(ordered_corners) - 1):
-                if ev and ev.is_set():
+            fallback_troops = ["sneaky", "valkyrie", "superminion", "edrag", "babydragon", "goldendrag"]
+            for fb_name in fallback_troops:
+                if fb_name == self.troop_name:
+                    continue
+                tx, ty = self.vision.find_template(frame, f"{fb_name}.png", threshold=0.68, region=roi)
+                if tx is not None:
+                    logger.info(f"Primary troop template '{self.troop_name}' not found; auto-selected fallback troop '{fb_name}'")
                     break
-                next_c = ordered_corners[i + 1]
-                target_x, target_y = self._expand_loc(*self._point(next_c))
-                duration = random.uniform(segment_duration * 0.9, segment_duration * 1.1)
-                self.input.human_move(curr_x, curr_y, target_x, target_y, duration=duration)
-                curr_x, curr_y = target_x, target_y
-        finally:
-            self.input.mouse_up(curr_x, curr_y)
 
-        if ev and ev.is_set():
+        # If still not found, use slot 1 in the bottom troop bar
+        if tx is None:
+            fh, fw = frame.shape[:2]
+            tx, ty = int(fw * 0.16), int(fh * 0.90)
+            logger.info(f"Using default slot 1 troop coordinates: ({tx}, {ty})")
+
+        # Select troop
+        self.input.click(tx, ty, pause=0.25, rand=False)
+        if ev and ev.wait(0.15):
             return True
 
+        # Masterclass 4-segment multi-wave perimeter deployment
+        p_left = self._point("left")
+        p_top = self._point("top")
+        p_right = self._point("right")
+        p_bottom = self._point("bottom")
+
+        segments = [
+            (p_left, p_top),
+            (p_top, p_right),
+            (p_right, p_bottom),
+            (p_bottom, p_left),
+        ]
+
+        # Wave 1: Rapid boundary coverage across all 4 quadrants
+        for p1, p2 in segments:
+            if ev and ev.is_set():
+                return True
+            self.deploy_multi_wave(tx, ty, p1, p2, count_per_wave=4, num_waves=1, delay=0.08)
+
+        # Deploy second wave or secondary troops
+        if ev and ev.wait(0.3):
+            return True
+
+        # Wave 2: Surgical concentrated penetration on top & sides
+        for p1, p2 in segments[:2]:
+            if ev and ev.is_set():
+                return True
+            self.deploy_multi_wave(tx, ty, p1, p2, count_per_wave=3, num_waves=1, delay=0.08)
+
+        # Deploy Heroes
         frame = self.input.window_service.screenshot()
+        deployed_heroes = []
         if frame is not None:
             self._sync_frame_size(frame)
             if self.deploy_golden_drags_if_present(frame, ev):
                 return True
-            self.deploy_heroes(frame)
-            if ev and ev.is_set():
-                return True
-            frame = self.input.window_service.screenshot()
-            if frame is not None:
-                self._sync_frame_size(frame)
-                self.deploy_spells(frame)
+            deployed_heroes = self.deploy_heroes(frame)
+
+        # Deploy Spells (Earthquake / Rage / Freeze)
+        frame = self.input.window_service.screenshot()
+        if frame is not None:
+            self._sync_frame_size(frame)
+            self.deploy_spells(frame)
+
+        # Tactical delay before triggering hero abilities
+        if deployed_heroes:
+            if ev:
+                ev.wait(8.0)
+            else:
+                time.sleep(8.0)
+            self.activate_hero_abilities(deployed_heroes)
+
         return True
 
 
@@ -606,27 +637,59 @@ class EdragStrategy(AttackStrategy):
         ev = stop_event if stop_event else self.stop_event
         self._sync_frame_size(frame)
         logger.info("Executing edrag strategy")
+        roi = self.vision.bottom_half_region(frame)
 
-        if not self._deploy_diamond_perimeter_troop(frame, "edrag.png", ev):
-            msg = "Troop edrag not found!"
-            logger.warning(msg)
-            if self.status_callback:
-                self.status_callback(msg)
-            return False
+        tx, ty = self.vision.find_template(frame, "edrag.png", threshold=0.68, region=roi)
+        if tx is None:
+            for fb in ("goldendrag.png", "babydragon.png"):
+                tx, ty = self.vision.find_template(frame, fb, threshold=0.68, region=roi)
+                if tx:
+                    break
+        if tx is None:
+            fh, fw = frame.shape[:2]
+            tx, ty = int(fw * 0.16), int(fh * 0.90)
+            logger.info(f"Edrag template not found; falling back to slot 1: ({tx}, {ty})")
 
-        if ev and ev.is_set():
+        self.input.click(tx, ty, pause=0.25, rand=False)
+        if ev and ev.wait(0.15):
             return True
 
+        # Deploy E-Drags in an evenly spaced wide arc along the front perimeter
+        deploy_points = self._even_diamond_top_perimeter_points(frame, count=8, deviation_frac=0.05)
+        if not deploy_points:
+            deploy_points = self._random_diamond_top_perimeter_points(frame, count=8)
+
+        for px, py in deploy_points:
+            if ev and ev.is_set():
+                return True
+            self.input.click(px, py, pause=0.18, rand=False)
+
+        # Deploy Golden / Super Dragons if present
         frame = self.input.window_service.screenshot()
         if frame is not None:
             self._sync_frame_size(frame)
             if self.deploy_golden_drags_if_present(frame, ev):
                 return True
-            self.deploy_heroes(frame)
-            if ev and ev.is_set():
-                return True
-            frame = self.input.window_service.screenshot()
-            if frame is not None:
-                self._sync_frame_size(frame)
-                self.deploy_spells(frame)
+
+        # Deploy Heroes
+        frame = self.input.window_service.screenshot()
+        deployed_heroes = []
+        if frame is not None:
+            self._sync_frame_size(frame)
+            deployed_heroes = self.deploy_heroes(frame)
+
+        # Deploy Spells
+        frame = self.input.window_service.screenshot()
+        if frame is not None:
+            self._sync_frame_size(frame)
+            self.deploy_spells(frame)
+
+        # Tactical delay before activating hero abilities
+        if deployed_heroes:
+            if ev:
+                ev.wait(10.0)
+            else:
+                time.sleep(10.0)
+            self.activate_hero_abilities(deployed_heroes)
+
         return True
