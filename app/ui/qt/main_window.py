@@ -32,6 +32,7 @@ from app.ui.qt.branding import (
 )
 from app.ui.qt.bot_controller import BotController
 from app.ui.qt.dialogs import show_error
+from app.ui.qt.pages.about import AboutPage
 from app.ui.qt.pages.antiban_page import AntiBanPage
 from app.ui.qt.pages.license import LicensePage
 from app.ui.qt.pages.logs import LogsPage
@@ -49,8 +50,8 @@ from app.ui.qt.widgets import (
     format_trial_expires_in_minutes,
 )
 
-PAGE_KEYS = ["run", "loot_filter", "antiban", "settings", "players", "license", "logs"]
-PAGE_LABELS = ["Cockpit", "Loot Filter", "Anti-Ban", "Settings", "Players", "License", "Logs"]
+PAGE_KEYS = ["run", "loot_filter", "antiban", "settings", "players", "license", "logs", "about"]
+PAGE_LABELS = ["Cockpit", "Loot Filter", "Anti-Ban", "Settings", "Players", "License", "Logs", "About"]
 
 
 class MainWindow(QMainWindow):
@@ -116,6 +117,7 @@ class MainWindow(QMainWindow):
         self._players_page = PlayersPage()
         self._license_page = LicensePage(self._controller)
         self._logs_page = LogsPage()
+        self._about_page = AboutPage()
 
         for page in (
             self._run_page,
@@ -125,6 +127,7 @@ class MainWindow(QMainWindow):
             self._players_page,
             self._license_page,
             self._logs_page,
+            self._about_page,
         ):
             self._stack.addWidget(page)
         root.addWidget(self._stack, stretch=1)

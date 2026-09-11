@@ -64,7 +64,7 @@ class LicensePage(QWidget):
         layout.addWidget(PageTitle("License & Hardware Activation"))
 
         intro = QLabel(
-            "Enter your cryptographic activation key below or use your included 2-hour offline trial. Each license binds to 1 PC hardware fingerprint."
+            "Enter your activation key below or enjoy your included 2-hour free trial."
         )
         intro.setWordWrap(True)
         intro.setStyleSheet(f"color: {TOKENS['text_muted']};")
@@ -85,17 +85,17 @@ class LicensePage(QWidget):
 
         plan_desc = QLabel(
             "• Weekly: $1.00 (7D)  •  Monthly: $3.00 (30D)  •  Annual: $10.00 (365D)  •  Lifetime: $15.00 (Permanent VIP)\n"
-            "• Unforgeable Ed25519 asymmetric cryptographic license with 1-PC hardware binding\n"
-            "• Full Access: Autonomous Watchdog, Smart Loot Filtration, Advanced Anti-Ban Suite\n"
+            "• Instant key delivery with 24/7 customer support\n"
+            "• Full Access: Autonomous Combat, Smart Loot Filtration, Advanced Anti-Ban Suite\n"
             "• 2 Hours of free trial automatically active on first launch — test everything risk-free"
         )
         plan_desc.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px; line-height: 1.4;")
         plan_card.card_layout.addWidget(plan_desc)
         layout.addWidget(plan_card)
 
-        # Hardware Fingerprint Card
+        # Device ID Card
         hw_card = Card()
-        hw_card.card_layout.addWidget(SectionTitle("Hardware Fingerprint (1-PC Binding)"))
+        hw_card.card_layout.addWidget(SectionTitle("Device ID"))
         hw_row = QHBoxLayout()
         self._machine_id = CryptoLicenseEngine.get_machine_id()
         self._hw_entry = QLineEdit(self._machine_id)
@@ -103,7 +103,7 @@ class LicensePage(QWidget):
         self._hw_entry.setFont(QFont("Courier New", 10))
         self._hw_entry.setStyleSheet(f"background-color: {TOKENS['surface_hi']}; color: {TOKENS['text']};")
         hw_row.addWidget(self._hw_entry, stretch=1)
-        self._btn_copy_hw = neutral_button("📋 Copy HW ID", parent=self)
+        self._btn_copy_hw = neutral_button("📋 Copy Device ID", parent=self)
         self._btn_copy_hw.clicked.connect(self._copy_hardware_id)
         hw_row.addWidget(self._btn_copy_hw)
         hw_card.card_layout.addLayout(hw_row)
@@ -113,11 +113,11 @@ class LicensePage(QWidget):
         contact_card = Card()
         contact_card.card_layout.addWidget(SectionTitle("Buy an Activation Key (Instant Delivery)"))
         contact_desc = QLabel(
-            "Copy your <b>Machine ID</b> above and message the developer to purchase your key:<br>"
+            "Copy your <b>Device ID</b> above and message the developer to receive your key:<br>"
             "• <b>Email:</b> <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
             "• <b>Discord:</b> <span style='color: #22c55e;'>matrix0456</span><br>"
             "• <b>Reddit:</b> <span style='color: #f59e0b;'>u/post_matrix</span><br>"
-            "Accepted payments: PayPal, Crypto, UPI, Cards. Keys are delivered immediately upon confirmation!"
+            "Accepted payments: PayPal, Crypto, UPI, Cards. Fast instant delivery!"
         )
         contact_desc.setTextFormat(Qt.TextFormat.RichText)
         contact_desc.setOpenExternalLinks(True)
@@ -275,7 +275,7 @@ class LicensePage(QWidget):
     def _copy_hardware_id(self) -> None:
         QGuiApplication.clipboard().setText(self._machine_id)
         self._btn_copy_hw.setText("✓ Copied!")
-        QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy HW ID"))
+        QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy Device ID"))
 
     def _open_subscribe_checkout(self) -> None:
         QGuiApplication.clipboard().setText(self._machine_id)
@@ -287,9 +287,9 @@ class LicensePage(QWidget):
             f"• Monthly Pass: $3.00 (30 Days)\n"
             f"• Annual Pass: $10.00 (365 Days)\n"
             f"• Lifetime Pass: $15.00 (Permanent VIP Access)\n\n"
-            f"Your Machine ID: {self._machine_id}\n"
+            f"Your Device ID: {self._machine_id}\n"
             f"(Copied to your clipboard!)\n\n"
-            f"To get your key, message the developer with your Machine ID:\n"
+            f"To get your key, message the developer with your Device ID:\n"
             f"• Email: cockingkeshav@gmail.com\n"
             f"• Discord: matrix0456\n"
             f"• Reddit: u/post_matrix\n\n"

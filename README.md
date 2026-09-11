@@ -3,139 +3,115 @@
 <img src="assets/apex_clash_logo.png" alt="ApexClash Pro Logo" width="160" style="border-radius: 24px; box-shadow: 0 8px 32px rgba(0, 229, 255, 0.25);" />
 
 # ⚔️ ApexClash Pro
-### *The Next-Generation Autonomous Combat, Farming & Anti-Ban Suite for Clash of Clans*
+### *The Ultimate Autonomous Farming, Combat & Humanized Anti-Ban Suite for Clash of Clans*
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://microsoft.com/windows)
-[![GUI](https://img.shields.io/badge/GUI-PySide6%20%2F%20Qt-41CD52?style=for-the-badge&logo=qt&logoColor=white)](https://qt.io)
-[![Computer Vision](https://img.shields.io/badge/Vision-OpenCV%20%2B%20Tesseract-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)](https://opencv.org)
-[![Anti-Ban](https://img.shields.io/badge/Security-Humanized%20B%C3%A9zier%203.0-00E5FF?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
-[![License](https://img.shields.io/badge/License-Proprietary%20%2F%20Commercial-FFB300?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
+[![Release](https://img.shields.io/github/v/release/keshav-x/coc-bot?style=for-the-badge&color=00E5FF&label=Release)](https://github.com/keshav-x/coc-bot/releases)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Raspberry%20Pi-0078D4?style=for-the-badge)](https://github.com/keshav-x/coc-bot/releases)
+[![Anti-Ban](https://img.shields.io/badge/Anti--Ban-Engine%203.0%20Active-22C55E?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
+[![Trial](https://img.shields.io/badge/Free%20Trial-2%20Hours%20Included-FFB300?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
+[![Python](https://img.shields.io/badge/Engine-OpenCV%20%2B%20Tesseract-5C3EE8?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
 
 <p align="center">
-  <b>High-Precision Game Automation</b> • <b>Zero-Lag Modern Qt Cockpit</b> • <b>Undetectable Behavioral Physics</b> • <b>Cryptographic Key Activation</b>
+  <b>100% External Vision</b> • <b>Humanized Bézier Movement</b> • <b>Zero Memory Injection</b> • <b>24/7 Automated Loot Velocity</b>
 </p>
+
+[**📥 Download Latest Release**](https://github.com/keshav-x/coc-bot/releases/tag/v1.0.0) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**💬 Join Support on Discord**](https://discord.com)
 
 </div>
 
 ---
 
-## 📖 Table of Contents
-- [✨ Key Features](#-key-features)
-- [🛡️ Anti-Ban Engine 3.0](#️-anti-ban-engine-30)
-- [💰 Smart Loot Filtration](#-smart-loot-filtration)
-- [⚔️ Combat Strategies](#️-combat-strategies)
-- [🚀 Quickstart Guide](#-quickstart-guide)
-- [🎮 Game & Emulator Setup](#-game--emulator-setup)
-- [🔑 Activation Key System](#-activation-key-system)
-- [📊 Cockpit & Discord Webhooks](#-cockpit--discord-webhooks)
-- [🧪 Verification & Tests](#-verification--tests)
-- [📦 Compiling to Standalone `.exe`](#-compiling-to-standalone-exe)
-- [📁 Project Architecture](#-project-architecture)
-- [⚖️ Disclaimer](#️-disclaimer)
+## 📖 About ApexClash Pro
+
+**ApexClash Pro** is a high-velocity, fully autonomous combat and resource-harvesting bot engineered specifically for **Clash of Clans**. Designed for players who want to max out walls, heroes, and defenses without spending thousands of hours grinding, ApexClash Pro automates base searches, dead-base filtering, tactical troop deployments, wall upgrading, and multi-account rotations.
+
+Built from the ground up with **pure computer vision** and **humanized behavioral physics**, ApexClash Pro never injects code or tampers with game memory, giving you uninterrupted farming velocity with unmatched account safety.
 
 ---
 
-## ✨ Key Features
+## 🛡️ Next-Gen Anti-Ban Architecture 3.0
 
-- **🎯 Sub-Pixel Precision Direct Win32 Input**: Automatic client area offset calibration (`GetClientRect` & `ClientToScreen`) eliminates title bar offsets across all window modes, Google Play Games PC, and emulators.
-- **🛡️ Undetectable Humanized Movement**: Physiological cubic Bézier trajectories, Gaussian spatial micro-scatter (±2px), realistic contact dwell (45–85ms), and randomized APM throttling.
-- **💰 Smart Loot Filtration & Auto-Skip**: Real-time battle HUD optical character recognition (OCR). Dynamically skips unprofitable targets until configurable Gold, Elixir, and Dark Elixir thresholds are satisfied.
-- **⚔️ Masterclass Combat Algorithms**: High-performance multi-finger perimeter waves (no camera dragging or map panning), intelligent bottom-bar troop auto-fallback, delayed hero ability timing, and defensive cluster spell penetration.
-- **🌙 Aurora Dark Theme Cockpit**: Responsive PySide6 UI featuring live StatCards (**Gold/hr**, **Elixir/hr**, **DE/hr**, **Raids Completed**, **Bases Skipped**), real-time scrolling logs, and custom telemetry history.
-- **📢 Discord Webhooks & Desktop Notifications**: Instant rich embed raid reports, loot summaries, and break alerts sent directly to your Discord server or Windows Action Center.
-- **🔐 Hardware-Locked Licensing System**: Cryptographically signed HMAC-SHA256 activation with automated 2-hour free trials and 1-device monthly/lifetime binding.
+Account safety is our highest priority. Unlike unsafe cheat tools that hook into game memory, modify network packets, or inject DLLs, ApexClash Pro operates **100% externally** using advanced visual intelligence:
 
----
-
-## 🛡️ Anti-Ban Engine 3.0
-
-ApexClash Pro incorporates state-of-the-art behavioral simulation engineered to bypass heuristic detection:
-
-| Anti-Ban Component | Implementation Specification |
-|:---|:---|
-| **Trajectory Modeling** | Cubic Bézier curves with randomized control point inflection and ease-in/ease-out acceleration |
-| **Spatial Dispersion** | Human hand jitter modeled with Gaussian normal distribution ($\sigma = 2.0\text{px}$) |
-| **Contact Dwell** | Realistic physical mouse press duration varying between $45\text{ms}$ and $85\text{ms}$ |
-| **APM Governor** | Dynamic Actions-Per-Minute limiter preventing repetitive robotic bursts |
-| **Fatigue Scheduler** | Automated break intervals with randomized duration and human-like idle village inspections |
-| **Stealth Profiles** | Pre-calibrated **Stealth**, **Balanced**, and **Fast** operating profiles |
+- 👁️ **Pure External Screen Vision**: ApexClash Pro interacts with your game exactly like a human player looking at a monitor. It captures frames from the desktop, identifies elements with OpenCV template matching, and reads loot numbers via OCR. **Zero memory reading, zero memory writing, zero file modification.**
+- 🖱️ **Natural Bézier 3.0 Mouse Physics**: Robotic straight-line clicks are instantly flagged by modern heuristics. ApexClash Pro uses cubic Bézier curves with randomized control points, natural acceleration, deceleration, and micro-hand tremor to simulate genuine human hand movement.
+- 🎯 **Gaussian Coordinate Scatter**: Clicks and troop drops never hit the exact same pixel twice. Coordinates are perturbed using a two-dimensional Gaussian distribution centered over the target area.
+- ☕ **Circadian Fatigue & Rest Cycles**: Continuous 24-hour play is an obvious red flag. ApexClash Pro features configurable break routines, humanized micro-pauses between attacks, and optional sleep schedules to perfectly mimic human gaming sessions.
+- ⏱️ **Erratic Timing Jitter**: Delays between base searches, button presses, and deployment waves are randomized with variable non-linear curves, preventing fixed-interval detection signatures.
+- 🎮 **Compatible with Official & Emulator Clients**: Runs seamlessly on **Google Play Games on PC** (recommended official client), **BlueStacks 5**, **LDPlayer 9**, and **MuMu Player**.
 
 ---
 
-## 💰 Smart Loot Filtration
+## ⚡ Supercharged Features
 
-Never waste troops on empty bases. The integrated vision engine inspects enemy storage levels in matchmaking before committing:
+### 1. 💰 Surgical Sneaky Goblin Farming
+- Targets exterior Gold Mines, Elixir Collectors, and Dark Elixir Drills with laser precision.
+- Drops minimal troops per collector to maximize loot per raid while keeping troop costs negligible.
+- Farms hundreds of millions of gold and elixir per day on autopilot.
 
-```
-[Matchmaking Search] ──► [Inspect Top-Left HUD] ──► [Evaluate Thresholds]
-                                                             │
-                  ┌──────────────────────────────────────────┴──────────────────────────────────────────┐
-                  ▼                                                                                     ▼
-    [Criteria Met: Gold ≥ 500k, Elixir ≥ 500k]                                        [Below Thresholds: Gold < 500k]
-                  │                                                                                     │
-                  ▼                                                                                     ▼
-       Deploy Combat Strategy                                                            Click 'Next' & Record Skip
-```
+### 2. 🔍 Real-Time Smart Loot Filtration & OCR
+- Automatically reads available Gold, Elixir, and Dark Elixir numbers before deciding to attack.
+- Instantly skips unprofitable or active defender bases.
+- Target dead bases with 800,000+ or 1,000,000+ loot thresholds to ensure every attack is high-yield.
 
-- **OR Mode**: Attacks if **either** Gold or Elixir satisfies your quota.
-- **AND Mode**: Requires **both** Gold and Elixir to be met simultaneously.
-- **Dark Elixir Priority**: Specifically hunts for Dark Elixir reservoirs.
-- **Max Skips Safety Override**: Attacks the best available base after reaching a search budget limit.
+### 3. 🧱 Autonomous Wall Upgrader
+- Never lose loot to full storages again!
+- Automatically detects excess Gold and Elixir and sinks it into your lowest-level walls between raids.
+- Effortlessly maxes your Town Hall walls in record time.
 
----
+### 4. ⚔️ Versatile Army Strategies
+- **Sneaky Goblins**: Resource stripping and Town Hall sniping.
+- **Electro Dragons & Balloon Funneling**: High-damage aerial perimeter destruction.
+- **Valkyries & Super Minions**: Fast ground funneling and core destruction.
+- **Baby Dragons & Night Witches**: Builder Base autonomous harvesting.
 
-## ⚔️ Combat Strategies
+### 5. 👑 Tactical Hero Deployment & Timed Abilities
+- Drops Barbarian King, Archer Queen, Grand Warden, and Royal Champion at designated assault vectors.
+- Features **Delayed Ability Triggering (8–12s)**: Holds Iron Fist, Royal Cloak, and Eternal Tome until heroes penetrate outer walls and enter intense defense fire.
 
-### 1. 🟢 Sneaky Goblins (High-Velocity Resource Sniping)
-- **Deployment**: Surgical 4-quadrant diamond perimeter taps along all boundaries (`left->top`, `top->right`, `right->bottom`, `bottom->left`).
-- **Objective**: Rapidly extracts outer resource collectors and drills, penetrates compartments, and secures the Town Hall.
-- **No Map-Panning**: Tap-based multi-wave deployment ensures the emulator camera stays locked in place.
+### 6. 📊 Real-Time Cockpit & Session Telemetry
+- Live Dark-Mode Dashboard with estimated **Gold/hr, Elixir/hr, and Dark Elixir/hr** velocities.
+- Detailed raid history table logging loot gathered, base search counts, and session runtimes.
 
-### 2. ⚡ Electro Dragons (Chain Lightning Front)
-- **Deployment**: Wide, evenly-spaced perimeter arc along the defense front line.
-- **Objective**: Destroys high-density defensive clusters and core installations with bouncing lightning strikes.
-
-### 3. 🪓 Valkyries & Super Minions (Core Penetration)
-- **Deployment**: Fast perimeter funneling followed by concentrated core assault with Earthquake wall destruction.
-
-### 4. 👑 Tactical Hero Ability Timing
-- Deploys Barbarian King, Archer Queen, Grand Warden, and Royal Champion at designated funnel points.
-- **Delayed Ability Activation (8–12s)**: Hero abilities are held until troops breach the outer defense ring, unleashing King Iron Fist, Queen Royal Cloak, and Warden Eternal Tome precisely when defenses focus fire.
-
-### 5. 🔄 Intelligent Auto-Troop Fallback
-- If a specific troop icon isn't matched due to visual skins or custom armies, ApexClash Pro automatically detects and selects alternative available troops or defaults to **Troop Slot 1**. Attacks are **never aborted** due to missing templates.
+### 7. 📱 Discord Webhook Notifications
+- Receive instant notifications directly to your phone or Discord server:
+  - Raid completion embeds with total loot gathered.
+  - Break notifications and scheduled rest alerts.
+  - Session summaries and error recovery alerts.
 
 ---
 
 ## 🚀 1-Click Installation & Launch Guide
 
+ApexClash Pro is designed to be completely zero-friction on every major operating system:
+
 ### 🪟 Windows (1-Click Run)
-- **Standalone Binary**: Download `ApexClashPro-Windows-x64.zip` from [Releases](https://github.com/keshav-x/coc-bot/releases), extract, and double-click `ApexClashPro.exe`.
-- **From Source**: Double-click `start_windows.bat` — it automatically creates the environment, installs packages, and launches the app!
+1. Download **`ApexClashPro-Windows-x64.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.0.0).
+2. Extract the ZIP folder.
+3. Double-click **`ApexClashPro.exe`** to launch! *(Or double-click `start_windows.bat` if running from source)*.
 
 ### 🐧 Linux & 🍓 Raspberry Pi (1-Click Setup)
-Supports all Debian/Ubuntu flavors, Fedora, Arch, and **Raspberry Pi OS (ARM64 / aarch64 / armv7l)**:
+Full support for Ubuntu, Debian, Fedora, Arch, and **Raspberry Pi OS (ARM64 / aarch64 / armv7l)**:
 ```bash
-# 1. Download and extract ApexClashPro-Linux-RaspberryPi-Universal.tar.gz
+# 1. Download and extract the package
 tar -xzf ApexClashPro-Linux-RaspberryPi-Universal.tar.gz
 cd ApexClashPro
 
-# 2. Run the 1-Click Installer (Installs system deps, venv, and Desktop shortcut):
+# 2. Run the 1-Click Installer
 ./install_linux.sh
 ```
-*After install, simply double-click the **ApexClash Pro** desktop icon or run `./start_linux.sh`!*
+*The installer automatically configures dependencies and creates an **ApexClash Pro** desktop shortcut icon. For future launches, simply double-click the desktop icon or run `./start_linux.sh`!*
 
 ### 🍎 macOS (1-Click Finder Launch)
-- Download `ApexClashPro-macOS-Universal.zip` from [Releases](https://github.com/keshav-x/coc-bot/releases).
-- Extract and **double-click** `start_mac.command` directly in macOS Finder!
-- It automatically configures the environment, installs requirements, and boots the application.
+1. Download **`ApexClashPro-macOS-Universal.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.0.0).
+2. Extract the archive in Finder.
+3. **Double-click `start_mac.command`** directly in Finder. It will configure the environment and open ApexClash Pro immediately!
 
 ---
 
 ## 🎮 Game & Emulator Setup
 
-ApexClash Pro is engineered to work out of the box with the most popular Windows game clients:
+ApexClash Pro is pre-calibrated to work out of the box with standard game resolutions:
 
 1. **Supported Clients**:
    - **Google Play Games on PC** *(Recommended official client)*
@@ -143,124 +119,46 @@ ApexClash Pro is engineered to work out of the box with the most popular Windows
    - **LDPlayer 9**
    - **MuMu Player / Nox**
 2. **Display Settings**:
-   - Set game resolution to **1920×1080** (16:9) or **1920×1200** (16:10).
-   - Set game language to **English**.
+   - Resolution: **1920×1080** (16:9) or **1920×1200** (16:10).
+   - In-game language: **English**.
 3. **Window Selection**:
    - Launch Clash of Clans.
    - In ApexClash Pro, navigate to **Settings → Game Window** to select or auto-detect your game window.
 
 ---
 
-## 🔑 Access Passes & Purchase Information
+## 💎 Access Passes & Pricing
 
-ApexClash Pro includes a **2-Hour Free Trial** automatically activated on first launch — test all features risk-free with zero setup or registration required.
+ApexClash Pro includes an automatic **2-Hour Free Trial** on first launch — test every single strategy, filter, and feature risk-free with zero commitment!
 
-To continue unlimited farming after your trial, purchase an activation key directly from the developer:
-
-| Pass Tier | Price | Duration | Features |
+| Pass Tier | Price | Validity | Features |
 | :--- | :--- | :--- | :--- |
-| **Weekly Pass** | **$1.00** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
-| **Monthly Pass** | **$3.00** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
-| **Annual Pass** | **$10.00** | 365 Days | Full Access, All Updates, Priority Support |
-| **Lifetime Pass** | **$15.00** | Lifetime | Permanent VIP Access, All Future Updates, Priority Support |
+| **⚡ Free Trial** | **FREE** | 2 Hours | Full Access, Instant Activation, No Card Required |
+| **🌟 Weekly Pass** | **$1.00** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+| **🚀 Monthly Pass** | **$3.00** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+| **👑 Annual Pass** | **$10.00** | 365 Days | Full Access, All Future Updates, Priority Support |
+| **💎 Lifetime VIP** | **$15.00** | **Permanent** | Lifetime Access, All Major Upgrades, VIP Priority Support |
 
-### 🛒 How to Purchase
-1. Launch ApexClash Pro and navigate to the **License** page.
-2. Click **📋 Copy HW ID** to copy your unique PC Hardware Fingerprint.
-3. Contact the developer via any of the channels below with your Machine ID:
+---
+
+## 🛒 How to Order an Activation Key
+
+1. Launch **ApexClash Pro** and navigate to the **License** page.
+2. Click **📋 Copy Device ID** to copy your unique ID to your clipboard.
+3. Send a message to the developer with your Device ID and chosen pass tier:
    - 📧 **Email**: [cockingkeshav@gmail.com](mailto:cockingkeshav@gmail.com)
    - 💬 **Discord**: `matrix0456`
    - 🌐 **Reddit**: `u/post_matrix`
-4. Accepted payment methods: **PayPal, Crypto (USDT / BTC / LTC), UPI, Cards**.
-5. Your activation key is signed with private Ed25519 asymmetric cryptography and delivered instantly upon payment!
+4. **Accepted Payments**: PayPal, Crypto (USDT, BTC, LTC), UPI, Credit/Debit Cards.
+5. Activation keys are delivered instantly upon payment confirmation!
 
 ---
 
-## 📊 Cockpit & Discord Webhooks
-
-Stay updated on your farming progress from anywhere:
-
-- **Live StatCards**: Displays real-time estimated hourly loot velocity and raid counts.
-- **Discord Webhooks**: Configure your webhook URL under **Settings → Webhook** to receive automatic raid completion embeds, loot snapshots, and break notifications.
-- **Native Desktop Notifications**: Windows Action Center banners alert you when mega raids are completed or scheduled breaks begin.
-
----
-
-## 🧪 Verification & Tests
-
-ApexClash Pro ships with automated test suites verifying all core modules:
-
-```powershell
-# Run full logic, trial, anti-ban, and filtration tests:
-python scratch/test_suite.py
-
-# Run coordinate calibration, precision scatter, and combat strategy tests:
-python scratch/test_attack_logic.py
-
-# Run headless PySide6 GUI integration test:
-python scratch/test_gui.py
-```
-
----
-
-## 📦 Compiling to Standalone `.exe`
-
-To package ApexClash Pro into a portable Windows executable:
-
-```powershell
-python -m pip install pyinstaller
-pyinstaller --noconfirm --onedir --windowed `
-  --name "ApexClashPro" `
-  --icon "assets/apex_clash_logo.ico" `
-  --add-data "assets;assets" `
-  --add-data "templates;templates" `
-  --add-data "tessdata;tessdata" `
-  main.py
-```
-
-The compiled binary will be generated under `dist/ApexClashPro/ApexClashPro.exe`.
-
----
-
-## 📁 Project Architecture
-
-```
-coc-bot/
-├── assets/                       # High-resolution logos & ICO files
-│   ├── apex_clash_logo.png
-│   └── apex_clash_logo.ico
-├── templates/                    # Computer vision matching templates
-│   ├── 16_9/                     # 16:9 reference graphics
-│   ├── 16_10/                    # 16:10 reference graphics
-│   └── icons/                    # Resource icons (Gold, Elixir, Dark Elixir)
-├── app/
-│   ├── core/                     # Bot execution & strategy logic
-│   │   ├── bot.py                # Main state loop & village navigation
-│   │   ├── loot_filter.py        # Smart Loot Filtration engine
-│   │   ├── run_plan.py           # Multi-account rotation plan
-│   │   ├── strategies.py         # Multi-wave combat algorithms
-│   │   └── watchdog.py           # Auto-recovery watchdog
-│   ├── services/                 # Hardware & system service bridges
-│   │   ├── antiban.py            # Bézier paths, Gaussian jitter & breaks
-│   │   ├── input.py              # Win32 PostMessage mouse dispatch
-│   │   ├── license.py            # Cryptographic key validation
-│   │   ├── notifications.py      # Native Windows notifications
-│   │   ├── trial.py              # 2-hour free trial tracker
-│   │   ├── vision.py             # OpenCV template matching & OCR
-│   │   ├── webhook.py            # Discord embed webhook dispatcher
-│   │   └── window.py             # Win32 client area capture & cropping
-│   └── ui/qt/                    # PySide6 desktop GUI
-│       ├── branding.py           # Brand identities & logo loaders
-│       ├── main_window.py        # Sidebar & central stack coordinator
-│       ├── theme.py              # Design tokens & Aurora Cyber palette
-│       ├── widgets.py            # Custom cards, buttons, & toggles
-│       └── pages/                # Individual app pages
-├── main.py                       # Application bootstrap
-└── requirements.txt              # Project dependencies
-```
+## 🔍 Tags & Keywords
+`clash-of-clans-bot` `coc-bot` `clash-bot` `clash-of-clans-automation` `coc-farming-bot` `sneaky-goblin-farm` `anti-ban` `opencv` `tesseract-ocr` `supercell-bot` `clash-bot-2026` `auto-loot` `wall-upgrader` `dead-base-finder` `raspberry-pi-bot` `macos-clash-bot` `windows-clash-bot`
 
 ---
 
 ## ⚖️ Disclaimer
 
-*ApexClash Pro is developed solely for educational, reverse-engineering, and computer vision research purposes. Clash of Clans is a registered trademark of Supercell Oy. This project is not affiliated with, endorsed, or sponsored by Supercell. Users are responsible for complying with all applicable terms of service.*
+*ApexClash Pro is an independent game automation utility developed solely for educational and research purposes in computer vision. Clash of Clans is a registered trademark of Supercell Oy. ApexClash Pro is not affiliated with, authorized, or endorsed by Supercell.*
