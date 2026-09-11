@@ -38,6 +38,7 @@ TIER_ANNUAL = "Y36"    # 365 Days ($10.00)
 TIER_LIFETIME = "LIFE" # Permanent VIP ($15.00)
 
 TRIAL_TOTAL_SECONDS = 7200  # 2 Hours
+_TRIAL_SALT = b"CLASH_AUTOLOOT_LOCAL_TRIAL_SEAL_v1"
 
 
 @dataclass
@@ -200,7 +201,7 @@ class LocalTrialVault:
     @classmethod
     def _compute_seal(cls, hw_id: str, used_seconds: int, total_seconds: int) -> str:
         raw = f"TRIAL:{hw_id}:{used_seconds}:{total_seconds}"
-        return hmac.new(_SIGNING_SALT, raw.encode(), hashlib.sha256).hexdigest()[:16]
+        return hmac.new(_TRIAL_SALT, raw.encode(), hashlib.sha256).hexdigest()[:16]
 
     @classmethod
     def load_or_init(cls, hw_id: str) -> dict:

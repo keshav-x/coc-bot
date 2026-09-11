@@ -5,7 +5,7 @@ from __future__ import annotations
 import webbrowser
 from typing import Optional, Tuple
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import (
     QHBoxLayout,
