@@ -57,16 +57,19 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          Copy-Item start_windows.bat dist/ClashAutoLoot/ -ErrorAction SilentlyContinue
           Compress-Archive -Path dist/ClashAutoLoot/* -DestinationPath ${{ matrix.artifact_name }}
 
       - name: Package Release (Linux)
         if: runner.os == 'Linux'
         run: |
+          cp install_linux.sh start_linux.sh dist/ClashAutoLoot/ 2>/dev/null || true
           tar -czf ${{ matrix.artifact_name }} -C dist ClashAutoLoot
 
       - name: Package Release (macOS)
         if: runner.os == 'macOS'
         run: |
+          cp start_mac.command install_mac.command dist/ClashAutoLoot/ 2>/dev/null || true
           cd dist && zip -r ../${{ matrix.artifact_name }} ClashAutoLoot
 
       - name: Upload Build Artifact
@@ -89,6 +92,14 @@ jobs:
           path: release-assets
           merge-multiple: true
 
+      - name: Package Linux & Raspberry Pi Universal 1-Click Release
+        run: |
+          mkdir -p rpi-pkg/ClashAutoLoot
+          cp -r app assets templates tessdata main.py requirements.txt README.md install_linux.sh start_linux.sh start_mac.command install_mac.command start_windows.bat rpi-pkg/ClashAutoLoot/
+          chmod +x rpi-pkg/ClashAutoLoot/*.sh rpi-pkg/ClashAutoLoot/*.command
+          tar -czf release-assets/ClashAutoLoot-Linux-RaspberryPi-Universal.tar.gz -C rpi-pkg ClashAutoLoot
+          cd rpi-pkg && zip -r ../release-assets/ClashAutoLoot-macOS-Universal.zip ClashAutoLoot
+
       - name: List Artifacts
         run: ls -la release-assets
 
@@ -108,13 +119,14 @@ jobs:
 
             ---
 
-            ## 📥 Downloads
+            ## 📥 Downloads & 1-Click Launchers
 
-            | Operating System | Package | Architecture |
-            | :--- | :--- | :--- |
-            | 🪟 **Windows** | `ClashAutoLoot-Windows-x64.zip` | 64-bit (Windows 10/11) |
-            | 🐧 **Linux** | `ClashAutoLoot-Linux-x64.tar.gz` | x86_64 |
-            | 🍎 **macOS** | `ClashAutoLoot-macOS-x64.zip` | Apple Silicon / Intel |
+            | Operating System | Package | Architecture | Launch Method |
+            | :--- | :--- | :--- | :--- |
+            | 🪟 **Windows** | `ClashAutoLoot-Windows-x64.zip` | 64-bit (Windows 10/11) | Run `ClashAutoLoot.exe` |
+            | 🐧 **Linux** | `ClashAutoLoot-Linux-x64.tar.gz` | x86_64 | Run `./start_linux.sh` |
+            | 🍓 **Raspberry Pi & Linux** | `ClashAutoLoot-Linux-RaspberryPi-Universal.tar.gz` | ARM64 / aarch64 / armv7l / all Linux | Run `./install_linux.sh` |
+            | 🍎 **macOS** | `ClashAutoLoot-macOS-Universal.zip` | Apple Silicon / Intel | Double-click `start_mac.command` |
 
             ---
 

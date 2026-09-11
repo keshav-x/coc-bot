@@ -69,6 +69,23 @@ def configure_tesseract() -> None:
             )
             return
 
+    import shutil
+    which_tess = shutil.which('tesseract')
+    if which_tess:
+        pytesseract.pytesseract.tesseract_cmd = which_tess
+        logger.debug('Tesseract found in system PATH: %s', which_tess)
+        return
+
+    for unix_path in (
+        Path('/usr/bin/tesseract'),
+        Path('/usr/local/bin/tesseract'),
+        Path('/opt/homebrew/bin/tesseract'),
+    ):
+        if unix_path.is_file():
+            pytesseract.pytesseract.tesseract_cmd = str(unix_path)
+            logger.debug('Tesseract found at Unix path: %s', unix_path)
+            return
+
     win = Path(r'C:\Program Files\Tesseract-OCR\tesseract.exe')
     if win.is_file():
         pytesseract.pytesseract.tesseract_cmd = str(win)
@@ -78,5 +95,5 @@ def configure_tesseract() -> None:
         return
 
     logger.error(
-        'Tesseract not configured (install with winget install UB-Mannheim.TesseractOCR or set TESSERACT_CMD). OCR will not work until Tesseract is available.'
+        'Tesseract not configured (install with apt install tesseract-ocr / brew install tesseract / winget install UB-Mannheim.TesseractOCR, or set TESSERACT_CMD). OCR will not work until Tesseract is available.'
     )

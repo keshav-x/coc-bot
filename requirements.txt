@@ -4,3 +4,5 @@ numpy>=1.24.0
 Pillow>=10.0.0
 pytesseract>=0.3.10
 requests>=2.31.0
+pycryptodome>=3.19.0
+

@@ -108,39 +108,28 @@ Never waste troops on empty bases. The integrated vision engine inspects enemy s
 
 ---
 
-## 🚀 Quickstart Guide
+## 🚀 1-Click Installation & Launch Guide
 
-### 1. Prerequisites
-- **Operating System**: Windows 10 or Windows 11 (64-bit).
-- **Python**: Python 3.10 to 3.14 (64-bit). Download from [python.org](https://www.python.org/downloads/).
-- *(Optional for OCR Loot Filtration)* **Tesseract OCR**:
-  ```powershell
-  winget install UB-Mannheim.TesseractOCR
-  ```
+### 🪟 Windows (1-Click Run)
+- **Standalone Binary**: Download `ClashAutoLoot-Windows-x64.zip` from [Releases](https://github.com/keshav-x/coc-bot/releases), extract, and double-click `ClashAutoLoot.exe`.
+- **From Source**: Double-click `start_windows.bat` — it automatically creates the environment, installs packages, and launches the app!
 
-### 2. Installation
-Open PowerShell in your project folder:
-```powershell
-# 1. Clone the repository
-git clone https://github.com/keshav-x/coc-bot.git
-cd coc-bot
+### 🐧 Linux & 🍓 Raspberry Pi (1-Click Setup)
+Supports all Debian/Ubuntu flavors, Fedora, Arch, and **Raspberry Pi OS (ARM64 / aarch64 / armv7l)**:
+```bash
+# 1. Download and extract ClashAutoLoot-Linux-RaspberryPi-Universal.tar.gz
+tar -xzf ClashAutoLoot-Linux-RaspberryPi-Universal.tar.gz
+cd ClashAutoLoot
 
-# 2. (Recommended) Create and activate a virtual environment
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-
-# 3. Install required dependencies
-python -m pip install -r requirements.txt
+# 2. Run the 1-Click Installer (Installs system deps, venv, and Desktop shortcut):
+./install_linux.sh
 ```
+*After install, simply double-click the **Clash AutoLoot** desktop icon or run `./start_linux.sh`!*
 
-### 3. Launching ApexClash Pro
-```powershell
-# Launch the full Modern Dark-Mode GUI:
-python main.py
-
-# Or launch in lightweight CLI headless mode:
-python main.py --cli
-```
+### 🍎 macOS (1-Click Finder Launch)
+- Download `ClashAutoLoot-macOS-Universal.zip` from [Releases](https://github.com/keshav-x/coc-bot/releases).
+- Extract and **double-click** `start_mac.command` directly in macOS Finder!
+- It automatically configures the environment, installs requirements, and boots the application.
 
 ---
 
