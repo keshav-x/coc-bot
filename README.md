@@ -173,6 +173,7 @@ To continue unlimited farming after your trial, purchase an activation key direc
 | **Weekly Pass** | **$1.00** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
 | **Monthly Pass** | **$3.00** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
 | **Annual Pass** | **$10.00** | 365 Days | Full Access, All Updates, Priority Support |
+| **Lifetime Pass** | **$15.00** | Lifetime | Permanent VIP Access, All Future Updates, Priority Support |
 
 ### 🛒 How to Purchase
 1. Launch Clash AutoLoot and navigate to the **License** page.

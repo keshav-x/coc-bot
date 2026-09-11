@@ -74,7 +74,7 @@ class LicensePage(QWidget):
         plan_card = Card()
         plan_card.card_layout.addWidget(SectionTitle("Official Access Passes & Pricing"))
         plan_header = QHBoxLayout()
-        plan_title = QLabel("Weekly: $1.00  |  Monthly: $3.00  |  Annual: $10.00")
+        plan_title = QLabel("Weekly: $1.00  |  Monthly: $3.00  |  Annual: $10.00  |  Lifetime: $15.00")
         plan_title.setStyleSheet(f"color: {TOKENS['accent_gold']}; font-size: 15px; font-weight: bold;")
         plan_header.addWidget(plan_title)
         plan_header.addStretch()
@@ -84,7 +84,7 @@ class LicensePage(QWidget):
         plan_card.card_layout.addLayout(plan_header)
 
         plan_desc = QLabel(
-            "• Weekly Pass: $1.00 (7 Days)  •  Monthly Pass: $3.00 (30 Days)  •  Annual Pass: $10.00 (365 Days)\n"
+            "• Weekly: $1.00 (7D)  •  Monthly: $3.00 (30D)  •  Annual: $10.00 (365D)  •  Lifetime: $15.00 (Permanent VIP)\n"
             "• Unforgeable Ed25519 asymmetric cryptographic license with 1-PC hardware binding\n"
             "• Full Access: Autonomous Watchdog, Smart Loot Filtration, Advanced Anti-Ban Suite\n"
             "• 2 Hours of free trial automatically active on first launch — test everything risk-free"
@@ -285,7 +285,8 @@ class LicensePage(QWidget):
             f"Official Pricing:\n"
             f"• Weekly Pass: $1.00 (7 Days)\n"
             f"• Monthly Pass: $3.00 (30 Days)\n"
-            f"• Annual Pass: $10.00 (365 Days)\n\n"
+            f"• Annual Pass: $10.00 (365 Days)\n"
+            f"• Lifetime Pass: $15.00 (Permanent VIP Access)\n\n"
             f"Your Machine ID: {self._machine_id}\n"
             f"(Copied to your clipboard!)\n\n"
             f"To get your key, message the developer with your Machine ID:\n"

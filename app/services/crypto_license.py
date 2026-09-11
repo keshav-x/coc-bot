@@ -35,7 +35,7 @@ LICENSE_PREFIX = "CAL"
 TIER_WEEKLY = "W07"    # 7 Days ($1.00)
 TIER_MONTHLY = "M30"   # 30 Days ($3.00)
 TIER_ANNUAL = "Y36"    # 365 Days ($10.00)
-TIER_LIFETIME = "LIFE" # Permanent VIP
+TIER_LIFETIME = "LIFE" # Permanent VIP ($15.00)
 
 TRIAL_TOTAL_SECONDS = 7200  # 2 Hours
 

@@ -19,9 +19,10 @@ BUILDER_BASE_PRIORITISE_LABELS = ("Gold", "Both", "Elixir")
 PLAN_PRICE_WEEKLY = "$1.00 / week"
 PLAN_PRICE_MONTHLY = "$3.00 / month"
 PLAN_PRICE_ANNUAL = "$10.00 / year"
+PLAN_PRICE_LIFETIME = "$15.00 lifetime"
 PLAN_DEVICE_LIMIT = "1 Device (Hardware Bound)"
 PLAN_TRIAL_HOURS = 2
-PLAN_DESCRIPTION = "Cheap passes ($1/wk, $3/mo, $10/yr) with instant activation and 2-Hour Free Trial"
+PLAN_DESCRIPTION = "Cheap passes ($1/wk, $3/mo, $10/yr, $15 lifetime) with instant activation and 2-Hour Free Trial"
 
 CONTACT_EMAIL = "cockingkeshav@gmail.com"
 CONTACT_REDDIT = "post_matrix"
