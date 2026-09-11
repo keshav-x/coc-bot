@@ -1046,38 +1046,83 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
             )
 
     def _wait_for_battle_end(self, is_sneaky: bool) -> None:
-        if is_sneaky:
-            if self.stop_event.wait(3):
-                return
+        """Wait for the raid to finish.
+
+        Sneaky Goblins are given 35-45s of active combat to path and loot resources
+        before checking for surrender. If the battle concludes naturally earlier
+        (all troops defeated or 100% destruction), exits immediately.
+        """
+        cb = getattr(self, "_status_callback", None)
+        min_combat_seconds = 35 if is_sneaky else 60
+        max_timeout = 50 if is_sneaky else 150
         start = time.time()
-        timeout = 60
-        while time.time() - start < timeout:
+
+        logger.info(
+            "Waiting for battle resolution (strategy=%s, min_combat=%ds, timeout=%ds)",
+            "sneaky" if is_sneaky else "standard",
+            min_combat_seconds,
+            max_timeout,
+        )
+
+        while time.time() - start < max_timeout:
             self._check_stop()
-            if is_sneaky:
-                sx, sy = self._find_template_once("surrender.png")
-                if sx:
-                    self.input.click(sx, sy, pause=0.1)
-                    return
-            bx, by = self._find_template_once("endbattle.png")
-            if bx:
-                self.input.click(bx, by, pause=0.1)
-                return
+            elapsed = time.time() - start
+
             frame = self.window.screenshot()
             if frame is not None:
                 self._update_config_size(frame)
-                h, w = frame.shape[:2]
-                self.input.click(w // 2, h // 2, pause=0.1)
-            if self.stop_event.wait(0.5):
+
+                # Check if battle has naturally concluded (victory/defeat summary or return home)
+                ox, oy = self.vision.find_template(frame, "okay.png", threshold=0.75)
+                if ox:
+                    logger.info("Battle concluded naturally: okay.png detected after %.1fs", elapsed)
+                    return
+
+                rx, _ = self.vision.find_template(frame, "returnhome.png", threshold=0.75)
+                if rx:
+                    logger.info("Battle concluded naturally: returnhome.png detected after %.1fs", elapsed)
+                    return
+
+                # Check for endbattle button (appears when 3 stars reached or army depleted)
+                bx, by = self.vision.find_template(frame, "endbattle.png", threshold=0.75)
+                if bx:
+                    logger.info("End battle button detected after %.1fs", elapsed)
+                    self.input.click(bx, by, pause=0.2)
+                    return
+
+                # If combat duration has elapsed for sneaky goblins, safely surrender
+                if is_sneaky and elapsed >= min_combat_seconds:
+                    sx, sy = self.vision.find_template(frame, "surrender.png", threshold=0.75)
+                    if sx:
+                        logger.info("Loot phase complete (%.1fs elapsed). Surrendering raid.", elapsed)
+                        if cb:
+                            cb("Raid finished — surrendering")
+                        self.input.click(sx, sy, pause=0.35)
+                        # Handle potential surrender confirmation dialog
+                        if self.stop_event.wait(0.5):
+                            return
+                        c_frame = self.window.screenshot()
+                        if c_frame is not None:
+                            cx, cy = self.vision.find_template(c_frame, "okay.png", threshold=0.75)
+                            if cx:
+                                self.input.click(cx, cy, pause=0.2)
+                        return
+
+            if self.stop_event.wait(0.8):
                 return
-        if not is_sneaky:
-            sx, sy = self._wait_for_image("surrender.png", timeout=2, error=False)
-            if sx:
-                self.input.click(sx, sy, pause=0.1)
-                return
+
+        # Fallback if timeout reached: surrender if button is present
+        logger.info("Battle timeout (%ds) reached; attempting surrender.", max_timeout)
+        sx, sy = self._wait_for_image("surrender.png", timeout=3, error=False)
+        if sx:
+            self.input.click(sx, sy, pause=0.2)
+            c_ox, c_oy = self._wait_for_image("okay.png", timeout=2, error=False)
+            if c_ox:
+                self.input.click(c_ox, c_oy, pause=0.2)
 
     def _return_home(self) -> bool:
         """Dismiss Okay if present, then wait for ``returnhome.png`` (+ ``returnhome2.png`` on 16:10) or ``chestclaim.png`` (mutually exclusive)."""
-        ox, oy = self._wait_for_image("okay.png", timeout=10)
+        ox, oy = self._wait_for_image("okay.png", timeout=2, error=False)
         if ox:
             self.input.click(ox, oy, pause=0.1)
         kind, hx, hy = self._wait_for_return_home_or_chest_claim(timeout=10)

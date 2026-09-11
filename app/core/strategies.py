@@ -51,6 +51,11 @@ class AttackStrategy:
     def _sync_frame_size(self, frame: Any) -> None:
         self.config.set_target_size_from_frame(frame)
 
+    def _get_screenshot(self) -> Optional[Any]:
+        if self.input and getattr(self.input, "window_service", None):
+            return self.input.window_service.screenshot()
+        return None
+
     def _point(self, key: str) -> Tuple[int, int]:
         return self.config.get_point(key)
 
@@ -71,6 +76,8 @@ class AttackStrategy:
         self.input.click(troop_x, troop_y, pause=0.2, rand=False)
         x1, y1 = p1
         x2, y2 = p2
+        sz = self.input.window_service.get_outer_pixel_size() if (self.input and self.input.window_service) else None
+        fw, fh = sz if sz else (1920, 1080)
 
         for _ in range(num_waves):
             if self.stop_event and self.stop_event.is_set():
@@ -80,9 +87,10 @@ class AttackStrategy:
                     break
                 t = (i + random.uniform(-0.08, 0.08)) / max(1, count_per_wave - 1)
                 t = max(0.0, min(1.0, t))
-                dx = int(x1 + (x2 - x1) * t + random.randint(-8, 8))
-                dy = int(y1 + (y2 - y1) * t + random.randint(-8, 8))
-                self.input.click(dx, dy, pause=delay, rand=False)
+                dx = int(x1 + (x2 - x1) * t + random.randint(-6, 6))
+                dy = int(y1 + (y2 - y1) * t + random.randint(-6, 6))
+                cx, cy = self._quantize_deploy_to_frame(dx, dy, fw, fh)
+                self.input.click(cx, cy, pause=delay, rand=False)
 
     def deploy_heroes(self, frame: Any) -> List[Tuple[int, int]]:
         heroes = ["king", "queen", "warden", "RC", "prince"]
@@ -131,11 +139,15 @@ class AttackStrategy:
 
     @staticmethod
     def _quantize_deploy_to_frame(px: float, py: float, fw: int, fh: int) -> Tuple[int, int]:
-        """Clamp to ``[0, fw-1]`` x ``[0, fh-1]``, round to nearest pixels."""
+        """Clamp to valid deploy grass region: safely inside screen, below top HUD and strictly above bottom ribbon."""
         if fw <= 0 or fh <= 0:
             return (int(round(px)), int(round(py)))
-        cx = max(0.0, min(float(fw - 1), float(px)))
-        cy = max(0.0, min(float(fh - 1), float(py)))
+        min_x = max(0.0, float(fw) * 0.08)
+        max_x = min(float(fw - 1), float(fw) * 0.92)
+        min_y = max(0.0, float(fh) * 0.12)  # Safely below top battle HUD
+        max_y = min(float(fh - 1), float(fh) * 0.81)  # Strictly above bottom troop ribbon
+        cx = max(min_x, min(max_x, float(px)))
+        cy = max(min_y, min(max_y, float(py)))
         return (int(round(cx)), int(round(cy)))
 
     def _get_hero_deploy_point(self, frame: Any) -> Tuple[int, int]:
@@ -535,7 +547,10 @@ class TroopSpamStrategy(AttackStrategy):
         self._sync_frame_size(frame)
         logger.info(f"Executing {self.troop_name} strategy")
         roi = self.vision.bottom_half_region(frame)
-        tx, ty = self.vision.find_template(frame, f"{self.troop_name}.png", threshold=0.68, region=roi)
+        fh, fw = frame.shape[:2]
+
+        # 1. Locate and select the primary farming troop in the bottom bar
+        tx, ty = self.vision.find_template(frame, f"{self.troop_name}.png", threshold=0.62, region=roi)
 
         # Smart fallback if selected troop template isn't matched
         if tx is None:
@@ -543,53 +558,81 @@ class TroopSpamStrategy(AttackStrategy):
             for fb_name in fallback_troops:
                 if fb_name == self.troop_name:
                     continue
-                tx, ty = self.vision.find_template(frame, f"{fb_name}.png", threshold=0.68, region=roi)
+                tx, ty = self.vision.find_template(frame, f"{fb_name}.png", threshold=0.62, region=roi)
                 if tx is not None:
                     logger.info(f"Primary troop template '{self.troop_name}' not found; auto-selected fallback troop '{fb_name}'")
                     break
 
-        # If still not found, use slot 1 in the bottom troop bar
+        # If still not found, use slot 1 in the bottom troop bar (primary trained army slot)
         if tx is None:
-            fh, fw = frame.shape[:2]
-            tx, ty = int(fw * 0.16), int(fh * 0.90)
+            tx, ty = int(fw * 0.165), int(fh * 0.90)
             logger.info(f"Using default slot 1 troop coordinates: ({tx}, {ty})")
 
         # Select troop
-        self.input.click(tx, ty, pause=0.25, rand=False)
-        if ev and ev.wait(0.15):
+        self.input.click(tx, ty, pause=0.35, rand=False)
+        if ev and ev.wait(0.18):
             return True
 
-        # Masterclass 4-segment multi-wave perimeter deployment
-        p_left = self._point("left")
-        p_top = self._point("top")
-        p_right = self._point("right")
-        p_bottom = self._point("bottom")
+        # 2. Build safe diamond perimeter corners clamped on deployable grass
+        corners = ("top", "right", "bottom", "left")
+        start_idx = random.choice((0, 1, 3))
+        direction = random.choice((1, -1))
+        ordered_corners = [corners[(start_idx + i * direction) % 4] for i in range(5)]
 
-        segments = [
+        def get_clamped_corner(c_name: str) -> Tuple[int, int]:
+            raw_pt = self._point(c_name)
+            return self._quantize_deploy_to_frame(raw_pt[0], raw_pt[1], fw, fh)
+
+        # 3. Continuous stream deployment (mouse_down + human_move around the grass perimeter)
+        # In Clash of Clans, holding mouse down and dragging streams out troops continuously!
+        start_pt = get_clamped_corner(ordered_corners[0])
+        curr_x, curr_y = self._expand_loc(*start_pt)
+        curr_x, curr_y = self._quantize_deploy_to_frame(curr_x, curr_y, fw, fh)
+
+        self.input.mouse_down(curr_x, curr_y)
+        if ev and ev.wait(0.35):
+            self.input.mouse_up(curr_x, curr_y)
+            return True
+
+        try:
+            total_duration = max(1.0, float(self.duration))
+            segment_duration = total_duration / 4.0
+            for i in range(len(ordered_corners) - 1):
+                if ev and ev.is_set():
+                    break
+                next_c = ordered_corners[i + 1]
+                target_pt = get_clamped_corner(next_c)
+                tx_exp, ty_exp = self._expand_loc(*target_pt)
+                target_x, target_y = self._quantize_deploy_to_frame(tx_exp, ty_exp, fw, fh)
+                dur = random.uniform(segment_duration * 0.9, segment_duration * 1.1)
+                self.input.human_move(curr_x, curr_y, target_x, target_y, duration=dur)
+                curr_x, curr_y = target_x, target_y
+        finally:
+            self.input.mouse_up(curr_x, curr_y)
+
+        if ev and ev.wait(0.2):
+            return True
+
+        # 4. Secondary Wave: Re-click troop slot and deploy rapid reinforcement taps to empty remaining troops
+        self.input.click(tx, ty, pause=0.25, rand=False)
+        p_left = get_clamped_corner("left")
+        p_top = get_clamped_corner("top")
+        p_right = get_clamped_corner("right")
+        p_bottom = get_clamped_corner("bottom")
+
+        reinforce_segments = [
             (p_left, p_top),
             (p_top, p_right),
             (p_right, p_bottom),
             (p_bottom, p_left),
         ]
-
-        # Wave 1: Rapid boundary coverage across all 4 quadrants
-        for p1, p2 in segments:
+        for p1, p2 in reinforce_segments:
             if ev and ev.is_set():
                 return True
-            self.deploy_multi_wave(tx, ty, p1, p2, count_per_wave=4, num_waves=1, delay=0.08)
+            self.deploy_multi_wave(tx, ty, p1, p2, count_per_wave=3, num_waves=1, delay=0.07)
 
-        # Deploy second wave or secondary troops
-        if ev and ev.wait(0.3):
-            return True
-
-        # Wave 2: Surgical concentrated penetration on top & sides
-        for p1, p2 in segments[:2]:
-            if ev and ev.is_set():
-                return True
-            self.deploy_multi_wave(tx, ty, p1, p2, count_per_wave=3, num_waves=1, delay=0.08)
-
-        # Deploy Heroes
-        frame = self.input.window_service.screenshot()
+        # 5. Deploy Heroes
+        frame = self._get_screenshot()
         deployed_heroes = []
         if frame is not None:
             self._sync_frame_size(frame)
@@ -597,13 +640,13 @@ class TroopSpamStrategy(AttackStrategy):
                 return True
             deployed_heroes = self.deploy_heroes(frame)
 
-        # Deploy Spells (Earthquake / Rage / Freeze)
-        frame = self.input.window_service.screenshot()
+        # 6. Deploy Spells (Earthquake / Rage / Freeze)
+        frame = self._get_screenshot()
         if frame is not None:
             self._sync_frame_size(frame)
             self.deploy_spells(frame)
 
-        # Tactical delay before triggering hero abilities
+        # 7. Tactical delay before triggering hero abilities
         if deployed_heroes:
             if ev:
                 ev.wait(8.0)
@@ -612,6 +655,7 @@ class TroopSpamStrategy(AttackStrategy):
             self.activate_hero_abilities(deployed_heroes)
 
         return True
+
 
 
 class EdragStrategy(AttackStrategy):
@@ -665,21 +709,21 @@ class EdragStrategy(AttackStrategy):
             self.input.click(px, py, pause=0.18, rand=False)
 
         # Deploy Golden / Super Dragons if present
-        frame = self.input.window_service.screenshot()
+        frame = self._get_screenshot()
         if frame is not None:
             self._sync_frame_size(frame)
             if self.deploy_golden_drags_if_present(frame, ev):
                 return True
 
         # Deploy Heroes
-        frame = self.input.window_service.screenshot()
+        frame = self._get_screenshot()
         deployed_heroes = []
         if frame is not None:
             self._sync_frame_size(frame)
             deployed_heroes = self.deploy_heroes(frame)
 
         # Deploy Spells
-        frame = self.input.window_service.screenshot()
+        frame = self._get_screenshot()
         if frame is not None:
             self._sync_frame_size(frame)
             self.deploy_spells(frame)
