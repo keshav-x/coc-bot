@@ -115,7 +115,7 @@ class LicensePage(QWidget):
 
         key_row = QHBoxLayout()
         self._entry = QLineEdit()
-        self._entry.setPlaceholderText("CLASH-XXXX-XXXX-XXXX-XXXX")
+        self._entry.setPlaceholderText("CAL-M30-YYYYMMDD-UNIV-XXXXXXXX")
         self._entry.setEchoMode(QLineEdit.Password)
         mono = QFont("Courier New", 10)
         self._entry.setFont(mono)
@@ -202,6 +202,9 @@ class LicensePage(QWidget):
 
     def _status_caption(self, state: LicenseState) -> Tuple[str, str]:
         if state == LicenseState.VALID:
+            sub = self._controller.license_expiry_subcaption()
+            if sub:
+                return (f"Licensed. ({sub})", TOKENS["success"])
             return ("Licensed.", TOKENS["success"])
         if state == LicenseState.VALIDATING:
             return ("Checking license…", TOKENS["warning"])

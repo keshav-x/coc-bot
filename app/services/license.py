@@ -43,11 +43,12 @@ class LicenseState(Enum):
 
 
 _REASON_MESSAGES: dict[str, str] = {
-    "not_found": "License key is invalid.",
+    "ok": "Licensed.",
+    "not_found": "License key signature verification failed. Please check your key.",
     "revoked": "This license key has been revoked.",
     "expired": "This subscription license has expired. Renew your subscription or purchase a lifetime key.",
     "machine_mismatch": "This license key is already activated on another machine.",
-    "invalid_format": "License key format is invalid. Use the exact key from your email (CLASH-…, letters and digits only).",
+    "invalid_format": "License key format is invalid. Format must be CAL-[TIER]-[EXPDATE]-[MACHINE]-[SIG].",
     "network_unreachable": "Could not reach the license server. Please check your internet connection.",
     "empty": "Please enter a license key and click Check Key.",
 }
@@ -92,12 +93,12 @@ class LicenseClient:
 
     def validate(self, license_key: str, bot_version: str = "1.0.0") -> dict:
         """Validates license_key cryptographically via CryptoLicenseEngine.
-        Returns parsed dict matching {"ok": bool, "expires_at": str, "tier": str}
-        or {"ok": False, "reason": str}.
+        Returns parsed dict matching {"ok": bool, "valid": bool, "expires_at": str, "tier": str}
+        or {"ok": False, "valid": False, "reason": str}.
         """
         normalized_key = license_key.strip().upper()
         if not normalized_key:
-            return {"ok": False, "reason": "empty"}
+            return {"ok": False, "valid": False, "reason": "empty"}
 
         hw_id = HardwareFingerprint.compute()
         saved_bound = load_saved_bound_machine()
@@ -108,12 +109,13 @@ class LicenseClient:
         )
 
         if not res.is_valid:
-            return {"ok": False, "reason": res.reason}
+            return {"ok": False, "valid": False, "reason": res.reason}
 
         # Save machine binding
         save_key(normalized_key, bound_machine=hw_id)
         return {
             "ok": True,
+            "valid": True,
             "expires_at": res.expiry_date_str if res.expiry_date_str else "Never",
             "tier": res.tier,
         }
@@ -216,7 +218,10 @@ UI callbacks are invoked from that thread; GUI code must marshal via
 
     @property
     def user_message(self) -> str:
-        return _REASON_MESSAGES.get(self.reason, "License key is invalid.")
+        with self._lock:
+            if self._state == LicenseState.VALID:
+                return "Licensed."
+            return _REASON_MESSAGES.get(self._reason, "License key is invalid.")
 
     def license_expiry_subcaption(self) -> str:
         """UI line under 'Licensed.': 'Expires on: YYYY-MM-DD' or 'Never' (lifetime). Empty if not VALID."""
@@ -393,7 +398,7 @@ after the server confirms ``valid`` (see ``_do_validate``). Empty key clears dis
         try:
             result = self._client.validate(key, self._bot_version)
             self._retry_start = 0.0
-            if result.get("valid"):
+            if result.get("valid") or result.get("ok"):
                 with self._lock:
                     persisted = self._license_key.strip().upper()
                     self._apply_state_locked(
