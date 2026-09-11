@@ -7,7 +7,7 @@ from typing import Optional
 def setup_logger(
     name: str = 'AutoLoot',
     log_file: Optional[str] = None,
-    level: int = logging.ERROR,
+    level: int = logging.INFO,
 ) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -19,6 +19,12 @@ def setup_logger(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
     )
+
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)

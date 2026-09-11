@@ -72,10 +72,10 @@ def read_village_state(frame):
     return state
 
 
-def read_hud_triplet_stable(capture, wait, attempts = 5):
+def read_hud_triplet_stable(capture, wait, attempts = 8):
     '''Top-right HUD (gold, elixir, dark) with multi-frame agreement and corruption filter.
     Single reads can get corrupted by animations/popups crossing the HUD, but two agreeing
-    parses or the consensus plausible triplet is trustworthy.'''
+    parses after count-up animation has settled are trustworthy.'''
     seen = []
     prev = None
     for i in range(max(2, attempts)):
@@ -84,13 +84,17 @@ def read_hud_triplet_stable(capture, wait, attempts = 5):
         frame = capture()
         if frame is None or getattr(frame, 'size', 0) == 0:
             continue
-        triplet = VisionService.parse_hud_resources_triplet(VisionService.extract_top_right_hud_numbers(frame))
+        h_s = frame.shape[0] if hasattr(frame, "shape") else 1080
+        triplet = VisionService.parse_hud_resources_triplet(
+            VisionService.extract_top_right_hud_numbers(frame),
+            screen_h=h_s,
+        )
         if triplet is None:
             prev = None
             continue
         g, el, de = triplet
         # Sanity check: individual resource storages never exceed 35,000,000 in CoC
-        if g > 35_000_000 or el > 35_000_000 or de > 1_000_000:
+        if g > 35_000_000 or el > 35_000_000 or de > 10_000_000:
             continue
         if triplet == prev:
             return triplet
@@ -101,7 +105,12 @@ def read_hud_triplet_stable(capture, wait, attempts = 5):
 
     if seen:
         from collections import Counter
-        return Counter(seen).most_common(1)[0][0]
+        counts = Counter(seen)
+        most_common = counts.most_common()
+        if most_common[0][1] >= 2:
+            return most_common[0][0]
+        # If all counts are 1 (e.g. during a count-up), the latest reading is closest to final
+        return seen[-1]
     return None
 
 

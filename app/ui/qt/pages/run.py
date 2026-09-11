@@ -489,10 +489,12 @@ class RunPage(QWidget):
         card = Card()
         card.card_layout.addWidget(SectionTitle("Live Session Analytics"))
         stats_row = QHBoxLayout()
+        self._stat_total = StatCard("Total Loot", "0", "0 / hr", color_hex="#10b981", parent=card)
         self._stat_gold = StatCard("Gold Farmed", "0", "0 / hr", color_hex="#f59e0b", parent=card)
         self._stat_elixir = StatCard("Elixir Farmed", "0", "0 / hr", color_hex="#ec4899", parent=card)
         self._stat_dark = StatCard("Dark Elixir", "0", "0 / hr", color_hex="#38bdf8", parent=card)
         self._stat_raids = StatCard("Raids / Skips", "0 / 0", "0 completed", color_hex="#22c55e", parent=card)
+        stats_row.addWidget(self._stat_total)
         stats_row.addWidget(self._stat_gold)
         stats_row.addWidget(self._stat_elixir)
         stats_row.addWidget(self._stat_dark)
@@ -557,6 +559,8 @@ class RunPage(QWidget):
             te = stats.total_elixir
             td = stats.total_dark_elixir
 
+        total_loot = tg + te
+
         is_running = self._controller.is_running()
         if is_running and hasattr(self, "_run_start_mono"):
             active_elapsed = max(0.0, time.monotonic() - self._run_start_mono)
@@ -566,6 +570,7 @@ class RunPage(QWidget):
             active_elapsed = 0.0
 
         if active_elapsed < 60.0:
+            th_str = "calculating..." if is_running else "0 / hr"
             gh_str = "calculating..." if is_running else "0 / hr"
             eh_str = "calculating..." if is_running else "0 / hr"
             dh_str = "calculating..." if is_running else "0 / hr"
@@ -574,10 +579,13 @@ class RunPage(QWidget):
             gh = int(tg / hours) if tg > 0 else 0
             eh = int(te / hours) if te > 0 else 0
             dh = int(td / hours) if td > 0 else 0
+            th = gh + eh
+            th_str = f"{self._fmt_amount(th)} / hr"
             gh_str = f"{self._fmt_amount(gh)} / hr"
             eh_str = f"{self._fmt_amount(eh)} / hr"
             dh_str = f"{self._fmt_amount(dh)} / hr"
 
+        self._stat_total.set_value(f"{total_loot:,}", th_str)
         self._stat_gold.set_value(f"{tg:,}", gh_str)
         self._stat_elixir.set_value(f"{te:,}", eh_str)
         self._stat_dark.set_value(f"{td:,}", dh_str)

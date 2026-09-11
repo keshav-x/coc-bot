@@ -1828,24 +1828,59 @@ class VisionService:
     @staticmethod
     def parse_hud_resources_triplet(
         groups: List[GroupedNumber],
+        screen_h: Optional[int] = None,
     ) -> Optional[Tuple[int, int, int]]:
         """From :meth:`extract_top_right_hud_numbers` clusters, derive ``(gold, elixir, dark_elixir)``.
-        
-        The HUD stacks resource bars vertically (gold, elixir, dark from top to bottom),
-        so the decoded numbers must be ordered vertically by cy.
+
+        Uses vertical position bands relative to screen height to assign each number
+        to its true resource row:
+        - Gold:        0.015 <= cy / H < 0.065
+        - Elixir:      0.065 <= cy / H < 0.115
+        - Dark Elixir: 0.115 <= cy / H < 0.165
+        - Gems / etc:  cy / H >= 0.165 (strictly ignored)
         """
-        scored = []
+        if not groups:
+            return None
+
+        if screen_h is None or screen_h <= 0:
+            try:
+                screen_h = Config().target_size[1]
+            except Exception:
+                screen_h = 1080
+
+        h_val = float(screen_h)
+        gold_val = None
+        elixir_val = None
+        dark_val = None
+
         for g in groups:
             v = VisionService.parse_loot_amount_from_grouped_text(g.text)
-            if v is not None:
-                cy = float(g.top) + float(g.height) * 0.5
-                scored.append((cy, v))
-        if len(scored) < 2:
-            return None
-        scored.sort(key=lambda t: t[0])
-        if len(scored) == 2:
-            return (scored[0][1], scored[1][1], 0)
-        return (scored[0][1], scored[1][1], scored[2][1])
+            if v is None:
+                continue
+            cy = float(g.top) + float(g.height) * 0.5
+            ratio = cy / h_val
+
+            if 0.015 <= ratio < 0.065:
+                # Gold row (if multiple pieces, pick the one with most digits)
+                if gold_val is None or len(str(v)) > len(str(gold_val)):
+                    gold_val = v
+            elif 0.065 <= ratio < 0.115:
+                # Elixir row
+                if elixir_val is None or len(str(v)) > len(str(elixir_val)):
+                    elixir_val = v
+            elif 0.115 <= ratio < 0.165:
+                # Dark Elixir row
+                if dark_val is None or len(str(v)) > len(str(dark_val)):
+                    dark_val = v
+            # ratio >= 0.165 is Gems / Pass / etc. -> DO NOT assign to dark_elixir!
+
+        # Both Gold and Elixir MUST be present for a valid HUD read
+        if gold_val is not None and elixir_val is not None:
+            return (gold_val, elixir_val, dark_val if dark_val is not None else 0)
+
+        # If either Gold or Elixir could not be matched to its row band, the frame is
+        # incomplete or obscured — return None so multi-frame sampling reads a clear frame
+        return None
 
     @staticmethod
     def _ocr_confidence_key(w: OcrWordBox) -> float:

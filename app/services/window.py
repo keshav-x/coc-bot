@@ -102,7 +102,7 @@ class WindowService:
                 return True
 
         logger.warning(
-            f"Window not found: {self.window_name} (expect a titled window with a {_CHILD_CLASS_PREFIX!r}* surface, either as the top-level window itself or a descendant — Google Play Games). Open Settings → Game window to pick it manually."
+            f"Window not found: {self.window_name} (expect a titled window with a {_CHILD_CLASS_PREFIX!r}* surface, either as the top-level window itself or a descendant -- Google Play Games). Open Settings -> Game window to pick it manually."
         )
         return False
 

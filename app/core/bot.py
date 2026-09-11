@@ -306,13 +306,13 @@ wall upgrades for the first pre-Attack snapshot that would otherwise count as an
                 self._loot_totals = (tg + gain_g, te + gain_el, td + gain_de)
                 self.loot_filter.stats.record_raid(gain_g, gain_el, gain_de)
                 logger.info(
-                    'Loot tracker: +%s / +%s / +%s (G/E/DE) → session %s / %s / %s',
+                    'Loot tracker: +%s / +%s / +%s (G/E/DE) -> session %s / %s / %s',
                     f'{gain_g:,}', f'{gain_el:,}', f'{gain_de:,}',
                     f'{self._loot_totals[0]:,}', f'{self._loot_totals[1]:,}', f'{self._loot_totals[2]:,}'
                 )
                 notify_raid_complete(gain_g, gain_el, gain_de, 0)
             elif raw_dg < -5000 or raw_del < -2000 or raw_dde < -500:
-                logger.info('Loot tracker: balance decrease (spend/upgrade) — previous=%s current=%s', prev, triplet)
+                logger.info('Loot tracker: balance decrease (spend/upgrade) -- previous=%s current=%s', prev, triplet)
 
         self._loot_prev_resources = triplet
         self._emit_loot_update()
@@ -489,6 +489,10 @@ deselect, which would eat the upcoming Attack click.'''
             self._check_stop()
             self._upgrade_walls()
             self._deselect_wall_ui()
+        # Re-baseline after spending on walls so the spend is not counted as negative raid loot
+        triplet = self._read_hud_triplet_stable()
+        if triplet is not None:
+            self._loot_prev_resources = triplet
         self._suppress_loot_negative_error_once = True
 
 
@@ -958,7 +962,10 @@ deselect, which would eat the upcoming Attack click.'''
             outcome = self._find_match_and_attack(method_id, ranked_fill)
             self._return_home()
             self._home_screen_recovery()
-            self._loot_snapshot_before_attack()
+            if outcome != 'troop' and outcome != 'ranked_limit':
+                # Allow HUD count-up filling animation to complete before reading raid gains
+                self.stop_event.wait(1.5)
+                self._loot_snapshot_before_attack()
             if outcome == 'ranked_limit':
                 return None
             if outcome == 'troop':
@@ -1320,11 +1327,9 @@ deselect, which would eat the upcoming Attack click.'''
             (ax, ay) = self._wait_for_attack_with_nudge()
             if not ax:
                 return None
-            # Home screen confirmed (Attack visible) → the HUD is readable: record the
-            # pre-attack loot baseline / accumulate the previous battle's gains.
-            # [recovered: this call existed only in the wall path — with walls off the
-            # loot tracker never ran (live repro: 3 battles, session totals stuck at 0)]
-            self._loot_snapshot_before_attack()
+            # Baseline is established before first attack; post-raid gains are captured upon returning home
+            if self._loot_prev_resources is None:
+                self._loot_snapshot_before_attack()
             self.input.click(ax, ay, pause = 0.1)
             (fx, fy) = self._wait_for_image(battle_template)
         if not fx:
