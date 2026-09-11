@@ -1557,7 +1557,7 @@ class VisionService:
         screen_img: np.ndarray,
         *,
         side: Optional[int] = None,
-        min_confidence: int = 30,
+        min_confidence: int = 25,
         white_text: bool = True,
         brightness_floor: Optional[int] = None,
         cc_filter_blobs: bool = False,
@@ -1566,34 +1566,68 @@ class VisionService:
         tesseract_config: Optional[str] = None,
         save_debug_preprocess: bool = False,
     ) -> Optional[Tuple[int, int]]:
-        """Same pipeline as :meth:`ocr_letters_top_center`, matching 'wall' lowest on the screen."""
-        cfg = (
-            VisionService._TESSERACT_WALL_LABEL_SPARSE.strip()
-            if tesseract_config is None
-            else str(tesseract_config).strip()
-        )
-        debug_png = (
-            get_resource_path("glyph_debug/wall_find_preprocess.png")
-            if save_debug_preprocess
-            else None
-        )
-        words = VisionService.ocr_letters_top_center(
-            screen_img,
-            side=side,
-            min_confidence=min_confidence,
-            white_text=white_text,
-            brightness_floor=brightness_floor,
-            cc_filter_blobs=cc_filter_blobs,
-            cc_min_area=cc_min_area,
-            cc_max_area=cc_max_area,
-            tesseract_config=cfg,
-            save_preprocess_png=debug_png,
-        )
-        matches = [b for b in words if "wall" in b.text.lower()]
-        if not matches:
+        """Locates the 'Wall' / 'Walls' item in the Builder Suggested / Available Upgrades menu.
+
+        Covers the full vertical span of the menu (y=0.12*h to 0.90*h) so scrolled walls at the bottom
+        are never cut off. Uses robust OCR matching that handles 'Wall (14)', 'Walls', and prevents
+        false matches on 'Town Hall' or other non-wall buildings.
+        """
+        if screen_img is None or getattr(screen_img, "size", 0) == 0:
             return None
-        best = max(matches, key=lambda b: b.top + b.height)
-        return best.center
+
+        h_s, w_s = screen_img.shape[:2]
+        # Builder menu ROI: covers horizontal center (24% to 76%) and vertical (12% to 90%)
+        rx = int(w_s * 0.24)
+        ry = int(h_s * 0.12)
+        rw = int(w_s * 0.52)
+        rh = int(h_s * 0.78)
+        roi = (rx, ry, rw, rh)
+
+        passes_cfg = ["--psm 11", "--psm 6"] if tesseract_config is None else [tesseract_config]
+
+        for cfg in passes_cfg:
+            # Pass 1: Grayscale directly (uses Tesseract native Otsu Leptonica binarization)
+            words = VisionService.find_words_ocr(
+                screen_img,
+                roi,
+                min_confidence=min_confidence,
+                preprocess=False,
+                tesseract_config=cfg,
+            )
+            # Pass 2: If no words returned, try with mild binarization floor 130
+            if not words:
+                words = VisionService.find_words_ocr(
+                    screen_img,
+                    roi,
+                    min_confidence=min_confidence,
+                    preprocess=True,
+                    white_text=True,
+                    brightness_floor=130,
+                    tesseract_config=cfg,
+                )
+
+            matches = []
+            for b in words:
+                raw = b.text.strip()
+                if not raw:
+                    continue
+                # Clean punctuation, numbers, and symbols: "Wall(14)" -> "wall", "Walls" -> "walls"
+                cleaned = re.sub(r"[^a-zA-Z]", "", raw).lower()
+                if cleaned in ("wall", "walls") or "wall" in cleaned or (cleaned.startswith("wal") and len(cleaned) <= 6):
+                    # Check line context to exclude "Town Hall", "Clan Castle", etc.
+                    line_words = [other.text.lower() for other in words if abs(other.top - b.top) < int(h_s * 0.04)]
+                    line_text = " ".join(line_words)
+                    if any(bad in line_text for bad in ("town", "hall", "clan", "castle", "suggested")):
+                        continue
+                    matches.append(b)
+
+            if matches:
+                # In Clash of Clans builder menu, Wall is always at the bottom of available upgrades
+                best = max(matches, key=lambda b: b.top + b.height)
+                logger.info("Found wall label %r at (%d, %d)", best.text, best.center[0], best.center[1])
+                return best.center
+
+        return None
 
     @staticmethod
     def _ocr_word_y_center(box: OcrWordBox) -> float:

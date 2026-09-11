@@ -282,48 +282,48 @@ visited. Turning collection off must never strand the run in the wrong village.
         return (None, None)
 
     def _wall_menu_drag_to_bottom(self) -> None:
-        """
-Drag the builder upgrade list to its bottom so ``Wall`` (list end) is revealed.
+        """Scrolls the builder upgrade list downward to reveal 'Wall' at the bottom.
 
-Touch-style swipe up: click low in the list, drag to the top, release — the reverse of
-the old wheel scroll. Baseline coords are scaled via :meth:`Config.scale_point`. Dragging
-past the bottom is a harmless no-op, so this can be called repeatedly.
-"""
-        pair = _WALL_OCR_RETRY_DRAG_BASELINE.get(self.config.aspect_key)
-        if pair is None:
-            logger.warning("wall menu drag: unknown aspect %r; skipping drag", self.config.aspect_key)
+        Uses mouse wheel scroll (non-intrusive, impossible to accidentally click building items)
+        and a safe edge swipe along the right margin.
+        """
+        w, h = self.config.width, self.config.height
+        cx, cy = w // 2, h // 2
+        # 1. Primary: mouse wheel scroll down (clean, never clicks on items)
+        self.input.scroll(cx, cy, 10, upward=False)
+        if self.stop_event.wait(0.08):
             return
-        top_ref, bottom_ref = pair
-        top = self.config.scale_point([top_ref[0], top_ref[1]])
-        bottom = self.config.scale_point([bottom_ref[0], bottom_ref[1]])
-        x_top, y_top = int(top[0]), int(top[1])
-        x_bot, y_bot = int(bottom[0]), int(bottom[1])
-        self.input.move(x_bot, y_bot)
-        self.input.mouse_down(x_bot, y_bot)
+
+        # 2. Secondary: safe upward swipe along the right edge of the dialog (x ~ 0.70*w)
+        # Keeps cursor away from building buttons in the center of the list
+        drag_x = int(w * 0.70)
+        y_bot = int(h * 0.72)
+        y_top = int(h * 0.28)
+        self.input.move(drag_x, y_bot)
+        self.input.mouse_down(drag_x, y_bot)
         try:
-            self.input.human_move(x_bot, y_bot, x_top, y_top, duration=0.5)
+            self.input.human_move(drag_x, y_bot, drag_x, y_top, duration=0.25)
         finally:
-            self.input.mouse_up(x_top, y_top)
+            self.input.mouse_up(drag_x, y_top)
 
     def _wall_menu_drag_retry_nudge(self) -> None:
-        """Vertical drag in the builder list when ``wall`` OCR misses (~0.5s eased move + hold pause)."""
-        pair = _WALL_OCR_RETRY_DRAG_BASELINE.get(self.config.aspect_key)
-        if pair is None:
-            logger.warning("wall OCR retry drag: unknown aspect %r; skipping drag", self.config.aspect_key)
+        """Gentle downward scroll if 'wall' OCR misses (never scrolls back up or clicks top items)."""
+        w, h = self.config.width, self.config.height
+        cx, cy = w // 2, h // 2
+        # Gentle wheel scroll down
+        self.input.scroll(cx, cy, 3, upward=False)
+        if self.stop_event.wait(0.05):
             return
-        p1_ref, p2_ref = pair
-        p1 = self.config.scale_point([p1_ref[0], p1_ref[1]])
-        p2 = self.config.scale_point([p2_ref[0], p2_ref[1]])
-        x1, y1 = int(p1[0]), int(p1[1])
-        x2, y2 = int(p2[0]), int(p2[1])
-        self.input.move(x1, y1)
-        self.input.mouse_down(x1, y1)
+        # Gentle upward swipe along right margin
+        drag_x = int(w * 0.70)
+        y_bot = int(h * 0.65)
+        y_top = int(h * 0.55)
+        self.input.move(drag_x, y_bot)
+        self.input.mouse_down(drag_x, y_bot)
         try:
-            self.input.human_move(x1, y1, x2, y2, duration=0.5)
-            if self.stop_event.wait(0.3):
-                return
+            self.input.human_move(drag_x, y_bot, drag_x, y_top, duration=0.15)
         finally:
-            self.input.mouse_up(x2, y2)
+            self.input.mouse_up(drag_x, y_top)
 
     def _should_upgrade_walls(self) -> bool:
         """True when either full gold or full elixir hero-bar icon matches on the current home frame."""
@@ -366,6 +366,7 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
 
     def _upgrade_walls(self) -> None:
         """Open builder menu, scroll to Wall, add walls → remove if both red → Okay."""
+        cb = getattr(self, "_status_callback", None)
         frame = self.window.screenshot()
         if frame is None:
             return
@@ -373,15 +374,23 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         top_roi = VisionService.top_half_region(frame)
         bx, by = self._find_home_village_builder(frame, top_roi)
         if not bx:
+            logger.warning("Builder icon not found at top of screen for wall upgrading")
             return
-        self.input.click(bx, by, pause=0.4)
-        for _ in range(8):
+        logger.info("Opening Builder menu to locate Wall upgrade...")
+        if cb:
+            cb("Checking walls to upgrade...")
+        self.input.click(bx, by, pause=0.5)
+
+        # 1. Scroll builder list down to the bottom (where Walls are located)
+        for _ in range(5):
             self._check_stop()
             self._wall_menu_drag_to_bottom()
-            if self.stop_event.wait(0.15):
+            if self.stop_event.wait(0.12):
                 return
+
+        # 2. Locate the Wall item row in the list via robust OCR
         wall_pt = None
-        for attempt in range(10):
+        for attempt in range(6):
             self._check_stop()
             frame = self.window.screenshot()
             if frame is None:
@@ -390,22 +399,34 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             wall_pt = VisionService.find_wall_labels_top_center_ocr(frame)
             if wall_pt:
                 break
-            if attempt < 9:
+            if attempt < 5:
                 self._wall_menu_drag_retry_nudge()
                 if self.stop_event.wait(0.12):
                     return
+
         if not wall_pt:
+            logger.info("Wall upgrade item not found in builder menu (all walls may be maxed). Dismissing menu.")
+            if cb:
+                cb("No walls to upgrade — continuing")
+            empty_pt = self.config.get_point("empty")
+            self.input.click(empty_pt, pause=0.25, rand=False)
             return
-        self.input.click(wall_pt, pause=0.6)
-        frame = self.window.screenshot()
-        if frame is None:
-            return
-        self._update_config_size(frame)
-        bot_roi = VisionService.bottom_half_region(frame)
-        umx, umy = self.vision.find_template(frame, "upgrademore.png", region=bot_roi)
+
+        logger.info("Selecting Wall item at (%d, %d)...", wall_pt[0], wall_pt[1])
+        self.input.click(wall_pt, pause=0.7)
+
+        # 3. Wait for camera pan to wall and 'upgrademore.png' button to appear
+        umx, umy = self._wait_for_image("upgrademore.png", timeout=5, threshold=0.65, error=False)
         if not umx:
+            logger.warning("upgrademore.png button not found after clicking wall; dismissing selection.")
+            empty_pt = self.config.get_point("empty")
+            self.input.click(empty_pt, pause=0.25, rand=False)
             return
-        self.input.click(umx, umy, pause=0.4)
+
+        logger.info("Found Upgrade More button at (%d, %d). Opening multi-wall slider...", umx, umy)
+        self.input.click(umx, umy, pause=0.5)
+
+        # 4. Multi-wall slider flow (add walls until limit/cost, then confirm)
         while True:
             self._check_stop()
             frame = self.window.screenshot()
@@ -419,13 +440,14 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                 bot_roi = VisionService.bottom_half_region(frame)
                 awx, awy = VisionService.find_active_addwall(frame, region=bot_roi)
                 if awx:
-                    self.input.click(awx, awy, pause=0.3)
+                    self.input.click(awx, awy, pause=0.25)
                     continue
                 else:
                     self._upgrade_walls_pick_resource_and_okay()
                     return
             else:
                 break
+
         while True:
             self._check_stop()
             frame = self.window.screenshot()
@@ -441,7 +463,7 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             if not rwx:
                 self._upgrade_walls_pick_resource_and_okay()
                 return
-            self.input.click(rwx, rwy, pause=0.4)
+            self.input.click(rwx, rwy, pause=0.35)
 
     def _dismiss_okay_or_exit_on_frame(self, frame) -> bool:
         """If ``okay.png`` or ``exit.png`` is visible (full frame), click it. Returns True if dismissed."""
