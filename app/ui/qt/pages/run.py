@@ -66,8 +66,8 @@ INCLUDE_LABELS = {**VILLAGE_LABELS, COLLECT: "Collect resources"}
 
 STAR_BONUS_MINUTES = 15
 
-_HOME_STRATEGY_LABELS = ["Valkyries", "Sneaky Goblins", "Super Minions", "Edrags"]
-_HOME_STRATEGY_DEFAULT = "Valkyries"
+_HOME_STRATEGY_LABELS = ["Sneaky Goblins", "Valkyries", "Super Minions", "Edrags"]
+_HOME_STRATEGY_DEFAULT = "Sneaky Goblins"
 _BUILDER_STRATEGY_LABELS = list(BUILDER_BASE_ATTACK_STRATEGIES)
 _BUILDER_STRATEGY_DEFAULT = "Baby Dragons"
 

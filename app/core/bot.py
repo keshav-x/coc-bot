@@ -961,12 +961,6 @@ star-bonus early exit — would otherwise leave a full cart sitting there.
                     logger.info(f"Using modal fallback coordinates for Find a Match: ({fb_x}, {fb_y})")
                     self.input.click(fb_x, fb_y, pause=0.6)
 
-        if method_id == 3:
-            try:
-                self._ensure_valkyrie_army_from_recipes()
-            except Exception as e:
-                logger.warning(f"Valkyrie recipe check exception: {e}; proceeding with active army.")
-
         self._wait_for_any_image(("surrender.png", "endbattle.png", "findnow.png"), timeout=35)
 
         # Smart Loot Filtration & Base Skipping (multiplayer farming)
