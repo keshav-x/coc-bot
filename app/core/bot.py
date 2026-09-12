@@ -512,11 +512,14 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
 
 
     def _deselect_wall_ui(self):
-        '''Tap empty ground to close the wall selection bar / gem dialog remnants. The wall
-bar has no X button — while it is open, the next tap anywhere is swallowed by the
-deselect, which would eat the upcoming Attack click.'''
+        '''Dismiss any open popup, send Escape, and tap safe top neutral ground outside any action bar.'''
         self._dismiss_open_popup()
-        self.input.click(pause = 0.3, *self.config.get_point('empty'))
+        self.input.send_escape()
+        top_pt = self.config.get_point('top')
+        if top_pt:
+            self.input.click(pause = 0.2, *top_pt)
+        else:
+            self.input.click(pause = 0.2, *self.config.get_point('empty'))
 
 
     def _maybe_upgrade_walls(self, upgrade_walls):
@@ -869,6 +872,7 @@ deselect, which would eat the upcoming Attack click.'''
         if not actions or not actions.is_selected:
             logger.info('Wall upgrade: no wall upgrade buttons visible after Wall row click — dismissing')
             self._dismiss_okay_or_exit_on_frame(frame)
+            self._deselect_wall_ui()
             return None
 
         return self._execute_wall_upgrade_actions(actions)

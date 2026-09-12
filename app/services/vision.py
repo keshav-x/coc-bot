@@ -1655,31 +1655,53 @@ class VisionService:
 
         # 4. OCR fallback for text cards and selection confirmation
         ocr_upgrades: List[Tuple[int, int]] = []
+        is_specifically_wall = False
         try:
             words = VisionService.find_words_ocr(screen_img, (roi_x0, roi_y0, roi_x1 - roi_x0, roi_y1 - roi_y0), min_confidence=20)
+            reject_building_keywords = (
+                "town", "hall", "cannon", "tower", "mortar", "inferno", "eagle",
+                "scatter", "monolith", "spell", "barracks", "camp", "castle",
+                "lab", "forge", "storage", "collector", "mine", "drill",
+                "workshop", "smith", "pet", "hut", "altar", "air", "sweeper",
+                "tesla", "defense", "artillery"
+            )
             for wb in words:
-                tl = wb.text.lower()
-                if "wall" in tl or "wal" in tl or "level" in tl or "lev" in tl:
-                    info_is_selected = True
+                tl = wb.text.lower().strip()
+                # Check for negative indicators of non-wall buildings
+                if any(bldg in tl for bldg in reject_building_keywords):
+                    # Definitely a non-wall building selected — never touch it as a wall!
+                    return WallUpgradeActionInfo()
+                clean = tl.replace("1", "l").replace("i", "l").replace("vv", "w")
+                clean = clean.strip("_.:;~`'-|!*[]{} ")
+                if ("wall" in clean or "wal" in clean) and "hall" not in clean:
+                    idx = clean.find("wal")
+                    if idx <= 2 and len(clean) <= 10:
+                        is_specifically_wall = True
                 elif "row" in tl or "select" in tl or "elect" in tl:
-                    info_is_selected = True
+                    is_specifically_wall = True
                     if not select_row_pt:
                         select_row_pt = wb.center
                 elif "more" in tl:
-                    info_is_selected = True
+                    is_specifically_wall = True
                     if not upgrade_more_pt:
                         upgrade_more_pt = wb.center
                 elif "upgrade" in tl or "pagrade" in tl or "grade" in tl:
-                    info_is_selected = True
                     ocr_upgrades.append(wb.center)
             ocr_upgrades.sort(key=lambda p: p[0])
         except Exception:
             pass
 
+        # A target is ONLY confirmed as a wall if Select Row / Upgrade More is present,
+        # OR the label specifically confirmed "Wall". Standard buildings with Upgrade buttons
+        # must NEVER be mistaken for walls.
+        if select_row_pt or upgrade_more_pt or is_specifically_wall:
+            info_is_selected = True
+        else:
+            return WallUpgradeActionInfo()
+
         # Combine hammer template detections and OCR upgrade centers
         upgrade_centers = hammers if hammers else ocr_upgrades
         if upgrade_centers:
-            info_is_selected = True
             if len(upgrade_centers) >= 2:
                 gold_pt = upgrade_centers[0]
                 elixir_pt = upgrade_centers[1]
@@ -1739,7 +1761,8 @@ class VisionService:
         contains 'wall' (case-insensitive). ``None`` if no such word.
 
         Fenced to the builder popup body only: strictly rejects village map
-        selection headers like "Wall (Level XX)" to prevent misclicking.
+        selection headers like "Wall (Level XX)" and non-wall buildings like
+        "Town Hall" to prevent misclicking.
         """
         if screen_img is None or getattr(screen_img, "size", 0) == 0:
             return None
@@ -1775,17 +1798,28 @@ class VisionService:
         x_min = int(w_s * 0.35)
         x_max = int(w_s * 0.55)
         y_min = int(h_s * 0.09)
-        y_max = int(h_s * 0.62)
+        y_max = int(h_s * 0.65)
 
         def is_builder_wall_label(b) -> bool:
             t = b.text.lower().strip()
-            if "level" in t or "(" in t or ")" in t:
+            reject_keywords = (
+                "hall", "town", "clan", "castle", "mine", "drill", "tower",
+                "cannon", "camp", "barracks", "lab", "forge", "storage",
+                "collector", "hero", "level", "artillery", "scatter",
+                "monolith", "workshop", "smith", "pet", "hut", "(", ")",
+                "gold", "elixir", "dark", "upgrade"
+            )
+            if any(k in t for k in reject_keywords):
                 return False
+            # Normalize common OCR glyph confusions: 1 -> l, i -> l, vv -> w
             clean = t.replace("1", "l").replace("i", "l").replace("vv", "w")
-            if "wall" in clean or "walls" in clean:
-                return True
-            import difflib
-            return difflib.SequenceMatcher(None, clean, "wall").ratio() >= 0.72
+            clean = clean.strip("_.:;~`'-|!*[]{} ")
+            # Must contain "wal" (e.g. wall, walls, wal, tjwall, _jwalll)
+            if "wall" in clean or "wal" in clean:
+                idx = clean.find("wal")
+                if idx <= 2 and len(clean) <= 10:
+                    return True
+            return False
 
         words = [
             b for b in words
