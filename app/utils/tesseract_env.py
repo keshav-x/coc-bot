@@ -12,9 +12,21 @@ from app.utils.logger import setup_logger
 logger = setup_logger('TesseractEnv')
 
 
+def _suppress_windows_critical_dialogs() -> None:
+    if sys.platform != 'win32':
+        return
+    try:
+        import ctypes
+        # SEM_FAILCRITICALERRORS (0x0001) + SEM_NOGPFAULTERRORBOX (0x0002) + SEM_NOOPENFILEERRORBOX (0x8000)
+        ctypes.windll.kernel32.SetErrorMode(0x0001 | 0x0002 | 0x8000)
+    except Exception:
+        pass
+
+
 def _patch_pytesseract_hidden_console() -> None:
     if sys.platform != 'win32':
         return
+    _suppress_windows_critical_dialogs()
     flag = getattr(subprocess, 'CREATE_NO_WINDOW', None)
     if flag is None:
         return
@@ -126,6 +138,16 @@ def configure_tesseract() -> None:
                     break
 
     if found_cmd:
+        # Prepend directory containing tesseract binary to PATH so Windows loader finds all DLLs
+        tess_dir = str(found_cmd.parent.resolve())
+        curr_path = os.environ.get('PATH', '')
+        if tess_dir not in curr_path:
+            os.environ['PATH'] = tess_dir + os.pathsep + curr_path
+        if sys.platform == 'win32':
+            sys_tess = r'C:\Program Files\Tesseract-OCR'
+            if sys_tess not in os.environ['PATH'] and os.path.isdir(sys_tess):
+                os.environ['PATH'] = sys_tess + os.pathsep + os.environ['PATH']
+
         pytesseract.pytesseract.tesseract_cmd = str(found_cmd)
         # Resolve tessdata
         td_candidates = [
