@@ -1578,6 +1578,16 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
 
             # Extract available enemy loot
             (gold, elixir, dark_elixir) = self.vision.extract_enemy_loot(frame)
+            if gold is None and elixir is None:
+                # Settle brief moment in case clouds or numbers were still rendering
+                if not self.stop_event.wait(0.35):
+                    retry_frame = self.window.screenshot()
+                    if retry_frame is not None:
+                        (g2, e2, de2) = self.vision.extract_enemy_loot(retry_frame)
+                        if g2 is not None or e2 is not None:
+                            frame = retry_frame
+                            (gold, elixir, dark_elixir) = (g2, e2, de2)
+
             self._last_accepted_target_loot = (gold or 0, elixir or 0, dark_elixir or 0)
             logger.info(
                 'Scouted Base #%d: Gold=%s, Elixir=%s, DarkElixir=%s',

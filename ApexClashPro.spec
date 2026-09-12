@@ -27,10 +27,20 @@ hiddenimports = [
     'pytesseract',
 ]
 
+extra_binaries = []
+if sys.platform == 'win32':
+    win_tess = Path(r'C:\Program Files\Tesseract-OCR')
+    if win_tess.is_dir():
+        tess_exe = win_tess / 'tesseract.exe'
+        if tess_exe.is_file():
+            extra_binaries.append((str(tess_exe), '.'))
+        for dll in win_tess.glob('*.dll'):
+            extra_binaries.append((str(dll), '.'))
+
 a = Analysis(
     ['main.py'],
     pathex=[str(repo_root)],
-    binaries=[],
+    binaries=extra_binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],

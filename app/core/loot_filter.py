@@ -207,6 +207,16 @@ class LootFilterEngine:
                 dark_elixir=de,
             )
 
+        # HUD read failure check (clouds or OCR unconfigured)
+        if gold is None and elixir is None:
+            return LootFilterDecision(
+                should_attack=False,
+                reason="Loot unreadable on screen",
+                gold=0,
+                elixir=0,
+                dark_elixir=0,
+            )
+
         # Dead base evaluation
         if self.config.dead_base_only:
             min_dead_thresh = max(200000, min(self.config.min_gold, self.config.min_elixir) // 2)

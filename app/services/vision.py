@@ -1813,13 +1813,16 @@ class VisionService:
                 return False
             # Normalize common OCR glyph confusions: 1 -> l, i -> l, vv -> w
             clean = t.replace("1", "l").replace("i", "l").replace("vv", "w")
+            if clean.startswith("v") and not clean.startswith("va") == False:
+                clean = "w" + clean[1:]
             clean = clean.strip("_.:;~`'-|!*[]{} ")
             # Must contain "wal" (e.g. wall, walls, wal, tjwall, _jwalll)
             if "wall" in clean or "wal" in clean:
                 idx = clean.find("wal")
-                if idx <= 2 and len(clean) <= 10:
+                if idx <= 3 and len(clean) <= 12:
                     return True
-            return False
+            import difflib
+            return difflib.SequenceMatcher(None, clean, "wall").ratio() >= 0.75
 
         words = [
             b for b in words
@@ -2312,6 +2315,11 @@ class VisionService:
 
         # Exclude stray single/double digit numbers (e.g. trophy count +28 or town hall badge < 100)
         candidates = [val for (_, val) in parsed_rows if val >= 50]
+        if len(candidates) < 2:
+            battle_loot = VisionService.extract_battle_loot(screen_img)
+            if battle_loot[0] is not None and battle_loot[1] is not None:
+                return battle_loot
+
         if not candidates:
             return (None, None, None)
 
