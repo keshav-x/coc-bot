@@ -11,14 +11,18 @@ from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import (
     QDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
+    QPushButton,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
+
+from app.ui.qt.branding import logo_pixmap
 
 from app.services.crypto_license import CryptoLicenseEngine
 from app.services.license import LicenseState, load_saved_key
@@ -43,66 +47,118 @@ from app.ui.qt.widgets import (
 
 
 class PurchaseOptionsDialog(QDialog):
-    """Clean, dedicated dialog for purchasing ApexClash Pro passes directly."""
+    """Rich interactive dialog with live pack selection and branded logo."""
 
     def __init__(self, parent: Optional[QWidget], machine_id: str, default_tier: str = "Monthly ($3/mo)") -> None:
         super().__init__(parent)
-        self.setWindowTitle("Buy ApexClash Pro Activation Key")
-        self.setFixedWidth(520)
+        self.setWindowTitle("ApexClash Pro — Official Store")
+        self.setFixedWidth(560)
         self.setStyleSheet(f"background-color: {TOKENS['surface_lo']}; color: {TOKENS['text']};")
 
+        self._machine_id = machine_id
+        if "life" in default_tier.lower():
+            self._selected_key = "lifetime"
+        elif "week" in default_tier.lower():
+            self._selected_key = "weekly"
+        elif "annu" in default_tier.lower() or "year" in default_tier.lower():
+            self._selected_key = "annual"
+        else:
+            self._selected_key = "monthly"
+
+        self._packs = {
+            "weekly": ("Weekly Pass", "$1.00", "7 Days Access", "⚡ Trial"),
+            "monthly": ("Monthly Pass", "$3.00", "30 Days Access", "🔥 Popular"),
+            "annual": ("Annual Pass", "$10.00", "365 Days Access", "⭐ Best Value"),
+            "lifetime": ("Lifetime VIP Pass", "$15.00", "Permanent Access", "👑 VIP Choice"),
+        }
+
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
+        layout.setContentsMargins(22, 22, 22, 22)
+        layout.setSpacing(14)
 
-        title = QLabel("⚡ Purchase Activation Key")
-        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #ffffff;")
-        layout.addWidget(title)
+        # Header with Logo
+        head_row = QHBoxLayout()
+        head_row.setSpacing(14)
+        logo_lbl = QLabel()
+        pix = logo_pixmap(54)
+        if not pix.isNull():
+            logo_lbl.setPixmap(pix)
+            logo_lbl.setStyleSheet("border-radius: 10px;")
+        head_row.addWidget(logo_lbl)
 
-        desc = QLabel(
-            "Keys are issued instantly after payment. All passes include unlimited loot raids, "
-            "smart anti-ban heuristics, automated wall upgrading, and zero-gem spending protection."
+        head_text = QVBoxLayout()
+        head_text.setSpacing(2)
+        title = QLabel("ApexClash Pro — Official Store")
+        title.setStyleSheet("font-size: 17px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px;")
+        head_text.addWidget(title)
+        subtitle = QLabel("SELECT YOUR ACCESS PASS • INSTANT KEY ACTIVATION")
+        subtitle.setStyleSheet(f"font-size: 10px; font-weight: 800; color: {TOKENS['primary']}; letter-spacing: 0.5px;")
+        head_text.addWidget(subtitle)
+        head_row.addLayout(head_text)
+        head_row.addStretch()
+
+        badge_live = QLabel("● STORE LIVE")
+        badge_live.setStyleSheet(
+            f"color: {TOKENS['success']}; background: rgba(16, 185, 129, 0.15); "
+            f"border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; "
+            f"padding: 4px 10px; font-size: 10px; font-weight: bold;"
         )
-        desc.setWordWrap(True)
-        desc.setStyleSheet(f"color: {TOKENS['text_muted']}; font-size: 12px; line-height: 1.4;")
-        layout.addWidget(desc)
+        head_row.addWidget(badge_live)
+        layout.addLayout(head_row)
 
-        pricing_frame = QFrame()
-        pricing_frame.setStyleSheet(
-            f"background-color: {TOKENS['surface_hi']}; border-radius: 8px; padding: 10px;"
+        # Interactive Pack Selection Grid
+        grid_lbl = QLabel("<b>Choose your pack (click to select):</b>")
+        grid_lbl.setTextFormat(Qt.TextFormat.RichText)
+        grid_lbl.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px;")
+        layout.addWidget(grid_lbl)
+
+        self._pack_buttons: dict[str, QPushButton] = {}
+        grid = QGridLayout()
+        grid.setSpacing(8)
+
+        keys = ["weekly", "monthly", "annual", "lifetime"]
+        for idx, k in enumerate(keys):
+            name, price, dur, tag = self._packs[k]
+            btn = QPushButton(f"{name}\n{price}  ({dur})\n[{tag}]")
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setFixedHeight(68)
+            btn.clicked.connect(lambda checked=False, key=k: self._on_pack_selected(key))
+            self._pack_buttons[k] = btn
+            r = idx // 2
+            c = idx % 2
+            grid.addWidget(btn, r, c)
+        layout.addLayout(grid)
+
+        # Selected Pack Summary Card
+        self._summary_frame = QFrame()
+        self._summary_frame.setStyleSheet(
+            f"background-color: {TOKENS['surface_hi']}; border: 1px solid {TOKENS['border_hi']}; "
+            f"border-radius: 8px; padding: 10px 14px;"
         )
-        p_layout = QVBoxLayout(pricing_frame)
-        p_layout.setSpacing(6)
+        sum_layout = QHBoxLayout(self._summary_frame)
+        sum_layout.setContentsMargins(10, 8, 10, 8)
+        self._sum_lbl_left = QLabel("")
+        self._sum_lbl_left.setTextFormat(Qt.TextFormat.RichText)
+        self._sum_lbl_left.setStyleSheet("font-size: 12px;")
+        sum_layout.addWidget(self._sum_lbl_left, stretch=1)
+        self._sum_lbl_price = QLabel("")
+        self._sum_lbl_price.setStyleSheet("font-size: 20px; font-weight: 800; color: #38bdf8;")
+        sum_layout.addWidget(self._sum_lbl_price)
+        layout.addWidget(self._summary_frame)
 
-        tiers_info = [
-            ("Weekly Pass", "$1.00", "7 days of full VIP access"),
-            ("Monthly Pass", "$3.00", "30 days of full VIP access (Popular)"),
-            ("Annual Pass", "$10.00", "365 days of full VIP access (Best Value)"),
-            ("Lifetime VIP Pass", "$15.00", "Permanent VIP access + all future updates!"),
-        ]
-        for name, price, sub in tiers_info:
-            row = QHBoxLayout()
-            lbl_name = QLabel(f"• <b>{name}</b>")
-            lbl_name.setTextFormat(Qt.TextFormat.RichText)
-            lbl_name.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px;")
-            lbl_price = QLabel(f"<span style='color: #22c55e; font-weight: bold;'>{price}</span> <span style='color: {TOKENS['text_muted']}; font-size: 11px;'>— {sub}</span>")
-            lbl_price.setTextFormat(Qt.TextFormat.RichText)
-            row.addWidget(lbl_name)
-            row.addWidget(lbl_price, stretch=1)
-            p_layout.addLayout(row)
-        layout.addWidget(pricing_frame)
-
+        # Hardware ID Box
         hw_box = QVBoxLayout()
+        hw_box.setSpacing(4)
         hw_lbl = QLabel("<b>Your Device ID</b> (automatically copied to clipboard):")
         hw_lbl.setTextFormat(Qt.TextFormat.RichText)
-        hw_lbl.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px;")
+        hw_lbl.setStyleSheet(f"color: {TOKENS['text']}; font-size: 11px;")
         hw_box.addWidget(hw_lbl)
 
         hw_row = QHBoxLayout()
         self._hw_input = QLineEdit(machine_id)
         self._hw_input.setReadOnly(True)
         self._hw_input.setFont(QFont("Courier New", 10))
-        self._hw_input.setStyleSheet(f"background-color: {TOKENS['neutral_dark']}; color: #38bdf8; padding: 4px 8px; border-radius: 4px;")
+        self._hw_input.setStyleSheet(f"background-color: {TOKENS['neutral_dark']}; color: #38bdf8; padding: 5px 8px; border-radius: 6px;")
         hw_row.addWidget(self._hw_input, stretch=1)
 
         self._btn_copy_hw = neutral_button("📋 Copy ID", parent=self)
@@ -111,32 +167,30 @@ class PurchaseOptionsDialog(QDialog):
         hw_box.addLayout(hw_row)
         layout.addLayout(hw_box)
 
-        contact_info = QLabel(
-            "<b>Accepted Payment Methods:</b> PayPal, UPI, Crypto (USDT/BTC/LTC), Cards.<br>"
-            "<b>Contact Developer for Instant Activation:</b><br>"
-            "• Email: <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
-            "• Discord: <span style='color: #22c55e; font-weight: bold;'>matrix0456</span><br>"
-            "• Reddit: <span style='color: #f59e0b; font-weight: bold;'>u/post_matrix</span>"
+        # Payment methods note
+        pay_note = QLabel(
+            "<b>Payment Methods:</b> PayPal, UPI, Crypto (USDT/BTC/LTC), Cards • <b>Instant Key Delivery</b>"
         )
-        contact_info.setTextFormat(Qt.TextFormat.RichText)
-        contact_info.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px; line-height: 1.5;")
-        layout.addWidget(contact_info)
+        pay_note.setTextFormat(Qt.TextFormat.RichText)
+        pay_note.setStyleSheet(f"color: {TOKENS['text_muted']}; font-size: 11px;")
+        layout.addWidget(pay_note)
 
         # Copy Device ID right away when dialog opens
         QGuiApplication.clipboard().setText(machine_id)
 
+        # Action Buttons
         btn_box = QVBoxLayout()
         btn_box.setSpacing(8)
 
         row_actions = QHBoxLayout()
         row_actions.setSpacing(8)
 
-        self._btn_portal = primary_button("🌐 Open Purchase Portal (Browser)", parent=self)
-        self._btn_portal.clicked.connect(lambda: self._open_portal(machine_id, default_tier))
+        self._btn_portal = primary_button("🌐 Open Web Store (Interactive)", parent=self)
+        self._btn_portal.clicked.connect(self._open_portal)
         row_actions.addWidget(self._btn_portal)
 
         self._btn_gmail = primary_button("📧 Open in Gmail", parent=self)
-        self._btn_gmail.clicked.connect(lambda: self._open_gmail(machine_id, default_tier))
+        self._btn_gmail.clicked.connect(self._open_gmail)
         row_actions.addWidget(self._btn_gmail)
         btn_box.addLayout(row_actions)
 
@@ -144,11 +198,11 @@ class PurchaseOptionsDialog(QDialog):
         row_secondary.setSpacing(8)
 
         self._btn_reddit = neutral_button("💬 Message on Reddit", parent=self)
-        self._btn_reddit.clicked.connect(lambda: self._open_reddit(machine_id, default_tier))
+        self._btn_reddit.clicked.connect(self._open_reddit)
         row_secondary.addWidget(self._btn_reddit)
 
         self._btn_copy_template = neutral_button("📋 Copy Order Message", parent=self)
-        self._btn_copy_template.clicked.connect(lambda: self._copy_template(machine_id, default_tier))
+        self._btn_copy_template.clicked.connect(self._copy_template)
         row_secondary.addWidget(self._btn_copy_template)
 
         btn_close = neutral_button("Close", parent=self)
@@ -158,41 +212,74 @@ class PurchaseOptionsDialog(QDialog):
 
         layout.addLayout(btn_box)
 
+        # Initial UI refresh
+        self._refresh_pack_ui()
+
+    def _on_pack_selected(self, key: str) -> None:
+        self._selected_key = key
+        self._refresh_pack_ui()
+
+    def _refresh_pack_ui(self) -> None:
+        for k, btn in self._pack_buttons.items():
+            name, price, dur, tag = self._packs[k]
+            if k == self._selected_key:
+                accent = TOKENS["accent_gold"] if k == "lifetime" else TOKENS["success"]
+                btn.setStyleSheet(
+                    f"background-color: rgba(16, 185, 129, 0.16); border: 2px solid {accent}; "
+                    f"border-radius: 8px; font-weight: bold; color: #ffffff; padding: 4px; font-size: 11px;"
+                )
+            else:
+                btn.setStyleSheet(
+                    f"background-color: {TOKENS['surface_hi']}; border: 1px solid {TOKENS['border_lo']}; "
+                    f"border-radius: 8px; color: {TOKENS['text_muted']}; padding: 4px; font-size: 11px;"
+                )
+        name, price, dur, tag = self._packs[self._selected_key]
+        self._sum_lbl_left.setText(
+            f"<b>Selected:</b> <span style='color: #ffffff;'>{name}</span> "
+            f"<span style='color: {TOKENS['accent_gold']};'>({tag})</span><br>"
+            f"<span style='color: {TOKENS['text_muted']};'>{dur} • Instant Cryptographic Delivery</span>"
+        )
+        self._sum_lbl_price.setText(price)
+
     def _copy_id(self) -> None:
         QGuiApplication.clipboard().setText(self._hw_input.text())
         self._btn_copy_hw.setText("✓ Copied!")
         QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy ID"))
 
-    def _open_portal(self, machine_id: str, tier: str) -> None:
+    def _open_portal(self) -> None:
         from app.ui.qt.purchase_portal import open_purchase_portal
-        open_purchase_portal(machine_id, tier)
+        name, price, dur, tag = self._packs[self._selected_key]
+        open_purchase_portal(self._machine_id, f"{name} ({price})")
 
-    def _open_gmail(self, machine_id: str, tier: str) -> None:
-        subject = urllib.parse.quote(f"ApexClash Pro Purchase Request - {tier}")
+    def _open_gmail(self) -> None:
+        name, price, dur, tag = self._packs[self._selected_key]
+        subject = urllib.parse.quote(f"ApexClash Pro Purchase Request - {name}")
         body = urllib.parse.quote(
             f"Hi Keshav,\n\n"
             f"I would like to purchase an ApexClash Pro license key.\n\n"
-            f"Selected Tier: {tier}\n"
-            f"My Device ID: {machine_id}\n"
+            f"Selected Pass: {name} ({price})\n"
+            f"My Device ID: {self._machine_id}\n"
             f"Preferred Payment Method: PayPal / UPI / Crypto / Card\n\n"
             f"Thank you!"
         )
         gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to=cockingkeshav@gmail.com&su={subject}&body={body}"
         webbrowser.open(gmail_url)
 
-    def _open_reddit(self, machine_id: str, tier: str) -> None:
+    def _open_reddit(self) -> None:
+        name, price, dur, tag = self._packs[self._selected_key]
         reddit_url = (
             f"https://www.reddit.com/message/compose/?to=post_matrix"
             f"&subject={urllib.parse.quote('ApexClash Pro Purchase')}"
-            f"&message={urllib.parse.quote(f'Hi, I would like to buy ApexClash Pro ({tier}). My Device ID is: {machine_id}')}"
+            f"&message={urllib.parse.quote(f'Hi, I would like to buy ApexClash Pro ({name} - {price}). My Device ID is: {self._machine_id}')}"
         )
         webbrowser.open(reddit_url)
 
-    def _copy_template(self, machine_id: str, tier: str) -> None:
+    def _copy_template(self) -> None:
+        name, price, dur, tag = self._packs[self._selected_key]
         msg = (
             f"Hi Keshav, I'd like to buy an ApexClash Pro activation key.\n"
-            f"Plan: {tier}\n"
-            f"Device ID: {machine_id}\n"
+            f"Plan: {name} ({price})\n"
+            f"Device ID: {self._machine_id}\n"
             f"Preferred Payment: PayPal / Crypto / UPI / Card"
         )
         QGuiApplication.clipboard().setText(msg)
@@ -213,9 +300,26 @@ class ManageLicenseDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        lbl_title = QLabel("🛡️ License & Subscription Management")
-        lbl_title.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
-        layout.addWidget(lbl_title)
+        head_row = QHBoxLayout()
+        head_row.setSpacing(12)
+        logo_lbl = QLabel()
+        pix = logo_pixmap(42)
+        if not pix.isNull():
+            logo_lbl.setPixmap(pix)
+            logo_lbl.setStyleSheet("border-radius: 8px;")
+        head_row.addWidget(logo_lbl)
+
+        head_col = QVBoxLayout()
+        head_col.setSpacing(2)
+        lbl_title = QLabel("ApexClash Pro — License & Support")
+        lbl_title.setStyleSheet("font-size: 15px; font-weight: 800; color: #ffffff;")
+        head_col.addWidget(lbl_title)
+        lbl_sub = QLabel("MANAGEMENT & RENEWAL")
+        lbl_sub.setStyleSheet(f"font-size: 9px; font-weight: 800; color: {TOKENS['primary']}; letter-spacing: 0.5px;")
+        head_col.addWidget(lbl_sub)
+        head_row.addLayout(head_col)
+        head_row.addStretch()
+        layout.addLayout(head_row)
 
         info = QLabel(
             f"<b>Active Key:</b> {current_key if current_key else '(No key entered)'}<br>"
