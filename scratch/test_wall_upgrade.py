@@ -62,6 +62,8 @@ class MockInput:
         mouse_events.append(('drag', x1, y1, x2, y2))
     def click(self, x, y=None, pause=0.2, rand=False):
         pass
+    def send_escape(self):
+        pass
 
 bot.input = MockInput()
 

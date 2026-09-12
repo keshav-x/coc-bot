@@ -816,7 +816,7 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         self.input.click(bx, by, pause = 0.5)
 
         # 5. Builder popup open: wait for render
-        if self.stop_event.wait(0.35):
+        if self.stop_event.wait(0.6):
             return None
 
         # 6. Search for Wall row with gentle touch-drag scrolling if needed
@@ -837,10 +837,52 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             self._wall_menu_nudge_drag()
             if self.stop_event.wait(0.4):
                 return None
+            # After 3 nudges, try dragging straight to bottom of upgrade list
+            if scrolls == 3 and not wall_pt:
+                self._wall_menu_drag_to_bottom()
+                if self.stop_event.wait(0.4):
+                    return None
 
         if not wall_pt:
-            logger.info('Wall upgrade: Wall label OCR missed at all scroll positions — skipping this pass')
+            logger.info('Wall upgrade: Wall row not found in builder menu — trying village map wall selection fallback')
             self._deselect_wall_ui()
+            if self.stop_event.wait(0.4):
+                return None
+            fallback_frame = self.window.screenshot()
+            if fallback_frame is not None:
+                self._update_config_size(fallback_frame)
+                if self._dismiss_gem_prompt_if_open(fallback_frame):
+                    return None
+                fh, fw = fallback_frame.shape[:2]
+                candidates = [
+                    (int(fw * 0.42), int(fh * 0.60)),
+                    (int(fw * 0.58), int(fh * 0.60)),
+                    (int(fw * 0.50), int(fh * 0.68)),
+                    (int(fw * 0.38), int(fh * 0.50)),
+                    (int(fw * 0.62), int(fh * 0.50)),
+                    (int(fw * 0.50), int(fh * 0.40)),
+                ]
+                for cx, cy in candidates:
+                    self._check_stop()
+                    self.input.click(cx, cy, pause = 0.35)
+                    if self.stop_event.wait(0.4):
+                        return None
+                    f = self.window.screenshot()
+                    if f is None:
+                        continue
+                    self._update_config_size(f)
+                    if self._dismiss_gem_prompt_if_open(f):
+                        return None
+                    probe_actions = VisionService.find_wall_upgrade_actions(f)
+                    if probe_actions.is_selected and (probe_actions.elixir_upgrade or probe_actions.gold_upgrade or probe_actions.upgrade_more or probe_actions.select_row):
+                        logger.info('Wall upgrade: village map fallback selected wall at (%d, %d)', cx, cy)
+                        return self._execute_wall_upgrade_actions(probe_actions)
+                    # Non-wall building or ground hit: deselect cleanly
+                    self._deselect_wall_ui()
+                    if self.stop_event.wait(0.2):
+                        return None
+
+            logger.info('Wall upgrade: Wall label OCR missed and no village walls selected — skipping this pass')
             return None
 
         # Click the Wall row in the builder popup

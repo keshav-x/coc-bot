@@ -1576,8 +1576,24 @@ class VisionService:
             tesseract_config=cfg,
             save_preprocess_png=save_preprocess_png,
         )
-        letter_only = re.compile(r"^[A-Za-z]+$")
-        return [b for b in words if letter_only.fullmatch(b.text.strip())]
+        res = []
+        for b in words:
+            raw = b.text.strip()
+            # Clean leading/trailing punctuation/symbols
+            clean = re.sub(r"^[^A-Za-z0-9]+|[^A-Za-z0-9]+$", "", raw)
+            alnum = re.sub(r"[^A-Za-z0-9]", "", clean)
+            if len(alnum) >= 2 and any(c.isalpha() for c in alnum):
+                if clean != raw:
+                    b = OcrWordBox(
+                        left=b.left,
+                        top=b.top,
+                        width=b.width,
+                        height=b.height,
+                        text=clean,
+                        confidence=b.confidence,
+                    )
+                res.append(b)
+        return res
 
     @staticmethod
     def find_wall_upgrade_actions(
@@ -1743,10 +1759,10 @@ class VisionService:
     @staticmethod
     def find_wall_labels_top_center_ocr(
         screen_img: np.ndarray,
-        *,
         side: Optional[int] = None,
-        min_confidence: int = 0,
-        white_text: bool = True,
+        *,
+        min_confidence: int = 30,
+        white_text: bool = False,
         brightness_floor: Optional[int] = None,
         cc_filter_blobs: bool = False,
         cc_min_area: Optional[int] = None,
@@ -1754,10 +1770,7 @@ class VisionService:
         tesseract_config: Optional[str] = None,
         save_debug_preprocess: bool = False,
     ) -> Optional[Tuple[int, int]]:
-        """Locate the 'Wall' row in the open builder popup.
-
-        Same pipeline as :meth:`ocr_letters_top_center`, using the same ROI
-        (top-center square). Returns the **lowest** word-box center whose text
+        """Builder-menu row label OCR: looks for any word in the top center whose text
         contains 'wall' (case-insensitive). ``None`` if no such word.
 
         Fenced to the builder popup body only: strictly rejects village map
@@ -1791,36 +1804,33 @@ class VisionService:
             save_preprocess_png=save_png,
         )
 
-        # Fence: only consider words in the label column of the builder popup
-        # Builder popup lives in the upper-mid screen. y_max must cap before
-        # the village selection title "Wall (Level XX)" at y >= 0.65 of frame.
+        # Fence: consider words across the builder popup area.
         h_s, w_s = screen_img.shape[:2]
-        x_min = int(w_s * 0.35)
-        x_max = int(w_s * 0.55)
-        y_min = int(h_s * 0.09)
-        y_max = int(h_s * 0.65)
+        x_min = int(w_s * 0.25)
+        x_max = int(w_s * 0.75)
+        y_min = int(h_s * 0.08)
+        y_max = int(h_s * 0.82)
 
         def is_builder_wall_label(b) -> bool:
             t = b.text.lower().strip()
             reject_keywords = (
-                "hall", "town", "clan", "castle", "mine", "drill", "tower",
-                "cannon", "camp", "barracks", "lab", "forge", "storage",
-                "collector", "hero", "level", "artillery", "scatter",
-                "monolith", "workshop", "smith", "pet", "hut", "(", ")",
+                "townhall", "town hall", "clan", "castle", "mine", "drill",
+                "cannon", "barracks", "camp", "lab", "forge", "storage",
+                "collector", "monolith", "workshop", "pet", "hut", "inferno",
+                "eagle", "scatter", "mortar", "tesla", "sweeper", "tower",
+                "hero", "king", "queen", "warden", "champion", "artillery",
                 "gold", "elixir", "dark", "upgrade"
             )
             if any(k in t for k in reject_keywords):
                 return False
             # Normalize common OCR glyph confusions: 1 -> l, i -> l, vv -> w
             clean = t.replace("1", "l").replace("i", "l").replace("vv", "w")
-            if clean.startswith("v") and not clean.startswith("va") == False:
-                clean = "w" + clean[1:]
-            clean = clean.strip("_.:;~`'-|!*[]{} ")
+            clean = re.sub(r"[^a-z0-9]", "", clean)
             # Must contain "wal" (e.g. wall, walls, wal, tjwall, _jwalll)
             if "wall" in clean or "wal" in clean:
-                idx = clean.find("wal")
-                if idx <= 3 and len(clean) <= 12:
-                    return True
+                if "hall" in clean and "wall" not in clean.replace("hall", ""):
+                    return False
+                return True
             import difflib
             return difflib.SequenceMatcher(None, clean, "wall").ratio() >= 0.75
 
