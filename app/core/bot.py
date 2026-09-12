@@ -114,6 +114,7 @@ class Bot:
                 raise RuntimeError('Run plan is empty — include a village or resource collection.')
             self.antiban.reset_session()
             self.loot_filter.stats.reset()
+            self._builder_base = (plan.step_for(RP_BUILDER) is not None)
             notify_bot_started(plan.describe())
             logger.info(f'Bot started with Plan: {plan.describe()}, Earthquake: {earthquake_method}')
             try:
@@ -156,7 +157,8 @@ class Bot:
                     self._check_stop()
                     self._run_loop(method, duration, star_bonus, ranked_fill, upgrade_walls)
                     self._check_stop()
-                    self._multi_run_builder_base_after_session()
+                    if self._builder_base:
+                        self._multi_run_builder_base_after_session()
                     self._check_stop()
             elif self._builder_base:  # [recovered: decompiler nested this single-run block inside the multi-run `if`]
                 self._ensure_correct_village(builder_base = True)
@@ -1634,18 +1636,34 @@ Returns (``"return"`` | ``"chest"``, x, y) or (None, None, None) on timeout.
                             return None
                         break
 
-            # 4. Builder Base stranded check: click boat to return to Home Village
-            for b_tpl in ('boat.png', 'nboat.png'):
-                if get_template_path(b_tpl).exists():
-                    (bx, by) = self.vision.find_template(frame, b_tpl, threshold = 0.72)
-                    if bx:
-                        logger.info('Recovery: stranded in Builder Base — clicking %s to return to Home Village', b_tpl)
-                        self.input.click(bx, by, pause = 0.3)
-                        if self.stop_event.wait(1.5):
-                            return None
-                        break
+            # 4. Check if Home Village HUD is fully visible and active
+            top_roi = VisionService.top_half_region(frame)
+            home_roi = VisionService.bottom_half_region(frame)
+            (ax, ay) = self.vision.find_template(frame, 'attack.png', region = home_roi)
+            (hx, hy) = self._find_home_village_builder(frame, top_roi)
+            if ax or hx:
+                self._reload_first_seen = None
+                self._deselect_wall_ui()
+                return None
 
-            # 5. Connection reload dialog handling
+            # 5. Stranded in Builder Base check: leave via nboat to return to Home Village
+            # (Note: NEVER search for or click 'boat.png' here! 'boat.png' is in Home Village and opens Builder Base!)
+            is_bb = False
+            (mx, my) = self.vision.find_template(frame, 'mbuilder.png', region = top_roi)
+            if mx:
+                is_bb = True
+            elif get_template_path('nboat.png').exists():
+                (nx, ny) = self.vision.find_template(frame, 'nboat.png', threshold = 0.72)
+                if nx:
+                    is_bb = True
+            if is_bb:
+                logger.info('Recovery: stranded in Builder Base — leaving via nboat to return to Home Village')
+                self._leave_builder_base_with_nboat(settle_before_drag = False)
+                if self.stop_event.wait(1.0):
+                    return None
+                continue
+
+            # 6. Connection reload dialog handling
             if get_template_path('reload.png').exists():
                 (lx, ly) = self.vision.find_template(frame, 'reload.png')
                 if lx:
@@ -1664,21 +1682,11 @@ Returns (``"return"`` | ``"chest"``, x, y) or (None, None, None) on timeout.
                         return None
                     continue
 
-            # 6. Standard dialogs & Supercell progression announcements
+            # 7. Standard dialogs & Supercell progression announcements
             if self._dismiss_okay_or_exit_on_frame(frame):
                 if self.stop_event.wait(0.35):
                     return None
                 continue
-
-            # 7. Check if Home Village HUD is fully visible and active
-            top_roi = VisionService.top_half_region(frame)
-            home_roi = VisionService.bottom_half_region(frame)
-            (ax, ay) = self.vision.find_template(frame, 'attack.png', region = home_roi)
-            (hx, hy) = self._find_home_village_builder(frame, top_roi)
-            if ax or hx:
-                self._reload_first_seen = None
-                self._deselect_wall_ui()
-                return None
 
             # 8. Human interference fallback: Clan Chat open, Profile, Settings, Shop, or selection overlay
             logger.info('Recovery: Human interference / overlay detected — sending Escape and deselecting')
@@ -1792,6 +1800,9 @@ Each iteration dismisses ``okay.png`` / ``exit.png`` if present, then village / 
     
     def _go_to_builder_base_with_boat(self):
         '''Home Village → Builder Base via ``boat.png``.'''
+        if not self._builder_base:
+            logger.warning('Refusing to navigate to Builder Base: Builder Base is turned off.')
+            return False
         self._check_stop()
         (bx, by) = self._wait_for_image('boat.png', timeout = 15, error = False)
         if not bx:
@@ -1877,6 +1888,8 @@ Multi-run only: after an account's farming session, collect Home Village resourc
 appear, open the secondary base via boat, collect builder resources if icons appear,
 optionally run the clock boost chain, then leave Builder Base.
 """
+        if not self._builder_base:
+            return None
         self._multi_run_collect_home_village_resources()
         cb = getattr(self, '_status_callback', None)
         msg = 'Multi-run: Builder Base (boat → collect)'
