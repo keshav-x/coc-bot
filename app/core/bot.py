@@ -434,6 +434,26 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         except:
             self.input.mouse_up(x_top, y_top)
 
+    def _wall_menu_nudge_drag(self):
+        '''Gentle vertical touch drag in builder popup (150-180px) to scroll down reliably without flinging.'''
+        (sx, sy) = self._wall_menu_scroll_point()
+        offset = int(self.config.scale_scalar(85))
+        y_bot = int(sy + offset)
+        y_top = int(sy - offset)
+        self.input.move(sx, y_bot)
+        self.input.mouse_down(sx, y_bot)
+        try:
+            self.input.human_move(sx, y_bot, sx, y_top, duration = 0.28)
+            if self.stop_event.wait(0.12):
+                self.input.mouse_up(sx, y_top)
+                return None
+            self.input.mouse_up(sx, y_top)
+            return None
+        except Exception:
+            self.input.mouse_up(sx, y_top)
+            return None
+
+
 
     
     def _find_wall_row_once(self):
@@ -761,148 +781,209 @@ deselect, which would eat the upcoming Attack click.'''
 
     
     def _upgrade_walls(self):
-        '''Open builder menu, scroll to Wall, add walls → remove if both red → Okay.'''
+        '''Upgrade walls: handles already-selected walls, builder suggested upgrades, row upgrades, and single-wall upgrades.'''
         frame = self.window.screenshot()
         if frame is None:
             return None
         self._update_config_size(frame)
-        top_roi = VisionService.top_half_region(frame)
+
+        # 1. Zero-Gem check
+        if self._dismiss_gem_prompt_if_open(frame):
+            return None
+
+        # 2. Check if a wall is ALREADY selected on the village map right now
+        actions = VisionService.find_wall_upgrade_actions(frame)
+        if actions.is_selected and (actions.elixir_upgrade or actions.gold_upgrade or actions.upgrade_more or actions.select_row):
+            logger.info('Wall upgrade: wall is already selected on the village screen')
+            return self._execute_wall_upgrade_actions(actions)
+
+        # 3. Not selected: ensure we are on the home screen
         home_roi = VisionService.bottom_half_region(frame)
         (hax, hay) = self.vision.find_template(frame, 'attack.png', region = home_roi)
         if not hax:
             logger.info('Wall upgrade: not on the home screen (Attack button missing) — skipping this pass')
             return None
+
+        # 4. Open builder menu
+        top_roi = VisionService.top_half_region(frame)
         (bx, by) = self._find_home_village_builder(frame, top_roi)
         if not bx:
             logger.info('Wall upgrade: builder portrait not found — skipping this pass')
             return None
         self.input.click(bx, by, pause = 0.5)
-        # TH15+ overflows the builder popup ('Suggested upgrades' grows and 'Other upgrades'
-        # continues past the fold), so the Wall row can start below the visible area. The
-        # popup scrolls with the mouse wheel without closing; touch-drags scroll too but
-        # overshoot past Wall (it now sits mid-list, not at the end). Poll the OCR at each
-        # position and wheel down a notch between misses.
-        if self.stop_event.wait(0.3):
+
+        # 5. Builder popup open: wait for render
+        if self.stop_event.wait(0.35):
             return None
+
+        # 6. Search for Wall row with gentle touch-drag scrolling if needed
         wall_pt = None
-        candidate = None
         scrolls = 0
         for _ in range(_WALL_MENU_SCROLL_STEPS * 2):
             self._check_stop()
             found = self._find_wall_row_once()
             if found:
-                if candidate and abs(found[1] - candidate[1]) <= self.config.scale_scalar(_WALL_ROW_STABLE_TOL):
-                    wall_pt = found
-                    if scrolls:
-                        logger.info('Wall upgrade: Wall row found after %d scroll nudge(s)', scrolls)
-                    break
-                # One agreeing frame is required before clicking — the list keeps easing
-                # after a wheel nudge, and a click on stale coordinates lands on whatever
-                # row slid underneath (live repro: opened the Blacksmith's Forge).
-                candidate = found
-                if self.stop_event.wait(0.25):
-                    return None
-                continue
-            candidate = None
+                wall_pt = found
+                if scrolls:
+                    logger.info('Wall upgrade: Wall row found after %d scroll nudge(s)', scrolls)
+                break
             scrolls += 1
             if scrolls >= _WALL_MENU_SCROLL_STEPS:
                 break
             self.input.scroll(*self._wall_menu_scroll_point(), _WALL_MENU_WHEEL_CLICKS)
-            if self.stop_event.wait(0.5):
+            self._wall_menu_nudge_drag()
+            if self.stop_event.wait(0.4):
                 return None
+
         if not wall_pt:
             logger.info('Wall upgrade: Wall label OCR missed at all scroll positions — skipping this pass')
             self._deselect_wall_ui()
             return None
+
+        # Click the Wall row in the builder popup
         self.input.click(pause = 0.6, *wall_pt)
-        # Clicking the Wall row pans the camera to a wall before the selection bar
-        # renders (often >1s) — poll for Upgrade More instead of trusting one early
-        # frame (live rate before polling: ~1 success in 8 passes).
-        (umx, umy) = (None, None)
-        frame = None
+
+        # 7. Camera pans to the wall — poll for the wall action buttons to appear (up to 8 polls)
+        actions = None
         for _ in range(8):
             self._check_stop()
             frame = self.window.screenshot()
             if frame is None:
                 return None
             self._update_config_size(frame)
+            if self._dismiss_gem_prompt_if_open(frame):
+                return None
+            actions = VisionService.find_wall_upgrade_actions(frame)
+            if actions.is_selected and (actions.elixir_upgrade or actions.gold_upgrade or actions.upgrade_more or actions.select_row):
+                break
+            # Legacy template fallback
             bot_roi = VisionService.bottom_half_region(frame)
             (umx, umy) = self.vision.find_template(frame, 'upgrademore.png', region = bot_roi)
             if umx:
+                from app.services.vision import WallUpgradeActionInfo
+                actions = WallUpgradeActionInfo(is_selected = True, upgrade_more = (umx, umy))
                 break
-            if self.stop_event.wait(0.5):
+            if self.stop_event.wait(0.4):
                 return None
-        if not umx:
-            # The Wall click missed (wrong row / a building dialog opened instead) —
-            # close whatever came up so it cannot block the next pass or the Attack tap.
-            logger.info('Wall upgrade: upgrademore.png not visible after Wall row click — dismissing and skipping this pass')
-            if frame is not None:
-                try:
-                    import time as _time
-                    import cv2 as _cv2
-                    from app.utils.common import get_user_app_data_dir
-                    dbg = get_user_app_data_dir() / 'debug'
-                    dbg.mkdir(parents = True, exist_ok = True)
-                    path = dbg / f'''wallrow_{int(_time.time())}.jpg'''
-                    _cv2.imwrite(str(path), frame, [_cv2.IMWRITE_JPEG_QUALITY, 88])
-                    logger.info('Wall upgrade: post-click frame saved to %s', path)
-                except Exception:
-                    logger.debug('Wall upgrade: wallrow debug dump failed', exc_info = True)
-                self._dismiss_okay_or_exit_on_frame(frame)
+
+        if not actions or not actions.is_selected:
+            logger.info('Wall upgrade: no wall upgrade buttons visible after Wall row click — dismissing')
+            self._dismiss_okay_or_exit_on_frame(frame)
             return None
-        self.input.click(umx, umy, pause = 0.4)
-        # Add walls to the batch while at least one resource can still pay the total.
-        added = 0
-        for _ in range(_WALL_BATCH_MAX_ADDS):
-            self._check_stop()
-            frame = self.window.screenshot()
-            if frame is None:
-                return None
-            self._update_config_size(frame)
-            pair = VisionService.upgrade_cost_redness_by_resource_icons(frame)
-            if not pair.gold.cost_roi_xywh and not pair.elixir.cost_roi_xywh:
-                # The cost buttons are the only reliable proof the multi-upgrade popup is
-                # actually open — addwall/removewall false-positive on home-screen greens
-                # (incl. the Attack button checkmark), so never click blind.
-                logger.info('Wall upgrade: cost buttons not visible — popup not open, stopping batch')
-                break
-            if pair.gold.redness >= 0.2 and pair.elixir.redness >= 0.2:
-                break
-            # Mid-bottom only: the real Add Wall button sits in the popup's center cluster.
-            # A plain bottom-half search grabs the home Attack! button's green checkmark
-            # (bottom-left, still visible beside the popup) once +1 greys out.
-            (fh, fw) = frame.shape[:2]
-            mid_roi = (fw // 4, fh // 2, fw // 2, fh - fh // 2)
-            (awx, awy) = VisionService.find_active_addwall(frame, region = mid_roi)
-            if not awx:
-                break
-            self.input.click(awx, awy, pause = 0.3)
-            added += 1
-        if added == 0:
-            self._deselect_wall_ui()
-            return None
-        self._check_stop()
+
+        return self._execute_wall_upgrade_actions(actions)
+
+    def _execute_wall_upgrade_actions(self, actions):
+        '''Execute wall upgrade with excess resources: prefer Elixir over Gold, support rows and single walls.'''
         frame = self.window.screenshot()
-        if frame is None:
+        if self._dismiss_gem_prompt_if_open(frame):
             return None
-        self._update_config_size(frame)
-        pair = VisionService.upgrade_cost_redness_by_resource_icons(frame)
-        (fh, fw) = frame.shape[:2]
-        mid_roi = (fw // 4, fh // 2, fw // 2, fh - fh // 2)
-        if added and pair.gold.redness >= 0.2 and pair.elixir.redness >= 0.2:
-            # Last add pushed the total over both resources — take one back before confirming.
-            (rwx, rwy) = VisionService.find_active_removewall(frame, region = mid_roi)
-            if rwx:
-                self.input.click(rwx, rwy, pause = 0.4)
-        elif added > 1 and pair.elixir.redness >= 0.2 and pair.gold.redness < 0.2 and pair.gold.cost_roi_xywh:
-            # Gold will pay (elixir can't) — drop one wall so a maxed batch never drains gold
-            # to 0. Find a Match costs ~1300 gold; a zeroed gold storage blocks all attacking.
-            (rwx, rwy) = VisionService.find_active_removewall(frame, region = mid_roi)
-            if rwx:
-                logger.info('Wall upgrade: gold is the payer — removing one wall to keep the attack entry fee')
-                self.input.click(rwx, rwy, pause = 0.4)
-        logger.info('Wall upgrade: %d wall(s) added to batch', added)
-        self._upgrade_walls_pick_resource_and_okay()
+
+        upgraded = False
+
+        # Attempt 1: If Upgrade More or Select Row is available, try batch upgrade
+        if actions.upgrade_more or actions.select_row:
+            target = actions.upgrade_more if actions.upgrade_more else actions.select_row
+            logger.info('Wall upgrade: clicking %s at %s', 'Upgrade More' if actions.upgrade_more else 'Select Row', target)
+            self.input.click(pause = 0.4, *target)
+            if self.stop_event.wait(0.35):
+                return None
+
+            frame = self.window.screenshot()
+            if frame is not None:
+                self._update_config_size(frame)
+                if self._dismiss_gem_prompt_if_open(frame):
+                    return None
+
+                # Check if the multi-upgrade batch dialog opened (with addwall/removewall and gold/elixir cost buttons)
+                pair = VisionService.upgrade_cost_redness_by_resource_icons(frame)
+                if pair.gold.cost_roi_xywh or pair.elixir.cost_roi_xywh:
+                    added = 0
+                    for _ in range(_WALL_BATCH_MAX_ADDS):
+                        self._check_stop()
+                        frame = self.window.screenshot()
+                        if frame is None:
+                            break
+                        self._update_config_size(frame)
+                        pair = VisionService.upgrade_cost_redness_by_resource_icons(frame)
+                        if pair.gold.redness >= 0.2 and pair.elixir.redness >= 0.2:
+                            break
+                        (fh, fw) = frame.shape[:2]
+                        mid_roi = (fw // 4, fh // 2, fw // 2, fh - fh // 2)
+                        (awx, awy) = VisionService.find_active_addwall(frame, region = mid_roi)
+                        if not awx:
+                            break
+                        self.input.click(awx, awy, pause = 0.25)
+                        added += 1
+
+                    (fh, fw) = frame.shape[:2]
+                    mid_roi = (fw // 4, fh // 2, fw // 2, fh - fh // 2)
+                    if added and pair.gold.redness >= 0.2 and pair.elixir.redness >= 0.2:
+                        (rwx, rwy) = VisionService.find_active_removewall(frame, region = mid_roi)
+                        if rwx:
+                            self.input.click(rwx, rwy, pause = 0.3)
+                    elif added > 1 and pair.elixir.redness >= 0.2 and pair.gold.redness < 0.2 and pair.gold.cost_roi_xywh:
+                        (rwx, rwy) = VisionService.find_active_removewall(frame, region = mid_roi)
+                        if rwx:
+                            self.input.click(rwx, rwy, pause = 0.3)
+
+                    logger.info('Wall upgrade: %d wall(s) added to batch', added)
+                    self._upgrade_walls_pick_resource_and_okay()
+                    upgraded = True
+                else:
+                    # Row selection expanded: re-read actions for row upgrade buttons
+                    row_actions = VisionService.find_wall_upgrade_actions(frame)
+                    if row_actions.elixir_upgrade and row_actions.elixir_affordable:
+                        logger.info('Wall upgrade: paying row with elixir at %s', row_actions.elixir_upgrade)
+                        self.input.click(pause = 0.4, *row_actions.elixir_upgrade)
+                        upgraded = True
+                    elif row_actions.gold_upgrade and row_actions.gold_affordable:
+                        logger.info('Wall upgrade: paying row with gold at %s', row_actions.gold_upgrade)
+                        self.input.click(pause = 0.4, *row_actions.gold_upgrade)
+                        upgraded = True
+
+                    if upgraded:
+                        if self.stop_event.wait(0.35):
+                            return None
+                        frame = self.window.screenshot()
+                        if frame is not None:
+                            (ox, oy) = self.vision.find_template(frame, 'okay.png')
+                            if ox:
+                                self.input.click(ox, oy, pause = 0.3)
+                            self._dismiss_gem_prompt_if_open(frame)
+
+        # Attempt 2: If batch upgrade wasn't done, do single-wall upgrade
+        if not upgraded:
+            frame = self.window.screenshot()
+            if frame is not None:
+                self._update_config_size(frame)
+                cur_actions = VisionService.find_wall_upgrade_actions(frame)
+                # Prefer Elixir so Gold is saved for matchmaking entry fee
+                if cur_actions.elixir_upgrade and cur_actions.elixir_affordable:
+                    logger.info('Wall upgrade: single wall with elixir at %s', cur_actions.elixir_upgrade)
+                    self.input.click(pause = 0.4, *cur_actions.elixir_upgrade)
+                    upgraded = True
+                elif cur_actions.gold_upgrade and cur_actions.gold_affordable:
+                    logger.info('Wall upgrade: single wall with gold at %s', cur_actions.gold_upgrade)
+                    self.input.click(pause = 0.4, *cur_actions.gold_upgrade)
+                    upgraded = True
+                else:
+                    logger.info('Wall upgrade: neither elixir nor gold is affordable')
+
+                if upgraded:
+                    if self.stop_event.wait(0.35):
+                        return None
+                    frame = self.window.screenshot()
+                    if frame is not None:
+                        (ox, oy) = self.vision.find_template(frame, 'okay.png')
+                        if ox:
+                            self.input.click(ox, oy, pause = 0.3)
+                        self._dismiss_gem_prompt_if_open(frame)
+
+        # Clean deselect so the home screen is ready for attack
+        self._deselect_wall_ui()
+        logger.info('Wall upgrade pass completed (upgraded=%s)', upgraded)
+        return upgraded
 
     
     def _dismiss_gem_prompt_if_open(self, frame = None):

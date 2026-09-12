@@ -110,6 +110,19 @@ class GemPromptDetection:
     cancel_point: Optional[Tuple[int, int]] = None
 
 
+@dataclass(frozen=True)
+class WallUpgradeActionInfo:
+    """Action bar buttons and affordability when a wall (or row of walls) is selected on the village map."""
+
+    is_selected: bool = False
+    select_row: Optional[Tuple[int, int]] = None
+    upgrade_more: Optional[Tuple[int, int]] = None
+    elixir_upgrade: Optional[Tuple[int, int]] = None
+    gold_upgrade: Optional[Tuple[int, int]] = None
+    elixir_affordable: bool = False
+    gold_affordable: bool = False
+
+
 BOTTOM_HALF_BOT_TEMPLATES = frozenset({
     "nightwitch.png",
     "bstar.png",
@@ -120,6 +133,9 @@ BOTTOM_HALF_BOT_TEMPLATES = frozenset({
     "removewallfake.png",
     "settings.png",
     "upgrademore.png",
+    "upgrademore_card.png",
+    "wall_hammer.png",
+    "selectrow.png",
     "addwall.png",
     "rankedbattle.png",
     "addwallfake.png",
@@ -1564,6 +1580,145 @@ class VisionService:
         return [b for b in words if letter_only.fullmatch(b.text.strip())]
 
     @staticmethod
+    def find_wall_upgrade_actions(
+        screen_img: np.ndarray,
+    ) -> WallUpgradeActionInfo:
+        """Inspect the bottom action bar when a wall (or row of walls) is selected on the village map.
+
+        Detects:
+        - Select ROW button
+        - Upgrade More button
+        - Upgrade buttons (Gold and Elixir)
+        - Measures redness in the cost box to check affordability (redness < 0.18 => affordable)
+        """
+        if screen_img is None or getattr(screen_img, "size", 0) == 0:
+            return WallUpgradeActionInfo()
+
+        h_s, w_s = screen_img.shape[:2]
+        roi_y0, roi_y1 = int(h_s * 0.60), int(h_s * 0.98)
+        roi_x0, roi_x1 = int(w_s * 0.15), int(w_s * 0.90)
+        roi = screen_img[roi_y0:roi_y1, roi_x0:roi_x1]
+
+        scale = w_s / 2560.0
+        info_is_selected = False
+        select_row_pt: Optional[Tuple[int, int]] = None
+        upgrade_more_pt: Optional[Tuple[int, int]] = None
+        gold_pt: Optional[Tuple[int, int]] = None
+        elixir_pt: Optional[Tuple[int, int]] = None
+        gold_affordable = False
+        elixir_affordable = False
+
+        from app.utils.common import get_template_path
+
+        # 1. Template match for wall_hammer.png
+        h_tpl_path = get_template_path("wall_hammer.png")
+        hammers: List[Tuple[int, int]] = []
+        if h_tpl_path.exists():
+            h_tpl = cv2.imread(str(h_tpl_path))
+            if h_tpl is not None and h_tpl.size > 0:
+                sh = cv2.resize(h_tpl, (0, 0), fx=scale, fy=scale)
+                if sh.shape[0] < roi.shape[0] and sh.shape[1] < roi.shape[1]:
+                    res_h = cv2.matchTemplate(roi, sh, cv2.TM_CCOEFF_NORMED)
+                    locs = np.where(res_h >= 0.70)
+                    for pt in zip(*locs[::-1]):
+                        cx = roi_x0 + pt[0] + sh.shape[1] // 2
+                        cy = roi_y0 + pt[1] + sh.shape[0] // 2
+                        if not any(abs(cx - p[0]) < int(50 * scale) for p in hammers):
+                            hammers.append((int(cx), int(cy)))
+                    hammers.sort(key=lambda p: p[0])
+
+        # 2. Template match for selectrow.png
+        sr_path = get_template_path("selectrow.png")
+        if sr_path.exists():
+            sr_tpl = cv2.imread(str(sr_path))
+            if sr_tpl is not None and sr_tpl.size > 0:
+                sa = cv2.resize(sr_tpl, (0, 0), fx=scale, fy=scale)
+                if sa.shape[0] < roi.shape[0] and sa.shape[1] < roi.shape[1]:
+                    res_sr = cv2.matchTemplate(roi, sa, cv2.TM_CCOEFF_NORMED)
+                    _, max_v, _, max_l = cv2.minMaxLoc(res_sr)
+                    if max_v >= 0.70:
+                        select_row_pt = (roi_x0 + max_l[0] + sa.shape[1] // 2, roi_y0 + max_l[1] + sa.shape[0] // 2)
+                        info_is_selected = True
+
+        # 3. Template match for upgrademore_card.png
+        um_path = get_template_path("upgrademore_card.png")
+        if um_path.exists():
+            um_tpl = cv2.imread(str(um_path))
+            if um_tpl is not None and um_tpl.size > 0:
+                sc = cv2.resize(um_tpl, (0, 0), fx=scale, fy=scale)
+                if sc.shape[0] < roi.shape[0] and sc.shape[1] < roi.shape[1]:
+                    res_um = cv2.matchTemplate(roi, sc, cv2.TM_CCOEFF_NORMED)
+                    _, max_um, _, max_lc = cv2.minMaxLoc(res_um)
+                    if max_um >= 0.70:
+                        upgrade_more_pt = (roi_x0 + max_lc[0] + sc.shape[1] // 2, roi_y0 + max_lc[1] + sc.shape[0] // 2)
+                        info_is_selected = True
+
+        # 4. OCR fallback for text cards and selection confirmation
+        ocr_upgrades: List[Tuple[int, int]] = []
+        try:
+            words = VisionService.find_words_ocr(screen_img, (roi_x0, roi_y0, roi_x1 - roi_x0, roi_y1 - roi_y0), min_confidence=20)
+            for wb in words:
+                tl = wb.text.lower()
+                if "wall" in tl or "wal" in tl or "level" in tl or "lev" in tl:
+                    info_is_selected = True
+                elif "row" in tl or "select" in tl or "elect" in tl:
+                    info_is_selected = True
+                    if not select_row_pt:
+                        select_row_pt = wb.center
+                elif "more" in tl:
+                    info_is_selected = True
+                    if not upgrade_more_pt:
+                        upgrade_more_pt = wb.center
+                elif "upgrade" in tl or "pagrade" in tl or "grade" in tl:
+                    info_is_selected = True
+                    ocr_upgrades.append(wb.center)
+            ocr_upgrades.sort(key=lambda p: p[0])
+        except Exception:
+            pass
+
+        # Combine hammer template detections and OCR upgrade centers
+        upgrade_centers = hammers if hammers else ocr_upgrades
+        if upgrade_centers:
+            info_is_selected = True
+            if len(upgrade_centers) >= 2:
+                gold_pt = upgrade_centers[0]
+                elixir_pt = upgrade_centers[1]
+            else:
+                gold_pt = upgrade_centers[0]
+
+        # 5. Check affordability (redness of cost numbers)
+        for btn_type, pt in [("gold", gold_pt), ("elixir", elixir_pt)]:
+            if pt is None:
+                continue
+            cx, cy = pt
+            cy_cost = cy - int(60 * scale)
+            box_half_w = int(70 * scale)
+            box_half_h = int(25 * scale)
+            y0, y1 = max(0, cy_cost - box_half_h), min(h_s, cy_cost + box_half_h)
+            x0, x1 = max(0, cx - box_half_w), min(w_s, cx + box_half_w)
+            crop = screen_img[y0:y1, x0:x1]
+            if crop.size > 0:
+                hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+                red1 = cv2.inRange(hsv, (0, 100, 100), (10, 255, 255))
+                red2 = cv2.inRange(hsv, (170, 100, 100), (180, 255, 255))
+                redness = float((red1 | red2).mean() / 255.0)
+                affordable = redness < 0.18
+                if btn_type == "gold":
+                    gold_affordable = affordable
+                else:
+                    elixir_affordable = affordable
+
+        return WallUpgradeActionInfo(
+            is_selected=info_is_selected,
+            select_row=select_row_pt,
+            upgrade_more=upgrade_more_pt,
+            elixir_upgrade=elixir_pt,
+            gold_upgrade=gold_pt,
+            elixir_affordable=elixir_affordable,
+            gold_affordable=gold_affordable,
+        )
+
+    @staticmethod
     def find_wall_labels_top_center_ocr(
         screen_img: np.ndarray,
         *,
@@ -1583,9 +1738,8 @@ class VisionService:
         (top-center square). Returns the **lowest** word-box center whose text
         contains 'wall' (case-insensitive). ``None`` if no such word.
 
-        Blob filter is intentionally left off (kills small label glyphs at this
-        capture size). Dual-polarity is the caller's job: call this twice with
-        ``white_text=False`` then ``white_text=True``.
+        Fenced to the builder popup body only: strictly rejects village map
+        selection headers like "Wall (Level XX)" to prevent misclicking.
         """
         if screen_img is None or getattr(screen_img, "size", 0) == 0:
             return None
@@ -1614,17 +1768,31 @@ class VisionService:
             save_preprocess_png=save_png,
         )
 
-        # Fence: only consider words in the label column (x 39-50% of frame width)
+        # Fence: only consider words in the label column of the builder popup
+        # Builder popup lives in the upper-mid screen. y_max must cap before
+        # the village selection title "Wall (Level XX)" at y >= 0.65 of frame.
         h_s, w_s = screen_img.shape[:2]
-        x_min = int(w_s * 0.39)
-        x_max = int(w_s * 0.50)
+        x_min = int(w_s * 0.35)
+        x_max = int(w_s * 0.55)
         y_min = int(h_s * 0.09)
+        y_max = int(h_s * 0.62)
+
+        def is_builder_wall_label(b) -> bool:
+            t = b.text.lower().strip()
+            if "level" in t or "(" in t or ")" in t:
+                return False
+            clean = t.replace("1", "l").replace("i", "l").replace("vv", "w")
+            if "wall" in clean or "walls" in clean:
+                return True
+            import difflib
+            return difflib.SequenceMatcher(None, clean, "wall").ratio() >= 0.72
+
         words = [
             b for b in words
-            if x_min <= b.left < x_max and b.top >= y_min
+            if x_min <= b.left < x_max and y_min <= b.top < y_max
         ]
 
-        matches = [b for b in words if "wall" in b.text.lower()]
+        matches = [b for b in words if is_builder_wall_label(b)]
         if not matches:
             # Fallback: inspect raw word boxes in top center ROI without letter-only filter
             roi = VisionService.top_middle_square_roi(w_s, h_s, side=side)
@@ -1640,13 +1808,13 @@ class VisionService:
             )
             raw_in_fence = [
                 b for b in raw_words
-                if x_min <= b.left < x_max and b.top >= y_min
+                if x_min <= b.left < x_max and y_min <= b.top < y_max
             ]
-            matches = [b for b in raw_in_fence if "wall" in b.text.lower()]
+            matches = [b for b in raw_in_fence if is_builder_wall_label(b)]
 
         if not matches:
             return None
-        # Choose the lowest match (Wall is at bottom of the upgrades list)
+        # Choose the lowest match within the builder popup
         best = max(matches, key=lambda b: b.top + b.height)
         logger.info("Found wall label %r at (%d, %d)", best.text, best.center[0], best.center[1])
         return best.center
