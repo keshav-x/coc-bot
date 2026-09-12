@@ -165,7 +165,9 @@ ApexClash Pro includes an automatic **2-Hour Free Trial** on first launch — te
 
 ## 🛒 How to Order an Activation Key
 
-1. Launch **ApexClash Pro** and navigate to the **License** page.
+> 🌐 **Live Web Store**: Visit the official [**ApexClash Pro Purchase Portal**](https://keshav-x.github.io/coc-bot/) to configure your pack, select your payment method (PayPal, UPI, Crypto, Cards), and order with 1 click!
+
+1. Launch **ApexClash Pro** and navigate to the **License** page (or use the web store above).
 2. Click **📋 Copy Device ID** to copy your unique ID to your clipboard.
 3. Send a message to the developer with your Device ID and chosen pass tier:
    - 📧 **Email**: [cockingkeshav@gmail.com](mailto:cockingkeshav@gmail.com)
