@@ -205,6 +205,18 @@ class LootFilterEngine:
                 dark_elixir=de,
             )
 
+        # Dead base evaluation
+        if self.config.dead_base_only:
+            min_dead_thresh = max(200000, min(self.config.min_gold, self.config.min_elixir) // 2)
+            if g < min_dead_thresh or e < min_dead_thresh:
+                return LootFilterDecision(
+                    should_attack=False,
+                    reason=f"Not a dead base (G: {g:,} / E: {e:,} < {min_dead_thresh:,})",
+                    gold=g,
+                    elixir=e,
+                    dark_elixir=de,
+                )
+
         # Mode evaluation
         if self.config.filter_mode == FILTER_MODE_OR:
             if g >= self.config.min_gold or e >= self.config.min_elixir:

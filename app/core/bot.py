@@ -306,13 +306,15 @@ wall upgrades for the first pre-Attack snapshot that would otherwise count as an
             if gain_g > 0 or gain_el > 0 or gain_de > 0:
                 (tg, te, td) = self._loot_totals
                 self._loot_totals = (tg + gain_g, te + gain_el, td + gain_de)
-                self.loot_filter.stats.record_raid(gain_g, gain_el, gain_de)
+                skips = getattr(self, '_last_raid_skips', 0)
+                self.loot_filter.stats.record_raid(gain_g, gain_el, gain_de, skips=skips)
                 logger.info(
-                    'Loot tracker: +%s / +%s / +%s (G/E/DE) -> session %s / %s / %s',
-                    f'{gain_g:,}', f'{gain_el:,}', f'{gain_de:,}',
+                    'Loot tracker: +%s / +%s / +%s (G/E/DE, %d skips) -> session %s / %s / %s',
+                    f'{gain_g:,}', f'{gain_el:,}', f'{gain_de:,}', skips,
                     f'{self._loot_totals[0]:,}', f'{self._loot_totals[1]:,}', f'{self._loot_totals[2]:,}'
                 )
-                notify_raid_complete(gain_g, gain_el, gain_de, 0)
+                notify_raid_complete(gain_g, gain_el, gain_de, skips)
+                self._last_raid_skips = 0
             elif raw_dg < -5000 or raw_del < -2000 or raw_dde < -500:
                 logger.info('Loot tracker: balance decrease (spend/upgrade) -- previous=%s current=%s', prev, triplet)
 
@@ -1359,6 +1361,34 @@ deselect, which would eat the upcoming Attack click.'''
         self._bb_dismiss_okay_and_return_home(retry_battle_template = 'surrender.png')
 
     
+    def _find_next_button(self, frame: np.ndarray) -> Tuple[int, int]:
+        """Locates the 'Next' match button on the multiplayer scout screen."""
+        h, w = frame.shape[:2]
+        default_x = int(round(w * 0.91))
+        default_y = int(round(h * 0.88))
+
+        next_roi = (
+            int(round(w * 0.80)),
+            int(round(h * 0.74)),
+            int(round(w * 0.20)),
+            int(round(h * 0.26)),
+        )
+        try:
+            (nx, ny) = self.vision.find_word_on_screen(
+                frame,
+                "Next",
+                region=next_roi,
+                case_sensitive=False,
+                fuzzy_min_ratio=0.75,
+                white_text=True,
+            )
+            if nx is not None and ny is not None:
+                return (nx, ny)
+        except Exception:
+            pass
+
+        return (default_x, default_y)
+
     def _find_match_and_attack(self, method_id, ranked_fill = False):
         """One attack cycle. Returns ``'ranked_limit'`` (stop now), ``'troop'`` (troops missing — retry later), or None."""
         battle_template = 'rankedbattle.png' if ranked_fill else 'farmbattle.png'
@@ -1418,11 +1448,65 @@ deselect, which would eat the upcoming Attack click.'''
                     logger.warning('rankedattackconfirm.png not found after attack2.png')
                 else:
                     self.input.click(rx, ry, pause = 0.1)
-        self._wait_for_any_image(('surrender.png', 'endbattle.png'), timeout = 30)
-        frame = self.window.screenshot()
-        if frame is None:
-            return None
-        self._update_config_size(frame)
+        # Match scouting and loot filtration
+        skip_count = 0
+        self.loot_filter.reload_config()
+        filter_active = self.loot_filter.config.enabled and not ranked_fill
+        max_skips = self.loot_filter.config.max_skips if filter_active else 0
+        cb = getattr(self, '_status_callback', None)
+
+        while True:
+            self._check_stop()
+            matched = self._wait_for_any_image(('surrender.png', 'endbattle.png'), timeout = 35)
+            if not matched:
+                logger.warning('Scouting timeout: neither surrender.png nor endbattle.png appeared.')
+                return None
+
+            # Settle wait for clouds to disperse and loot HUD to paint
+            if self.stop_event.wait(0.5):
+                return None
+
+            frame = self.window.screenshot()
+            if frame is None:
+                return None
+            self._update_config_size(frame)
+
+            # In ranked fill or when loot filter is disabled, accept the first base immediately
+            if not filter_active:
+                break
+
+            # Extract available enemy loot
+            (gold, elixir, dark_elixir) = self.vision.extract_enemy_loot(frame)
+            logger.info(
+                'Scouted Base #%d: Gold=%s, Elixir=%s, DarkElixir=%s',
+                skip_count + 1,
+                f'{gold:,}' if gold is not None else '?',
+                f'{elixir:,}' if elixir is not None else '?',
+                f'{dark_elixir:,}' if dark_elixir is not None else '?',
+            )
+
+            decision = self.loot_filter.evaluate(gold, elixir, dark_elixir, current_skip_count = skip_count)
+            if decision.should_attack:
+                logger.info('Loot Filter ACCEPTED base: %s (after %d skips). Commencing attack!', decision.reason, skip_count)
+                if cb:
+                    cb(f'Target accepted ({decision.reason}) — Attacking!')
+                break
+
+            # Filter rejected base — click Next
+            logger.info('Loot Filter REJECTED base: %s. Skipping to next base...', decision.reason)
+            self.loot_filter.stats.record_skip()
+            skip_count += 1
+            if cb:
+                cb(f'Skipping base ({decision.reason}) [{skip_count}/{max_skips}]')
+
+            (nx, ny) = self._find_next_button(frame)
+            self.input.click(nx, ny, pause = 0.2)
+
+            # Wait briefly for cloud transition out before next detection loop
+            if self.stop_event.wait(0.75):
+                return None
+
+        self._last_raid_skips = skip_count
         (h, w) = frame.shape[:2]
         cy = h // 2
         cx = w // 2

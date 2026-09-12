@@ -2038,6 +2038,72 @@ class VisionService:
         return None
 
     @staticmethod
+    def numbers_enemy_loot_roi(screen_w: int, screen_h: int) -> Tuple[int, int, int, int]:
+        """Top-left scouting loot rectangle containing available Gold, Elixir, and Dark Elixir."""
+        x = max(0, int(round(screen_w * 0.02)))
+        y = max(0, int(round(screen_h * 0.05)))
+        w = min(screen_w - x, int(round(screen_w * 0.25)))
+        h = min(screen_h - y, int(round(screen_h * 0.30)))
+        return (x, y, w, h)
+
+    @staticmethod
+    def extract_enemy_loot(
+        screen_img: np.ndarray,
+    ) -> Tuple[Optional[int], Optional[int], Optional[int]]:
+        """Extracts available enemy loot ``(gold, elixir, dark_elixir)`` from the scout/attack screen."""
+        if screen_img is None or screen_img.size == 0:
+            return (None, None, None)
+        h_s, w_s = screen_img.shape[:2]
+        roi = VisionService.numbers_enemy_loot_roi(w_s, h_s)
+
+        # 1. Primary extractor: grouped numeric clusters in the top-left ROI
+        groups = VisionService.extract_grouped_numbers_in_region(
+            screen_img,
+            roi,
+            white_text=True,
+            preprocess=True,
+            min_confidence=15,
+        )
+
+        parsed_rows: list[tuple[int, int]] = []
+        for g in groups:
+            v = VisionService.parse_loot_amount_from_grouped_text(g.text)
+            if v is not None and v > 0:
+                parsed_rows.append((g.top, v))
+
+        # 2. Secondary fallback: OCR word boxes in the same ROI if grouped extraction found < 2 lines
+        if len(parsed_rows) < 2:
+            words = VisionService.find_words_ocr(
+                screen_img,
+                region=roi,
+                white_text=True,
+                preprocess=True,
+                min_confidence=15,
+            )
+            for w in words:
+                v = VisionService.parse_loot_amount_from_grouped_text(w.text)
+                if v is not None and v > 0:
+                    if not any(abs(p[0] - w.top) < 18 for p in parsed_rows):
+                        parsed_rows.append((w.top, v))
+
+        if not parsed_rows:
+            return (None, None, None)
+
+        # Sort from top to bottom (Gold is row 1, Elixir is row 2, Dark Elixir is row 3)
+        parsed_rows.sort(key=lambda r: r[0])
+
+        # Exclude stray single/double digit numbers (e.g. trophy count +28 or town hall badge < 100)
+        candidates = [val for (_, val) in parsed_rows if val >= 50]
+        if not candidates:
+            return (None, None, None)
+
+        gold = candidates[0] if len(candidates) >= 1 else None
+        elixir = candidates[1] if len(candidates) >= 2 else None
+        dark_elixir = candidates[2] if len(candidates) >= 3 else 0
+
+        return (gold, elixir, dark_elixir)
+
+    @staticmethod
     def _ocr_confidence_key(w: OcrWordBox) -> float:
         if math.isnan(w.confidence):
             return -1.0
