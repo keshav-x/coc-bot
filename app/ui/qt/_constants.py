@@ -24,12 +24,14 @@ PLAN_DEVICE_LIMIT = "1 Device (Hardware Bound)"
 PLAN_TRIAL_HOURS = 2
 PLAN_DESCRIPTION = "Cheap passes ($1/wk, $3/mo, $10/yr, $15 lifetime) with instant activation and 2-Hour Free Trial"
 
+PAGE_LICENSE = "license"
+
 CONTACT_EMAIL = "cockingkeshav@gmail.com"
 CONTACT_REDDIT = "post_matrix"
 CONTACT_DISCORD = "matrix0456"
 
-STRIPE_LIFETIME_URL = "https://clashautoloot.duckdns.org/v1/checkout/lifetime"
-SUBSCRIBE_CHECKOUT_URL = "https://clashautoloot.duckdns.org/v1/checkout/subscribe"
+STRIPE_LIFETIME_URL = "mailto:cockingkeshav@gmail.com?subject=ApexClash%20Pro%20Lifetime%20Pass%20Purchase"
+SUBSCRIBE_CHECKOUT_URL = "mailto:cockingkeshav@gmail.com?subject=ApexClash%20Pro%20Subscription%20Pass%20Purchase"
 
 PORTAL_USER_ERRORS: dict[str, str] = {
     "empty": "Enter your license key in the field above first.",

@@ -25,8 +25,8 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-_API_BASE = "https://clashautoloot.duckdns.org"
-_VALIDATE_URL = f"{_API_BASE}/v1/validate"
+_API_BASE = ""
+_VALIDATE_URL = ""
 _RECHECK_INTERVAL_S = 10800
 _RETRY_INTERVAL_S = 30
 _RETRY_MAX_S = 900

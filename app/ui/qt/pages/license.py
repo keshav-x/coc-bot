@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import urllib.parse
 import webbrowser
 from typing import Optional, Tuple
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import (
+    QDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -37,6 +40,208 @@ from app.ui.qt.widgets import (
     primary_button,
     neutral_button,
 )
+
+
+class PurchaseOptionsDialog(QDialog):
+    """Clean, dedicated dialog for purchasing ApexClash Pro passes directly."""
+
+    def __init__(self, parent: Optional[QWidget], machine_id: str, default_tier: str = "Monthly ($3/mo)") -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Buy ApexClash Pro Activation Key")
+        self.setFixedWidth(520)
+        self.setStyleSheet(f"background-color: {TOKENS['surface_lo']}; color: {TOKENS['text']};")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+
+        title = QLabel("⚡ Purchase Activation Key")
+        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #ffffff;")
+        layout.addWidget(title)
+
+        desc = QLabel(
+            "Keys are issued instantly after payment. All passes include unlimited loot raids, "
+            "smart anti-ban heuristics, automated wall upgrading, and zero-gem spending protection."
+        )
+        desc.setWordWrap(True)
+        desc.setStyleSheet(f"color: {TOKENS['text_muted']}; font-size: 12px; line-height: 1.4;")
+        layout.addWidget(desc)
+
+        pricing_frame = QFrame()
+        pricing_frame.setStyleSheet(
+            f"background-color: {TOKENS['surface_hi']}; border-radius: 8px; padding: 10px;"
+        )
+        p_layout = QVBoxLayout(pricing_frame)
+        p_layout.setSpacing(6)
+
+        tiers_info = [
+            ("Weekly Pass", "$1.00", "7 days of full VIP access"),
+            ("Monthly Pass", "$3.00", "30 days of full VIP access (Popular)"),
+            ("Annual Pass", "$10.00", "365 days of full VIP access (Best Value)"),
+            ("Lifetime VIP Pass", "$15.00", "Permanent VIP access + all future updates!"),
+        ]
+        for name, price, sub in tiers_info:
+            row = QHBoxLayout()
+            lbl_name = QLabel(f"• <b>{name}</b>")
+            lbl_name.setTextFormat(Qt.TextFormat.RichText)
+            lbl_name.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px;")
+            lbl_price = QLabel(f"<span style='color: #22c55e; font-weight: bold;'>{price}</span> <span style='color: {TOKENS['text_muted']}; font-size: 11px;'>— {sub}</span>")
+            lbl_price.setTextFormat(Qt.TextFormat.RichText)
+            row.addWidget(lbl_name)
+            row.addWidget(lbl_price, stretch=1)
+            p_layout.addLayout(row)
+        layout.addWidget(pricing_frame)
+
+        hw_box = QVBoxLayout()
+        hw_lbl = QLabel("<b>Your Device ID</b> (automatically copied to clipboard):")
+        hw_lbl.setTextFormat(Qt.TextFormat.RichText)
+        hw_lbl.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px;")
+        hw_box.addWidget(hw_lbl)
+
+        hw_row = QHBoxLayout()
+        self._hw_input = QLineEdit(machine_id)
+        self._hw_input.setReadOnly(True)
+        self._hw_input.setFont(QFont("Courier New", 10))
+        self._hw_input.setStyleSheet(f"background-color: {TOKENS['neutral_dark']}; color: #38bdf8; padding: 4px 8px; border-radius: 4px;")
+        hw_row.addWidget(self._hw_input, stretch=1)
+
+        self._btn_copy_hw = neutral_button("📋 Copy ID", parent=self)
+        self._btn_copy_hw.clicked.connect(self._copy_id)
+        hw_row.addWidget(self._btn_copy_hw)
+        hw_box.addLayout(hw_row)
+        layout.addLayout(hw_box)
+
+        contact_info = QLabel(
+            "<b>Accepted Payment Methods:</b> PayPal, UPI, Crypto (USDT/BTC/LTC), Cards.<br>"
+            "<b>Contact Developer for Instant Activation:</b><br>"
+            "• Email: <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
+            "• Discord: <span style='color: #22c55e; font-weight: bold;'>matrix0456</span><br>"
+            "• Reddit: <span style='color: #f59e0b; font-weight: bold;'>u/post_matrix</span>"
+        )
+        contact_info.setTextFormat(Qt.TextFormat.RichText)
+        contact_info.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px; line-height: 1.5;")
+        layout.addWidget(contact_info)
+
+        # Copy Device ID right away when dialog opens
+        QGuiApplication.clipboard().setText(machine_id)
+
+        btn_box = QHBoxLayout()
+        btn_box.setSpacing(8)
+
+        self._btn_email = primary_button("📧 Open Email Client", parent=self)
+        self._btn_email.clicked.connect(lambda: self._open_email(machine_id, default_tier))
+        btn_box.addWidget(self._btn_email)
+
+        self._btn_copy_template = neutral_button("📋 Copy Order Message", parent=self)
+        self._btn_copy_template.clicked.connect(lambda: self._copy_template(machine_id, default_tier))
+        btn_box.addWidget(self._btn_copy_template)
+
+        btn_close = neutral_button("Close", parent=self)
+        btn_close.clicked.connect(self.accept)
+        btn_box.addWidget(btn_close)
+
+        layout.addLayout(btn_box)
+
+    def _copy_id(self) -> None:
+        QGuiApplication.clipboard().setText(self._hw_input.text())
+        self._btn_copy_hw.setText("✓ Copied!")
+        QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy ID"))
+
+    def _open_email(self, machine_id: str, tier: str) -> None:
+        subject = urllib.parse.quote(f"ApexClash Pro Purchase Request - {tier}")
+        body = urllib.parse.quote(
+            f"Hi Keshav,\n\n"
+            f"I would like to purchase an ApexClash Pro license key.\n\n"
+            f"Selected Tier: {tier}\n"
+            f"My Device ID: {machine_id}\n"
+            f"Preferred Payment Method: PayPal / UPI / Crypto / Card\n\n"
+            f"Thank you!"
+        )
+        mailto_url = f"mailto:cockingkeshav@gmail.com?subject={subject}&body={body}"
+        webbrowser.open(mailto_url)
+
+    def _copy_template(self, machine_id: str, tier: str) -> None:
+        msg = (
+            f"Hi Keshav, I'd like to buy an ApexClash Pro activation key.\n"
+            f"Plan: {tier}\n"
+            f"Device ID: {machine_id}\n"
+            f"Preferred Payment: PayPal / Crypto / UPI / Card"
+        )
+        QGuiApplication.clipboard().setText(msg)
+        self._btn_copy_template.setText("✓ Copied to Clipboard!")
+        QTimer.singleShot(2500, lambda: self._btn_copy_template.setText("📋 Copy Order Message"))
+
+
+class ManageLicenseDialog(QDialog):
+    """Dialog for reviewing active license details and support."""
+
+    def __init__(self, parent: Optional[QWidget], machine_id: str, current_key: str, status_desc: str) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("ApexClash Pro — License Management & Support")
+        self.setFixedWidth(500)
+        self.setStyleSheet(f"background-color: {TOKENS['surface_lo']}; color: {TOKENS['text']};")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+
+        lbl_title = QLabel("🛡️ License & Subscription Management")
+        lbl_title.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
+        layout.addWidget(lbl_title)
+
+        info = QLabel(
+            f"<b>Active Key:</b> {current_key if current_key else '(No key entered)'}<br>"
+            f"<b>Status:</b> {status_desc}<br>"
+            f"<b>Device ID:</b> {machine_id}<br><br>"
+            "To renew your subscription pass, upgrade to Lifetime VIP ($15), or transfer your license to a new PC, please contact the developer directly:<br>"
+            "• <b>Email:</b> <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
+            "• <b>Discord:</b> <span style='color: #22c55e; font-weight: bold;'>matrix0456</span><br>"
+            "• <b>Reddit:</b> <span style='color: #f59e0b; font-weight: bold;'>u/post_matrix</span>"
+        )
+        info.setTextFormat(Qt.TextFormat.RichText)
+        info.setOpenExternalLinks(True)
+        info.setStyleSheet(f"color: {TOKENS['text']}; font-size: 12px; line-height: 1.5;")
+        layout.addWidget(info)
+
+        btn_box = QHBoxLayout()
+        btn_box.setSpacing(8)
+
+        btn_email = primary_button("📧 Email Developer", parent=self)
+        btn_email.clicked.connect(lambda: self._open_support_email(current_key, machine_id))
+        btn_box.addWidget(btn_email)
+
+        btn_copy = neutral_button("📋 Copy Info", parent=self)
+        btn_copy.clicked.connect(lambda: self._copy_info(current_key, machine_id, status_desc))
+        btn_box.addWidget(btn_copy)
+
+        btn_close = neutral_button("Close", parent=self)
+        btn_close.clicked.connect(self.accept)
+        btn_box.addWidget(btn_close)
+
+        layout.addLayout(btn_box)
+
+    def _open_support_email(self, key: str, machine_id: str) -> None:
+        subject = urllib.parse.quote("ApexClash Pro License Support / Renewal")
+        body = urllib.parse.quote(
+            f"Hi Keshav,\n\n"
+            f"I need support with my ApexClash Pro license.\n\n"
+            f"Current Key: {key}\n"
+            f"Device ID: {machine_id}\n"
+            f"Request: (Renewal / Lifetime Upgrade / Device Transfer)\n\n"
+            f"Thank you!"
+        )
+        webbrowser.open(f"mailto:cockingkeshav@gmail.com?subject={subject}&body={body}")
+
+    def _copy_info(self, key: str, machine_id: str, status_desc: str) -> None:
+        text = (
+            f"ApexClash Pro Support Details\n"
+            f"Key: {key}\n"
+            f"Device ID: {machine_id}\n"
+            f"Status: {status_desc}\n"
+        )
+        QGuiApplication.clipboard().setText(text)
+        QMessageBox.information(self, "Copied", "Support details copied to clipboard!")
+
 
 
 class LicensePage(QWidget):
@@ -153,17 +358,19 @@ class LicensePage(QWidget):
         layout.addLayout(key_row)
 
         footer = QHBoxLayout()
-        self._btn_subscribe = primary_button("Buy subscription", parent=self)
+        self._btn_subscribe = primary_button("Buy Subscription ($1/wk, $3/mo)", parent=self)
+        self._btn_subscribe.setToolTip("View pricing options and purchase a Weekly, Monthly, or Annual Pass.")
         self._btn_subscribe.clicked.connect(self._open_subscribe_checkout)
         footer.addWidget(self._btn_subscribe)
 
-        self._btn_lifetime = neutral_button("Buy lifetime", parent=self)
+        self._btn_lifetime = neutral_button("Buy Lifetime ($15 VIP)", parent=self)
+        self._btn_lifetime.setToolTip("Get a permanent Lifetime VIP pass with unlimited updates.")
         self._btn_lifetime.clicked.connect(self._open_lifetime_checkout)
         footer.addWidget(self._btn_lifetime)
 
-        self._btn_portal = neutral_button("Manage subscription", parent=self)
+        self._btn_portal = neutral_button("Manage License", parent=self)
         self._btn_portal.setToolTip(
-            "Open your Stripe billing page to update payment details, see invoices, or cancel your subscription."
+            "View license details, renewal options, or request developer assistance."
         )
         self._btn_portal.clicked.connect(self._open_billing_portal)
         footer.addWidget(self._btn_portal)
@@ -278,49 +485,17 @@ class LicensePage(QWidget):
         QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy Device ID"))
 
     def _open_subscribe_checkout(self) -> None:
-        QGuiApplication.clipboard().setText(self._machine_id)
-        QMessageBox.information(
-            self.window(),
-            "Purchase Access Pass",
-            f"Official Pricing:\n"
-            f"• Weekly Pass: $1.00 (7 Days)\n"
-            f"• Monthly Pass: $3.00 (30 Days)\n"
-            f"• Annual Pass: $10.00 (365 Days)\n"
-            f"• Lifetime Pass: $15.00 (Permanent VIP Access)\n\n"
-            f"Your Device ID: {self._machine_id}\n"
-            f"(Copied to your clipboard!)\n\n"
-            f"To get your key, message the developer with your Device ID:\n"
-            f"• Email: cockingkeshav@gmail.com\n"
-            f"• Discord: matrix0456\n"
-            f"• Reddit: u/post_matrix\n\n"
-            f"Accepted: PayPal, Crypto, UPI, Cards. Fast delivery!",
-        )
+        PurchaseOptionsDialog(self.window(), self._machine_id, "Monthly ($3/mo)").exec()
 
     def _open_lifetime_checkout(self) -> None:
-        self._open_subscribe_checkout()
+        PurchaseOptionsDialog(self.window(), self._machine_id, "Lifetime VIP ($15)").exec()
 
     def _open_billing_portal(self) -> None:
         key = self._entry.text().strip()
-        if not key:
-            show_error(
-                self.window(),
-                "Manage subscription",
-                PORTAL_USER_ERRORS["empty"],
-            )
-            return
-        self._btn_portal.setEnabled(False)
-        self._btn_portal.setText("Opening…")
-
-        def on_done(url: str, reason: str) -> None:
-            self._btn_portal.setEnabled(True)
-            self._btn_portal.setText("Manage subscription")
-            if url:
-                webbrowser.open(url)
-                return
-            msg = PORTAL_USER_ERRORS.get(reason, reason.replace("_", " ").capitalize())
-            show_error(self.window(), "Manage subscription", msg)
-
-        self._controller.request_portal_url_async(key, on_done)
+        state = self._controller.license_state()
+        sub = self._controller.license_expiry_subcaption()
+        status_str = f"Active Pro ({sub})" if state == LicenseState.VALID and sub else ("Active Pro" if state == LicenseState.VALID else "Inactive")
+        ManageLicenseDialog(self.window(), self._machine_id, key, status_str).exec()
 
     def _open_unpair(self) -> None:
         key = self._entry.text().strip()

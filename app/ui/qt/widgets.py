@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Optional
 
-from PySide6.QtCore import Qt, QRectF, QSize, QPointF
+from PySide6.QtCore import Qt, QRectF, QSize, QPointF, Signal
 from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -344,6 +344,7 @@ class VisibilityToggleButton(QPushButton):
 
 class TrialBannerWidget(QFrame):
     """Sidebar widget displaying real-time trial progress and Pro upgrade action."""
+    upgrade_requested = Signal()
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -367,7 +368,7 @@ class TrialBannerWidget(QFrame):
         self._progress.setFixedHeight(6)
         layout.addWidget(self._progress)
 
-        self._btn = QPushButton("⚡ Upgrade ($5/mo)")
+        self._btn = QPushButton("⚡ Upgrade ($3/mo)")
         self._btn.setStyleSheet(
             f"background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {TOKENS['primary']}, stop:1 {TOKENS['success']});"
             "color: #ffffff; font-weight: bold; border-radius: 6px; padding: 6px 10px; font-size: 12px;"
@@ -377,9 +378,7 @@ class TrialBannerWidget(QFrame):
         layout.addWidget(self._btn)
 
     def _on_upgrade_clicked(self) -> None:
-        import webbrowser
-        from app.ui.qt._constants import SUBSCRIBE_CHECKOUT_URL
-        webbrowser.open(SUBSCRIBE_CHECKOUT_URL)
+        self.upgrade_requested.emit()
 
     def update_status(self, lic_state: LicenseState, remaining_seconds: Optional[int]) -> None:
         if lic_state == LicenseState.VALID:
@@ -387,7 +386,7 @@ class TrialBannerWidget(QFrame):
             self._status_lbl.setText("🛡️ Pro Active")
             self._status_lbl.setStyleSheet(f"font-size: 12px; font-weight: bold; color: {TOKENS['success']};")
             self._progress.setValue(100)
-            self._btn.setText("Manage Subscription")
+            self._btn.setText("Manage License")
             self._btn.setStyleSheet(f"background-color: {TOKENS['neutral_dark']}; color: {TOKENS['text']}; border-radius: 6px; padding: 5px 10px; font-size: 11px;")
         elif remaining_seconds is not None and remaining_seconds > 0:
             self._title_lbl.setText("FREE TRIAL")
@@ -400,7 +399,7 @@ class TrialBannerWidget(QFrame):
             self._status_lbl.setStyleSheet("font-size: 12px; font-weight: bold; color: #38bdf8;")
             pct = max(0, min(100, int((remaining_seconds / 7200.0) * 100)))
             self._progress.setValue(pct)
-            self._btn.setText("⚡ Upgrade ($5/mo)")
+            self._btn.setText("⚡ Upgrade ($3/mo)")
             self._btn.setStyleSheet(
                 f"background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {TOKENS['primary']}, stop:1 {TOKENS['success']});"
                 "color: #ffffff; font-weight: bold; border-radius: 6px; padding: 6px 10px; font-size: 12px;"
@@ -410,7 +409,11 @@ class TrialBannerWidget(QFrame):
             self._status_lbl.setText("🔒 0m remaining")
             self._status_lbl.setStyleSheet(f"font-size: 12px; font-weight: bold; color: {TOKENS['danger']};")
             self._progress.setValue(0)
-            self._btn.setText("⚡ Activate Pro ($5/mo)")
+            self._btn.setText("⚡ Activate Pro ($3/mo)")
+            self._btn.setStyleSheet(
+                f"background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {TOKENS['primary']}, stop:1 {TOKENS['danger']});"
+                "color: #ffffff; font-weight: bold; border-radius: 6px; padding: 6px 10px; font-size: 12px;"
+            )
 
 
 class RaidHistoryTable(QTableWidget):

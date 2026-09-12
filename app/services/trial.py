@@ -15,8 +15,8 @@ from .license import HardwareFingerprint
 
 logger = logging.getLogger(__name__)
 
-_API_BASE = "https://clashautoloot.duckdns.org"
-_HEARTBEAT_URL = f"{_API_BASE}/v1/trial/heartbeat"
+_API_BASE = ""
+_HEARTBEAT_URL = ""
 
 TRIAL_TOTAL_SECONDS: int = 7200
 TRIAL_HEARTBEAT_INTERVAL_MS: int = 60000

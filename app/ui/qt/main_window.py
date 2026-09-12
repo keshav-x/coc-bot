@@ -106,6 +106,7 @@ class MainWindow(QMainWindow):
         sidebar_col.addWidget(self._sidebar, stretch=1)
 
         self._trial_banner = TrialBannerWidget()
+        self._trial_banner.upgrade_requested.connect(lambda: self.navigate_to("license"))
         sidebar_col.addWidget(self._trial_banner)
         root.addWidget(sidebar_panel)
 
