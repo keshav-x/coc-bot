@@ -1989,10 +1989,13 @@ class VisionService:
 
         Uses vertical position bands relative to screen height to assign each number
         to its true resource row:
-        - Gold:        0.015 <= cy / H < 0.065
-        - Elixir:      0.065 <= cy / H < 0.115
-        - Dark Elixir: 0.115 <= cy / H < 0.165
-        - Gems / etc:  cy / H >= 0.165 (strictly ignored)
+        - Gold:        0.010 <= cy / H < 0.075
+        - Elixir:      0.075 <= cy / H < 0.135
+        - Dark Elixir: 0.135 <= cy / H < 0.195
+        - Gems / etc:  cy / H >= 0.195 (strictly ignored)
+
+        Includes automatic fallback to vertical row sorting (Row 1: Gold, Row 2: Elixir,
+        Row 3: Dark Elixir) for non-standard window bounds or scaling.
         """
         if not groups:
             return None
@@ -2015,26 +2018,39 @@ class VisionService:
             cy = float(g.top) + float(g.height) * 0.5
             ratio = cy / h_val
 
-            if 0.015 <= ratio < 0.065:
+            if 0.010 <= ratio < 0.075:
                 # Gold row (if multiple pieces, pick the one with most digits)
                 if gold_val is None or len(str(v)) > len(str(gold_val)):
                     gold_val = v
-            elif 0.065 <= ratio < 0.115:
+            elif 0.075 <= ratio < 0.135:
                 # Elixir row
                 if elixir_val is None or len(str(v)) > len(str(elixir_val)):
                     elixir_val = v
-            elif 0.115 <= ratio < 0.165:
+            elif 0.135 <= ratio < 0.195:
                 # Dark Elixir row
                 if dark_val is None or len(str(v)) > len(str(dark_val)):
                     dark_val = v
-            # ratio >= 0.165 is Gems / Pass / etc. -> DO NOT assign to dark_elixir!
+            # ratio >= 0.195 is Gems / Pass / etc. -> DO NOT assign to dark_elixir!
 
-        # Both Gold and Elixir MUST be present for a valid HUD read
+        # Both Gold and Elixir present via ratio bands
         if gold_val is not None and elixir_val is not None:
             return (gold_val, elixir_val, dark_val if dark_val is not None else 0)
 
-        # If either Gold or Elixir could not be matched to its row band, the frame is
-        # incomplete or obscured — return None so multi-frame sampling reads a clear frame
+        # Fallback: vertical top-to-bottom sorting (Row 1: Gold, Row 2: Elixir, Row 3: Dark Elixir)
+        valid_rows: List[Tuple[int, int]] = []
+        for g in groups:
+            v = VisionService.parse_loot_amount_from_grouped_text(g.text)
+            if v is not None and v > 0:
+                valid_rows.append((g.top, v))
+
+        if len(valid_rows) >= 2:
+            valid_rows.sort(key=lambda r: r[0])
+            g_cand = valid_rows[0][1]
+            e_cand = valid_rows[1][1]
+            d_cand = valid_rows[2][1] if len(valid_rows) >= 3 else 0
+            if g_cand <= 35_000_000 and e_cand <= 35_000_000 and d_cand <= 10_000_000:
+                return (g_cand, e_cand, d_cand)
+
         return None
 
     @staticmethod

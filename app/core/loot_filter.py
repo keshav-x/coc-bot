@@ -127,6 +127,8 @@ class SessionStats:
         self.total_elixir += max(0, elixir)
         self.total_dark_elixir += max(0, dark_elixir)
         self.raids_completed += 1
+        if skips > 0:
+            self.bases_skipped = max(self.bases_skipped, skips)
         rec = RaidRecord(
             raid_num=self.raids_completed,
             timestamp_str=time.strftime("%H:%M:%S"),

@@ -251,95 +251,91 @@ class Bot:
         cb(g, el, de, elapsed)
 
     
-    def _loot_snapshot_before_attack(self):
-        '''
-On home: OCR top‑right HUD, diff vs previous snapshot, accumulate non‑negative deltas,
-refresh the baseline.
-
-Called before wall upgrades (when storages full) **and** immediately before tapping
-Attack so post‑raid gains are recorded **before** wall spend can make the next snapshot
-look like a decrease on every resource vs that baseline (which would skip the add).
-
-When deltas vs the previous snapshot are not all non-negative, session totals are not
-incremented unless ``_suppress_loot_negative_error_once`` suppresses one skip (set after
-wall upgrades for the first pre-Attack snapshot that would otherwise count as an error).
-'''
-        # Consecutive-frame agreement: single HUD reads get corrupted by animations
-        # (live repro: elixir "115M" — an upward misread passes the ≥0 filter and
-        # poisons the session totals). No stable read this cycle → just skip.
-        triplet = self._read_hud_triplet_stable()
-        if triplet is None:
-            logger.debug('Loot tracker: no stable HUD read this cycle')
-            self._emit_loot_update()
+    def _record_completed_raid_and_update_loot(self):
+        '''Always records a completed raid into SessionStats and updates UI telemetry.
+        Uses actual HUD storage delta if measured; falls back to accepted target base loot (75% extraction).'''
+        if not getattr(self, '_raid_just_completed', False):
             return None
-        self._last_hud_triplet = triplet
-        (cur_g, cur_el, cur_de) = triplet
+
+        target_loot = getattr(self, '_last_accepted_target_loot', (0, 0, 0))
+        skips = getattr(self, '_last_raid_skips', 0)
+
+        # 1. Try reading the HUD triplet for exact storage delta
+        triplet = self._read_hud_triplet_stable()
         prev = self._loot_prev_resources
-        # Cap detection without TH-specific numbers: at a TRUE cap, consecutive
-        # stable pre-attack reads pin to the identical value (raids refill the
-        # entry fee back to cap); below cap every battle moves the number. The
-        # full-storage icons fire from ~85% up, so they alone must not idle the
-        # bot away from real remaining headroom.
-        if prev is not None:
-            self._gold_pinned = cur_g == prev[0]
-            self._elixir_pinned = cur_el == prev[1]
-        if prev is not None:
+
+        gain_g = 0
+        gain_el = 0
+        gain_de = 0
+        used_hud = False
+
+        if triplet is not None and prev is not None:
+            (cur_g, cur_el, cur_de) = triplet
             (lg, le, ld) = prev
             raw_dg = cur_g - lg
             raw_del = cur_el - le
             raw_dde = cur_de - ld
 
-            # Small negative deltas from match search fee (-5,000 gold) or jitter are clamped to 0
-            gain_g = max(0, raw_dg) if raw_dg >= -5000 else 0
-            gain_el = max(0, raw_del) if raw_del >= -2000 else 0
-            gain_de = max(0, raw_dde) if raw_dde >= -500 else 0
+            g_cand = max(0, raw_dg) if raw_dg >= -5000 else 0
+            el_cand = max(0, raw_del) if raw_del >= -2000 else 0
+            de_cand = max(0, raw_dde) if raw_dde >= -500 else 0
 
-            # Discard implausible gains (> 3M main or > 50K dark)
-            if gain_g > _LOOT_DELTA_MAX_MAIN:
-                logger.warning('Loot tracker: implausible gold gain +%s discarded (OCR misread)', gain_g)
-                gain_g = 0
-            if gain_el > _LOOT_DELTA_MAX_MAIN:
-                logger.warning('Loot tracker: implausible elixir gain +%s discarded (OCR misread)', gain_el)
-                gain_el = 0
-            if gain_de > _LOOT_DELTA_MAX_DARK:
-                logger.warning('Loot tracker: implausible dark gain +%s discarded (OCR misread)', gain_de)
-                gain_de = 0
+            if g_cand <= _LOOT_DELTA_MAX_MAIN and el_cand <= _LOOT_DELTA_MAX_MAIN and de_cand <= _LOOT_DELTA_MAX_DARK:
+                if g_cand > 0 or el_cand > 0 or de_cand > 0:
+                    gain_g = g_cand
+                    gain_el = el_cand
+                    gain_de = de_cand
+                    used_hud = True
 
-            if gain_g > 0 or gain_el > 0 or gain_de > 0:
-                (tg, te, td) = self._loot_totals
-                self._loot_totals = (tg + gain_g, te + gain_el, td + gain_de)
-                skips = getattr(self, '_last_raid_skips', 0)
-                self.loot_filter.stats.record_raid(gain_g, gain_el, gain_de, skips=skips)
-                logger.info(
-                    'Loot tracker: +%s / +%s / +%s (G/E/DE, %d skips) -> session %s / %s / %s',
-                    f'{gain_g:,}', f'{gain_el:,}', f'{gain_de:,}', skips,
-                    f'{self._loot_totals[0]:,}', f'{self._loot_totals[1]:,}', f'{self._loot_totals[2]:,}'
-                )
-                notify_raid_complete(gain_g, gain_el, gain_de, skips)
-                self._last_raid_skips = 0
-                self._raid_just_completed = False
-            elif getattr(self, '_raid_just_completed', False):
-                # A raid completed but storage was full or delta was unread:
-                # Use target base loot (estimated 75% loot extraction)
-                target_loot = getattr(self, '_last_accepted_target_loot', (0, 0, 0))
-                gain_g = int(target_loot[0] * 0.75) if target_loot[0] > 0 else 0
-                gain_el = int(target_loot[1] * 0.75) if target_loot[1] > 0 else 0
-                gain_de = int(target_loot[2] * 0.75) if target_loot[2] > 0 else 0
-                skips = getattr(self, '_last_raid_skips', 0)
-                (tg, te, td) = self._loot_totals
-                self._loot_totals = (tg + gain_g, te + gain_el, td + gain_de)
-                self.loot_filter.stats.record_raid(gain_g, gain_el, gain_de, skips=skips)
-                logger.info(
-                    'Loot tracker (target fallback): +%s / +%s / +%s (G/E/DE, %d skips) -> session %s / %s / %s',
-                    f'{gain_g:,}', f'{gain_el:,}', f'{gain_de:,}', skips,
-                    f'{self._loot_totals[0]:,}', f'{self._loot_totals[1]:,}', f'{self._loot_totals[2]:,}'
-                )
-                notify_raid_complete(gain_g, gain_el, gain_de, skips)
-                self._last_raid_skips = 0
-                self._raid_just_completed = False
-            elif raw_dg < -5000 or raw_del < -2000 or raw_dde < -500:
-                logger.info('Loot tracker: balance decrease (spend/upgrade) -- previous=%s current=%s', prev, triplet)
+        if triplet is not None:
+            self._last_hud_triplet = triplet
+            self._loot_prev_resources = triplet
 
+        # 2. Fallback to target base loot if HUD delta was not measured or storages full
+        if not used_hud:
+            (tg_raw, te_raw, td_raw) = target_loot
+            gain_g = int(tg_raw * 0.75) if tg_raw > 0 else 0
+            gain_el = int(te_raw * 0.75) if te_raw > 0 else 0
+            gain_de = int(td_raw * 0.75) if td_raw > 0 else 0
+            logger.info(
+                'Loot tracker: using target base fallback (+%s G, +%s E, +%s DE) [HUD read=%s]',
+                f'{gain_g:,}', f'{gain_el:,}', f'{gain_de:,}', 'yes' if triplet is not None else 'no'
+            )
+
+        # 3. Always increment session totals and record raid telemetry
+        (tg, te, td) = self._loot_totals
+        self._loot_totals = (tg + gain_g, te + gain_el, td + gain_de)
+        rec = self.loot_filter.stats.record_raid(gain_g, gain_el, gain_de, skips=skips)
+        logger.info(
+            'Loot tracker: RAID #%d RECORDED: +%s / +%s / +%s (G/E/DE, %d skips) -> session totals %s / %s / %s',
+            self.loot_filter.stats.raids_completed,
+            f'{gain_g:,}', f'{gain_el:,}', f'{gain_de:,}', skips,
+            f'{self._loot_totals[0]:,}', f'{self._loot_totals[1]:,}', f'{self._loot_totals[2]:,}'
+        )
+        notify_raid_complete(gain_g, gain_el, gain_de, skips)
+        self._last_raid_skips = 0
+        self._raid_just_completed = False
+
+        # 4. Immediately notify UI
+        self._emit_loot_update()
+        return rec
+
+    def _loot_snapshot_before_attack(self):
+        '''Establish or refresh the pre-attack HUD baseline.'''
+        if getattr(self, '_raid_just_completed', False):
+            self._record_completed_raid_and_update_loot()
+            return None
+
+        triplet = self._read_hud_triplet_stable()
+        if triplet is None:
+            self._emit_loot_update()
+            return None
+        self._last_hud_triplet = triplet
+        (cur_g, cur_el, cur_de) = triplet
+        prev = self._loot_prev_resources
+        if prev is not None:
+            self._gold_pinned = cur_g == prev[0]
+            self._elixir_pinned = cur_el == prev[1]
         self._loot_prev_resources = triplet
         self._emit_loot_update()
         self._suppress_loot_negative_error_once = False
@@ -1017,6 +1013,8 @@ deselect, which would eat the upcoming Attack click.'''
         # duration_seconds == 0 → unlimited ("run until maxed"): only the user's Stop
         # ends the session; full storages park the loop in _maybe_idle instead.
         deadline = start_time + duration_seconds if duration_seconds else None
+        # Capture initial pre-attack baseline resources
+        self._loot_snapshot_before_attack()
         self._maybe_upgrade_walls(upgrade_walls)
         self._maybe_auto_upgrade()
         self._maybe_idle(deadline)
@@ -1030,10 +1028,10 @@ deselect, which would eat the upcoming Attack click.'''
             outcome = self._find_match_and_attack(method_id, ranked_fill)
             self._return_home()
             self._home_screen_recovery()
-            if outcome != 'troop' and outcome != 'ranked_limit':
+            if outcome != 'ranked_limit':
                 # Allow HUD count-up filling animation to complete before reading raid gains
                 self.stop_event.wait(1.5)
-                self._loot_snapshot_before_attack()
+                self._record_completed_raid_and_update_loot()
             if outcome == 'ranked_limit':
                 return None
             if outcome == 'troop':
@@ -1493,12 +1491,9 @@ deselect, which would eat the upcoming Attack click.'''
                 return None
             self._update_config_size(frame)
 
-            # In ranked fill or when loot filter is disabled, accept the first base immediately
-            if not filter_active:
-                break
-
             # Extract available enemy loot
             (gold, elixir, dark_elixir) = self.vision.extract_enemy_loot(frame)
+            self._last_accepted_target_loot = (gold or 0, elixir or 0, dark_elixir or 0)
             logger.info(
                 'Scouted Base #%d: Gold=%s, Elixir=%s, DarkElixir=%s',
                 skip_count + 1,
@@ -1507,12 +1502,17 @@ deselect, which would eat the upcoming Attack click.'''
                 f'{dark_elixir:,}' if dark_elixir is not None else '?',
             )
 
+            # In ranked fill or when loot filter is disabled, accept the first base immediately
+            if not filter_active:
+                if cb:
+                    cb('Target accepted (filter inactive/ranked) — Attacking!')
+                break
+
             decision = self.loot_filter.evaluate(gold, elixir, dark_elixir, current_skip_count = skip_count)
             if decision.should_attack:
                 logger.info('Loot Filter ACCEPTED base: %s (after %d skips). Commencing attack!', decision.reason, skip_count)
                 if cb:
                     cb(f'Target accepted ({decision.reason}) — Attacking!')
-                self._last_accepted_target_loot = (gold or 0, elixir or 0, dark_elixir or 0)
                 break
 
             # Filter rejected base — click Next
