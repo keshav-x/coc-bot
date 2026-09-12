@@ -42,6 +42,7 @@ class AntiBanConfig:
     max_break_mins: int = 5
     human_curves_enabled: bool = True
     idle_inspection_enabled: bool = True
+    random_clicks_enabled: bool = True
     max_apm: int = 160
 
 
@@ -68,6 +69,7 @@ def load_antiban_config() -> AntiBanConfig:
             max_break_mins=int(raw.get("max_break_mins", 5)),
             human_curves_enabled=bool(raw.get("human_curves_enabled", True)),
             idle_inspection_enabled=bool(raw.get("idle_inspection_enabled", True)),
+            random_clicks_enabled=bool(raw.get("random_clicks_enabled", True)),
             max_apm=int(raw.get("max_apm", 160)),
         )
     except Exception as e:

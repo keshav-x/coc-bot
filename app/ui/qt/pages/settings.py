@@ -20,6 +20,11 @@ from PySide6.QtWidgets import (
 )
 
 from app.config import resolve_aspect_key
+from app.services.antiban import (
+    AntiBanService,
+    load_antiban_config,
+    save_antiban_config,
+)
 from app.services.webhook import (
     WebhookConfig,
     load_webhook_config,
@@ -118,10 +123,48 @@ class SettingsPage(QWidget):
         layout.setSpacing(SPACING["md"])
         layout.addWidget(PageTitle("Settings"))
 
+        layout.addWidget(self._build_click_behavior_card())
         layout.addWidget(self._build_earthquake_card())
         layout.addWidget(self._build_webhook_card())
         layout.addWidget(self._build_window_card())
         layout.addStretch()
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if hasattr(self, "_sw_random_clicks"):
+            self._sw_random_clicks.blockSignals(True)
+            self._sw_random_clicks.setChecked(load_antiban_config().random_clicks_enabled)
+            self._sw_random_clicks.blockSignals(False)
+
+    def _build_click_behavior_card(self) -> Card:
+        card = Card()
+        card.card_layout.addWidget(SectionTitle("Click & Input Precision"))
+
+        hint = QLabel(
+            "Configure click precision. Turn OFF to completely disable random clicks and click jitter, "
+            "guaranteeing 100% exact pixel target clicks."
+        )
+        hint.setWordWrap(True)
+        hint.setStyleSheet(f"color: {TOKENS['text_muted']}; font-size: 12px;")
+        card.card_layout.addWidget(hint)
+
+        top_row = QHBoxLayout()
+        top_row.addWidget(QLabel("Enable Random Clicks (anti-ban coordinate scatter):"))
+        top_row.addStretch()
+        self._sw_random_clicks = ToggleSwitch(parent=card)
+        self._sw_random_clicks.setChecked(load_antiban_config().random_clicks_enabled)
+        self._sw_random_clicks.toggled.connect(self._on_toggle_random_clicks)
+        top_row.addWidget(self._sw_random_clicks)
+        card.card_layout.addLayout(top_row)
+
+        return card
+
+    def _on_toggle_random_clicks(self, checked: bool) -> None:
+        cfg = load_antiban_config()
+        cfg.random_clicks_enabled = checked
+        save_antiban_config(cfg)
+        AntiBanService().reload_config()
+        logger.info("Random clicks %s by user in Settings", "enabled" if checked else "disabled")
 
     def _build_webhook_card(self) -> Card:
         card = Card()

@@ -53,6 +53,12 @@ class AttackStrategy:
         raise NotImplementedError
 
     def _expand_loc(self, x: int, y: int) -> Tuple[int, int]:
+        try:
+            from app.services.antiban import AntiBanService
+            if not AntiBanService().config.random_clicks_enabled:
+                return (x, y)
+        except Exception:
+            pass
         return (x + random.randint(-10, 10), y + random.randint(-10, 10))
 
     def _sync_frame_size(self, frame: Any) -> None:

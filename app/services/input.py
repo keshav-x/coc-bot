@@ -66,6 +66,14 @@ class InputService:
             return (x[0], x[1])
         return (x, y)
 
+    @property
+    def random_clicks_enabled(self) -> bool:
+        try:
+            from app.services.antiban import AntiBanService
+            return AntiBanService().config.random_clicks_enabled
+        except Exception:
+            return True
+
     def click(self, x, y=None, pause=0.2, rand=True):
         if isinstance(x, (tuple, list)):
             if len(x) >= 2:
@@ -77,7 +85,7 @@ class InputService:
         if y is None:
             logger.warning(f"click called with invalid coordinates: x={x}, y={y}")
             return
-        if rand:
+        if rand and self.random_clicks_enabled:
             x += random.randint(-2, 2)
             y += random.randint(-2, 2)
         self._inject_click(x, y)
@@ -106,7 +114,7 @@ class InputService:
                 x, y = x[0], x[1]
         if y is None:
             return
-        if rand:
+        if rand and self.random_clicks_enabled:
             x += random.randint(-2, 2)
             y += random.randint(-2, 2)
         self._inject_click(int(x), int(y))

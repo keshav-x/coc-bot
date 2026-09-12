@@ -127,6 +127,9 @@ class AntiBanPage(QWidget):
         self._sw_idle = ToggleSwitch("Simulate occasional human base inspection (nudge camera/village)", parent=card)
         card.card_layout.addWidget(self._sw_idle)
 
+        self._sw_random_clicks = ToggleSwitch("Random Click Offsets (randomized coordinate scatter / jitter)", parent=card)
+        card.card_layout.addWidget(self._sw_random_clicks)
+
         apm_row = QHBoxLayout()
         apm_row.addWidget(QLabel("Max Actions Per Minute (APM limit):"))
         self._spin_apm = QSpinBox()
@@ -199,6 +202,7 @@ class AntiBanPage(QWidget):
         self._spin_break_max.setValue(cfg.max_break_mins)
         self._sw_curves.setChecked(cfg.human_curves_enabled)
         self._sw_idle.setChecked(cfg.idle_inspection_enabled)
+        self._sw_random_clicks.setChecked(cfg.random_clicks_enabled)
         self._spin_apm.setValue(cfg.max_apm)
         self._update_profile_desc(cfg.profile)
 
@@ -212,6 +216,7 @@ class AntiBanPage(QWidget):
             max_break_mins=self._spin_break_max.value(),
             human_curves_enabled=self._sw_curves.isChecked(),
             idle_inspection_enabled=self._sw_idle.isChecked(),
+            random_clicks_enabled=self._sw_random_clicks.isChecked(),
             max_apm=self._spin_apm.value(),
         )
         save_antiban_config(cfg)
