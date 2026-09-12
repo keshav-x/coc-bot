@@ -238,6 +238,8 @@ class Bot:
         self._last_hud_triplet = None
         self._gold_pinned = False
         self._elixir_pinned = False
+        if hasattr(self, "loot_filter") and hasattr(self.loot_filter, "stats"):
+            self.loot_filter.stats.reset()
 
     
     def _emit_loot_update(self):
@@ -315,6 +317,26 @@ wall upgrades for the first pre-Attack snapshot that would otherwise count as an
                 )
                 notify_raid_complete(gain_g, gain_el, gain_de, skips)
                 self._last_raid_skips = 0
+                self._raid_just_completed = False
+            elif getattr(self, '_raid_just_completed', False):
+                # A raid completed but storage was full or delta was unread:
+                # Use target base loot (estimated 75% loot extraction)
+                target_loot = getattr(self, '_last_accepted_target_loot', (0, 0, 0))
+                gain_g = int(target_loot[0] * 0.75) if target_loot[0] > 0 else 0
+                gain_el = int(target_loot[1] * 0.75) if target_loot[1] > 0 else 0
+                gain_de = int(target_loot[2] * 0.75) if target_loot[2] > 0 else 0
+                skips = getattr(self, '_last_raid_skips', 0)
+                (tg, te, td) = self._loot_totals
+                self._loot_totals = (tg + gain_g, te + gain_el, td + gain_de)
+                self.loot_filter.stats.record_raid(gain_g, gain_el, gain_de, skips=skips)
+                logger.info(
+                    'Loot tracker (target fallback): +%s / +%s / +%s (G/E/DE, %d skips) -> session %s / %s / %s',
+                    f'{gain_g:,}', f'{gain_el:,}', f'{gain_de:,}', skips,
+                    f'{self._loot_totals[0]:,}', f'{self._loot_totals[1]:,}', f'{self._loot_totals[2]:,}'
+                )
+                notify_raid_complete(gain_g, gain_el, gain_de, skips)
+                self._last_raid_skips = 0
+                self._raid_just_completed = False
             elif raw_dg < -5000 or raw_del < -2000 or raw_dde < -500:
                 logger.info('Loot tracker: balance decrease (spend/upgrade) -- previous=%s current=%s', prev, triplet)
 
@@ -1490,6 +1512,7 @@ deselect, which would eat the upcoming Attack click.'''
                 logger.info('Loot Filter ACCEPTED base: %s (after %d skips). Commencing attack!', decision.reason, skip_count)
                 if cb:
                     cb(f'Target accepted ({decision.reason}) — Attacking!')
+                self._last_accepted_target_loot = (gold or 0, elixir or 0, dark_elixir or 0)
                 break
 
             # Filter rejected base — click Next
@@ -1521,6 +1544,7 @@ deselect, which would eat the upcoming Attack click.'''
         strategy = self._get_strategy(method_id)
         result = strategy.execute(frame, self.stop_event)
         self._wait_for_battle_end(is_sneaky = method_id == 1)
+        self._raid_just_completed = True
         return 'troop' if result is False else None
 
     

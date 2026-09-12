@@ -91,16 +91,38 @@ ApexClash Pro is designed to be completely zero-friction on every major operatin
 3. Double-click **`ApexClashPro.exe`** to launch! *(Or double-click `start_windows.bat` if running from source)*.
 
 ### 🐧 Linux & 🍓 Raspberry Pi (1-Click Setup)
-Full support for Ubuntu, Debian, Fedora, Arch, and **Raspberry Pi OS (ARM64 / aarch64 / armv7l)**:
-```bash
-# 1. Download and extract the package
-tar -xzf ApexClashPro-Linux-RaspberryPi-Universal.tar.gz
-cd ApexClashPro
+Full support for **Fedora**, **Ubuntu**, **Debian**, **Arch Linux**, and **Raspberry Pi OS (ARM64 / aarch64 / armv7l)**:
 
-# 2. Run the 1-Click Installer
-./install_linux.sh
+#### ⚡ Universal 1-Line Git Command (Clone, Install & Run):
+On any Linux distribution, simply paste this one command into your terminal:
+```bash
+git clone https://github.com/keshav-x/coc-bot.git && cd coc-bot && chmod +x install_linux.sh start_linux.sh && ./install_linux.sh
 ```
-*The installer automatically configures dependencies and creates an **ApexClash Pro** desktop shortcut icon. For future launches, simply double-click the desktop icon or run `./start_linux.sh`!*
+*The script auto-detects your distribution, configures required libraries, sets up the virtual environment, creates an **ApexClash Pro** desktop shortcut, and starts the bot!*
+
+#### 📦 Distro-Specific Prerequisites (Manual / Source):
+If you prefer to install system dependencies manually before running:
+
+- **Fedora / RHEL (DNF / DNF5)**:
+  ```bash
+  # Fedora uses dnf (or dnf5 on Fedora 41+)
+  sudo dnf install -y python3 python3-pip python3-devel mesa-libGL glib2 libxkbcommon-x11 xcb-util-cursor tesseract tesseract-devel git
+  ```
+- **Ubuntu / Debian / Raspberry Pi OS (APT)**:
+  ```bash
+  sudo apt-get update && sudo apt-get install -y python3 python3-pip python3-venv python3-dev libgl1 libglib2.0-0 libxkbcommon-x11-0 libxcb-cursor0 tesseract-ocr git
+  ```
+- **Arch Linux (Pacman)**:
+  ```bash
+  sudo pacman -Sy --noconfirm python python-pip mesa glib2 libxkbcommon xcb-util-cursor tesseract git
+  ```
+
+#### 🚀 Daily Launch:
+After installation, start ApexClash Pro anytime with:
+```bash
+./start_linux.sh
+```
+*(Or double-click the **ApexClash Pro** icon on your Desktop / Application Menu).*
 
 ### 🍎 macOS (1-Click Finder Launch)
 1. Download **`ApexClashPro-macOS-Universal.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.0.0).

@@ -553,13 +553,10 @@ class RunPage(QWidget):
         if gold is not None and elixir is not None and dark is not None:
             self._current_loot = (gold, elixir, dark)
 
-        if hasattr(self, "_current_loot"):
-            tg, te, td = self._current_loot
-        else:
-            tg = stats.total_gold
-            te = stats.total_elixir
-            td = stats.total_dark_elixir
-
+        cl = getattr(self, "_current_loot", (0, 0, 0))
+        tg = max(cl[0], stats.total_gold)
+        te = max(cl[1], stats.total_elixir)
+        td = max(cl[2], stats.total_dark_elixir)
         total_loot = tg + te
 
         is_running = self._controller.is_running()
@@ -593,6 +590,11 @@ class RunPage(QWidget):
         self._stat_raids.set_value(f"{stats.raids_completed} raids", f"{stats.bases_skipped} skipped")
 
         last_rendered = getattr(self, "_last_rendered_raid_count", 0)
+        if len(stats.raid_history) < last_rendered:
+            self._raid_table.setRowCount(0)
+            last_rendered = 0
+            self._last_rendered_raid_count = 0
+
         if len(stats.raid_history) > last_rendered:
             for rec in stats.raid_history[last_rendered:]:
                 self._raid_table.add_raid_row(rec)
@@ -792,6 +794,7 @@ class RunPage(QWidget):
         self._current_loot = (0, 0, 0)
         self._last_rendered_raid_count = 0
         self._raid_table.setRowCount(0)
+        LootFilterEngine().stats.reset()
         self._update_live_stats()
 
     def _on_bot_finished_ui(self, _error: Optional[str] = None) -> None:

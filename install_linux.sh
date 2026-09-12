@@ -37,17 +37,17 @@ fi
 # Function: Install system libraries via package manager
 install_system_deps() {
     echo "[*] Checking and installing required system dependencies..."
-    if command -v apt-get >/dev/null 2>&1; then
-        echo "[*] Using apt package manager..."
-        SUDO_CMD=""
-        if [ "$EUID" -ne 0 ]; then
-            if command -v sudo >/dev/null 2>&1; then
-                SUDO_CMD="sudo"
-            else
-                echo "[!] Note: sudo not available. Please ensure system packages are installed."
-            fi
+    SUDO_CMD=""
+    if [ "$EUID" -ne 0 ]; then
+        if command -v sudo >/dev/null 2>&1; then
+            SUDO_CMD="sudo"
+        else
+            echo "[!] Note: sudo not available. Please ensure system packages are installed."
         fi
+    fi
 
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "[*] Detected Debian / Ubuntu / Raspberry Pi OS (apt)..."
         if [ -n "$SUDO_CMD" ] || [ "$EUID" -eq 0 ]; then
             $SUDO_CMD apt-get update -y || true
             $SUDO_CMD apt-get install -y \
@@ -68,12 +68,35 @@ install_system_deps() {
                 $SUDO_CMD apt-get install -y python3-pyside6 python3-opencv || true
             fi
         fi
+    elif command -v dnf5 >/dev/null 2>&1; then
+        echo "[*] Detected Fedora / RHEL (dnf5)..."
+        $SUDO_CMD dnf5 install -y \
+            python3 \
+            python3-pip \
+            python3-devel \
+            mesa-libGL \
+            glib2 \
+            libxkbcommon-x11 \
+            xcb-util-cursor \
+            tesseract \
+            tesseract-devel || true
     elif command -v dnf >/dev/null 2>&1; then
-        echo "[*] Using dnf package manager..."
-        sudo dnf install -y python3 python3-pip python3-devel mesa-libGL glib2 libxkbcommon-x11 tesseract tesseract-devel || true
+        echo "[*] Detected Fedora / RHEL (dnf)..."
+        $SUDO_CMD dnf install -y \
+            python3 \
+            python3-pip \
+            python3-devel \
+            mesa-libGL \
+            glib2 \
+            libxkbcommon-x11 \
+            xcb-util-cursor \
+            tesseract \
+            tesseract-devel || true
     elif command -v pacman >/dev/null 2>&1; then
-        echo "[*] Using pacman package manager..."
-        sudo pacman -Sy --noconfirm python python-pip mesa glib2 libxkbcommon tesseract || true
+        echo "[*] Detected Arch Linux (pacman)..."
+        $SUDO_CMD pacman -Sy --noconfirm python python-pip mesa glib2 libxkbcommon xcb-util-cursor tesseract || true
+    else
+        echo "[!] Warning: Unknown package manager. Please ensure Python 3, Qt dependencies (libxkbcommon, xcb-util-cursor), and Tesseract are installed."
     fi
 }
 

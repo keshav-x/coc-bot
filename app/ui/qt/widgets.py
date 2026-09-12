@@ -106,6 +106,14 @@ class StatCard(QFrame):
         if sub_text is not None:
             self._sub_lbl.setText(sub_text)
 
+    @property
+    def value(self) -> str:
+        return self._val_lbl.text()
+
+    @property
+    def sub_text(self) -> str:
+        return self._sub_lbl.text()
+
 
 class SectionTitle(QLabel):
     def __init__(self, text: str, parent: Optional[QWidget] = None) -> None:
