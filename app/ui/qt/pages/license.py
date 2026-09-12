@@ -125,20 +125,36 @@ class PurchaseOptionsDialog(QDialog):
         # Copy Device ID right away when dialog opens
         QGuiApplication.clipboard().setText(machine_id)
 
-        btn_box = QHBoxLayout()
+        btn_box = QVBoxLayout()
         btn_box.setSpacing(8)
 
-        self._btn_email = primary_button("📧 Open Email Client", parent=self)
-        self._btn_email.clicked.connect(lambda: self._open_email(machine_id, default_tier))
-        btn_box.addWidget(self._btn_email)
+        row_actions = QHBoxLayout()
+        row_actions.setSpacing(8)
+
+        self._btn_portal = primary_button("🌐 Open Purchase Portal (Browser)", parent=self)
+        self._btn_portal.clicked.connect(lambda: self._open_portal(machine_id, default_tier))
+        row_actions.addWidget(self._btn_portal)
+
+        self._btn_gmail = primary_button("📧 Open in Gmail", parent=self)
+        self._btn_gmail.clicked.connect(lambda: self._open_gmail(machine_id, default_tier))
+        row_actions.addWidget(self._btn_gmail)
+        btn_box.addLayout(row_actions)
+
+        row_secondary = QHBoxLayout()
+        row_secondary.setSpacing(8)
+
+        self._btn_reddit = neutral_button("💬 Message on Reddit", parent=self)
+        self._btn_reddit.clicked.connect(lambda: self._open_reddit(machine_id, default_tier))
+        row_secondary.addWidget(self._btn_reddit)
 
         self._btn_copy_template = neutral_button("📋 Copy Order Message", parent=self)
         self._btn_copy_template.clicked.connect(lambda: self._copy_template(machine_id, default_tier))
-        btn_box.addWidget(self._btn_copy_template)
+        row_secondary.addWidget(self._btn_copy_template)
 
         btn_close = neutral_button("Close", parent=self)
         btn_close.clicked.connect(self.accept)
-        btn_box.addWidget(btn_close)
+        row_secondary.addWidget(btn_close)
+        btn_box.addLayout(row_secondary)
 
         layout.addLayout(btn_box)
 
@@ -147,7 +163,11 @@ class PurchaseOptionsDialog(QDialog):
         self._btn_copy_hw.setText("✓ Copied!")
         QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy ID"))
 
-    def _open_email(self, machine_id: str, tier: str) -> None:
+    def _open_portal(self, machine_id: str, tier: str) -> None:
+        from app.ui.qt.purchase_portal import open_purchase_portal
+        open_purchase_portal(machine_id, tier)
+
+    def _open_gmail(self, machine_id: str, tier: str) -> None:
         subject = urllib.parse.quote(f"ApexClash Pro Purchase Request - {tier}")
         body = urllib.parse.quote(
             f"Hi Keshav,\n\n"
@@ -157,8 +177,16 @@ class PurchaseOptionsDialog(QDialog):
             f"Preferred Payment Method: PayPal / UPI / Crypto / Card\n\n"
             f"Thank you!"
         )
-        mailto_url = f"mailto:cockingkeshav@gmail.com?subject={subject}&body={body}"
-        webbrowser.open(mailto_url)
+        gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to=cockingkeshav@gmail.com&su={subject}&body={body}"
+        webbrowser.open(gmail_url)
+
+    def _open_reddit(self, machine_id: str, tier: str) -> None:
+        reddit_url = (
+            f"https://www.reddit.com/message/compose/?to=post_matrix"
+            f"&subject={urllib.parse.quote('ApexClash Pro Purchase')}"
+            f"&message={urllib.parse.quote(f'Hi, I would like to buy ApexClash Pro ({tier}). My Device ID is: {machine_id}')}"
+        )
+        webbrowser.open(reddit_url)
 
     def _copy_template(self, machine_id: str, tier: str) -> None:
         msg = (
@@ -230,7 +258,8 @@ class ManageLicenseDialog(QDialog):
             f"Request: (Renewal / Lifetime Upgrade / Device Transfer)\n\n"
             f"Thank you!"
         )
-        webbrowser.open(f"mailto:cockingkeshav@gmail.com?subject={subject}&body={body}")
+        gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to=cockingkeshav@gmail.com&su={subject}&body={body}"
+        webbrowser.open(gmail_url)
 
     def _copy_info(self, key: str, machine_id: str, status_desc: str) -> None:
         text = (
@@ -396,8 +425,8 @@ class LicensePage(QWidget):
         self._sync_from_controller()
 
     def hideEvent(self, event) -> None:
-        saved = load_saved_key().strip().upper()
-        typed = self._entry.text().strip().upper()
+        saved = load_saved_key().strip()
+        typed = self._entry.text().strip()
         if self._controller.license_state() == LicenseState.STALE or typed != saved:
             self._controller.recheck_license(new_key=saved)
             self._entry.setText(saved)
@@ -485,9 +514,19 @@ class LicensePage(QWidget):
         QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy Device ID"))
 
     def _open_subscribe_checkout(self) -> None:
+        from app.ui.qt.purchase_portal import open_purchase_portal
+        try:
+            open_purchase_portal(self._machine_id, "Monthly ($3/mo)")
+        except Exception:
+            pass
         PurchaseOptionsDialog(self.window(), self._machine_id, "Monthly ($3/mo)").exec()
 
     def _open_lifetime_checkout(self) -> None:
+        from app.ui.qt.purchase_portal import open_purchase_portal
+        try:
+            open_purchase_portal(self._machine_id, "Lifetime VIP ($15)")
+        except Exception:
+            pass
         PurchaseOptionsDialog(self.window(), self._machine_id, "Lifetime VIP ($15)").exec()
 
     def _open_billing_portal(self) -> None:

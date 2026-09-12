@@ -110,7 +110,7 @@ class UnpairConfirmDialog(QDialog):
     def __init__(self, parent: QWidget, controller: BotController, key: str) -> None:
         super().__init__(parent)
         self._controller = controller
-        self._key = key.strip().upper()
+        self._key = key.strip()
         self.setWindowTitle("Unpair this PC")
         apply_app_icon(self)
         self.setModal(True)

@@ -167,7 +167,7 @@ def clear_saved_key() -> None:
 
 def save_key(key: str, bound_machine: Optional[str] = None) -> None:
     try:
-        normalized = key.strip().upper()
+        normalized = key.strip()
         payload = {
             "license_key": normalized,
             "bound_machine": bound_machine or HardwareFingerprint.compute(),
@@ -257,7 +257,7 @@ Triggers an immediate validation in the background thread.
 """
         notify_empty = False
         with self._lock:
-            self._license_key = license_key.strip().upper()
+            self._license_key = license_key.strip()
             if not self._license_key:
                 self._apply_state_locked(LicenseState.EMPTY, "empty")
                 notify_empty = True
@@ -284,7 +284,7 @@ If ``new_key`` is provided, updates working key only; ``license.json`` is writte
 after the server confirms ``valid`` (see ``_do_validate``). Empty key clears disk.
 """
         if new_key is not None:
-            stripped = new_key.strip().upper()
+            stripped = new_key.strip()
             if not stripped:
                 clear_saved_key()
                 with self._lock:
@@ -321,7 +321,7 @@ after the server confirms ``valid`` (see ``_do_validate``). Empty key clears dis
 
     def try_unpair(self, license_key: str) -> tuple[bool, str]:
         """Remove this machine's hardware bind on the server. Returns (success, reason_code_or_empty)."""
-        stripped = license_key.strip().upper()
+        stripped = license_key.strip()
         if not stripped:
             return (False, "empty")
         try:
@@ -338,7 +338,7 @@ after the server confirms ``valid`` (see ``_do_validate``). Empty key clears dis
 
     def try_portal_url(self, license_key: str) -> tuple[str, str]:
         """Ask the server for a Stripe customer-portal link. Returns (url, reason_code_or_empty)."""
-        stripped = license_key.strip().upper()
+        stripped = license_key.strip()
         if not stripped:
             return ("", "empty")
         try:
@@ -400,7 +400,7 @@ after the server confirms ``valid`` (see ``_do_validate``). Empty key clears dis
             self._retry_start = 0.0
             if result.get("valid") or result.get("ok"):
                 with self._lock:
-                    persisted = self._license_key.strip().upper()
+                    persisted = self._license_key.strip()
                     self._apply_state_locked(
                         LicenseState.VALID,
                         "ok",

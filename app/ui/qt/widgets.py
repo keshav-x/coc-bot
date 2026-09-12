@@ -378,6 +378,12 @@ class TrialBannerWidget(QFrame):
         layout.addWidget(self._btn)
 
     def _on_upgrade_clicked(self) -> None:
+        from app.services.crypto_license import CryptoLicenseEngine
+        from app.ui.qt.purchase_portal import open_purchase_portal
+        try:
+            open_purchase_portal(CryptoLicenseEngine.get_machine_id(), "Monthly ($3/mo)")
+        except Exception:
+            pass
         self.upgrade_requested.emit()
 
     def update_status(self, lic_state: LicenseState, remaining_seconds: Optional[int]) -> None:
