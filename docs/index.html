@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApexClash Pro — Official Purchase & Activation Portal</title>
+  <meta name="description" content="Official store and license activation portal for ApexClash Pro, the elite autonomous farming suite for Clash of Clans.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070b14;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.25);
+      --accent-green: #10b981;
+      --accent-green-glow: rgba(16, 185, 129, 0.25);
+      --accent-gold: #f59e0b;
+      --accent-gold-glow: rgba(245, 158, 11, 0.25);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --surface-hi: #1e293b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.5) 0px, transparent 100%);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 16px 60px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 880px;
+      width: 100%;
+    }
+
+    /* Top Brand Nav */
+    .nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding: 12px 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand img {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+    .brand-title {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 0%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    /* Hero Banner */
+    .hero {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 620px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* Section Card */
+    .box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #fff;
+    }
+    .step {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #04101e;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    /* Hardware ID Box */
+    .hw-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #020617;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px;
+      padding: 8px 14px;
+      margin-bottom: 8px;
+    }
+    .hw-input {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: var(--primary);
+      background: transparent;
+      border: none;
+      outline: none;
+      word-break: break-all;
+    }
+    .btn-copy-id {
+      background: var(--surface-hi);
+      color: #fff;
+      border: 1px solid var(--card-border);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-copy-id:hover {
+      background: var(--primary);
+      color: #000;
+      border-color: var(--primary);
+    }
+    .hw-hint {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #64748b;
+    }
+    .copy-toast {
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    /* Pack Selection Grid */
+    .pack-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 768px) {
+      .pack-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .pack-grid { grid-template-columns: 1fr; }
+    }
+
+    .pack-card {
+      position: relative;
+      background: rgba(30, 41, 59, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 16px 14px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .pack-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+    }
+    .pack-card.selected {
+      border-color: var(--primary);
+      background: rgba(56, 189, 248, 0.08);
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+    .pack-card.vip.selected {
+      border-color: var(--accent-gold);
+      background: rgba(245, 158, 11, 0.08);
+      box-shadow: 0 0 24px var(--accent-gold-glow);
+    }
+
+    .pack-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .pack-badge {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: 10px;
+    }
+    .badge-blue { background: rgba(56, 189, 248, 0.2); color: var(--primary); }
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+    .badge-gold { background: rgba(245, 158, 11, 0.2); color: var(--accent-gold); }
+
+    .radio-circle {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid #475569;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .pack-card.selected .radio-circle {
+      border-color: var(--primary);
+    }
+    .pack-card.vip.selected .radio-circle {
+      border-color: var(--accent-gold);
+    }
+    .radio-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+    .pack-card.selected .radio-dot {
+      background: var(--primary);
+    }
+    .pack-card.vip.selected .radio-dot {
+      background: var(--accent-gold);
+    }
+
+    .pack-name {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #fff;
+    }
+    .pack-price {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+    .pack-card.vip .pack-price {
+      color: var(--accent-gold);
+    }
+    .pack-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .pack-features {
+      list-style: none;
+      font-size: 11px;
+      color: #cbd5e1;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 10px;
+    }
+    .pack-features li {
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pack-features li::before {
+      content: "✓";
+      color: var(--accent-green);
+      font-weight: 800;
+    }
+
+    /* Payment Methods */
+    .payments-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .pay-chip {
+      background: var(--surface-hi);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .pay-chip:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .pay-chip.selected {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    /* Live Summary Card */
+    .summary-box {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sum-left .sum-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+    .sum-left .sum-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin: 2px 0;
+    }
+    .sum-left .sum-detail {
+      font-size: 13px;
+      color: var(--primary);
+    }
+    .sum-right {
+      text-align: right;
+    }
+    .sum-right .sum-total {
+      font-size: 32px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -1px;
+    }
+
+    /* Dispatch Action Buttons */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 600px) {
+      .actions-grid { grid-template-columns: 1fr; }
+    }
+
+    .btn-action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    .btn-action:hover {
+      transform: translateY(-2px);
+    }
+    .btn-gmail {
+      background: #ea4335;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(234, 67, 53, 0.3);
+    }
+    .btn-gmail:hover {
+      background: #dc2626;
+      box-shadow: 0 6px 20px rgba(234, 67, 53, 0.4);
+    }
+    .btn-reddit {
+      background: #ff4500;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(255, 69, 0, 0.3);
+    }
+    .btn-reddit:hover {
+      background: #e03d00;
+      box-shadow: 0 6px 20px rgba(255, 69, 0, 0.4);
+    }
+    .btn-discord {
+      background: #5865f2;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(88, 101, 242, 0.3);
+    }
+    .btn-discord:hover {
+      background: #4752c4;
+      box-shadow: 0 6px 20px rgba(88, 101, 242, 0.4);
+    }
+    .btn-copy-order {
+      background: var(--surface-hi);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+    .btn-copy-order:hover {
+      background: #334155;
+      color: #fff;
+    }
+
+    /* Trust & Guarantees */
+    .guarantees {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 18px;
+    }
+    @media (max-width: 600px) {
+      .guarantees { grid-template-columns: 1fr; }
+    }
+    .guarantee-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #475569;
+      margin-top: 20px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Brand Header -->
+    <div class="nav-bar">
+      <div class="brand">
+        <img src="logo.png" alt="ApexClash Pro Logo">
+        <div>
+          <div class="brand-title">ApexClash Pro</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Autonomous Farming Suite</div>
+        </div>
+      </div>
+      <span class="brand-badge">Official Store</span>
+    </div>
+
+    <!-- Hero Title -->
+    <div class="hero">
+      <h1>Unlock <span>ApexClash Pro</span></h1>
+      <p>Activate permanent autonomous farming, smart OCR loot filtration, and humanized Bézier anti-ban protection. Keys are cryptographically verified 100% offline.</p>
+    </div>
+
+    <!-- Step 1: Hardware Device ID -->
+    <div class="box">
+      <div class="section-title">
+        <span class="step">1</span>
+        <span>Your Unique Hardware Device ID</span>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+        Each license is cryptographically signed for your machine. This ID is automatically included when ordering:
+      </p>
+      <div class="hw-container">
+        <input type="text" class="hw-input" id="hw-id-val" value="" placeholder="Paste your Device ID from the ApexClash app here...">
+        <button class="btn-copy-id" onclick="copyHwId()">
+          <span>📋</span>
+          <span id="btn-copy-txt">Copy ID</span>
+        </button>
+      </div>
+      <div class="hw-hint">
+        <span>Hardware fingerprint verified</span>
+        <span class="copy-toast" id="hw-toast"></span>
+      </div>
+    </div>
+
+    <!-- Step 2: Interactive Pack Selection -->
+    <div class="box">
+      <div class="section-title">
+        <span class="step">2</span>
+        <span>Select Your Access Pack</span>
+      </div>
+      <div class="pack-grid">
+        <!-- Weekly -->
+        <div class="pack-card" id="pack-weekly" onclick="selectPack('weekly')">
+          <div class="pack-top">
+            <span class="pack-badge badge-blue">Starter</span>
+            <div class="radio-circle"><div class="radio-dot"></div></div>
+          </div>
+          <div>
+            <div class="pack-name">Weekly Pass</div>
+            <div class="pack-price">$1.00</div>
+            <div class="pack-sub">7 Days Full VIP</div>
+          </div>
+          <ul class="pack-features">
+            <li>Zero-Gem Guard</li>
+            <li>Smart Loot Filter</li>
+            <li>Sneaky Farming</li>
+          </ul>
+        </div>
+
+        <!-- Monthly -->
+        <div class="pack-card selected" id="pack-monthly" onclick="selectPack('monthly')">
+          <div class="pack-top">
+            <span class="pack-badge badge-green">Most Popular</span>
+            <div class="radio-circle"><div class="radio-dot"></div></div>
+          </div>
+          <div>
+            <div class="pack-name">Monthly Pass</div>
+            <div class="pack-price">$3.00</div>
+            <div class="pack-sub">30 Days Full VIP</div>
+          </div>
+          <ul class="pack-features">
+            <li>Full Antiban Suite</li>
+            <li>Wall Upgrades</li>
+            <li>Regular Farming</li>
+          </ul>
+        </div>
+
+        <!-- Annual -->
+        <div class="pack-card" id="pack-annual" onclick="selectPack('annual')">
+          <div class="pack-top">
+            <span class="pack-badge badge-blue">Best Value</span>
+            <div class="radio-circle"><div class="radio-dot"></div></div>
+          </div>
+          <div>
+            <div class="pack-name">Annual Pass</div>
+            <div class="pack-price">$10.00</div>
+            <div class="pack-sub">365 Days Full VIP</div>
+          </div>
+          <ul class="pack-features">
+            <li>All Game Updates</li>
+            <li>Continuous Loot</li>
+            <li>Best Price/Month</li>
+          </ul>
+        </div>
+
+        <!-- Lifetime -->
+        <div class="pack-card vip" id="pack-lifetime" onclick="selectPack('lifetime')">
+          <div class="pack-top">
+            <span class="pack-badge badge-gold">VIP Choice</span>
+            <div class="radio-circle"><div class="radio-dot"></div></div>
+          </div>
+          <div>
+            <div class="pack-name">Lifetime VIP</div>
+            <div class="pack-price">$15.00</div>
+            <div class="pack-sub">Permanent Access</div>
+          </div>
+          <ul class="pack-features">
+            <li>Never Expires</li>
+            <li>All Future Patches</li>
+            <li>Priority Delivery</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Payment Method -->
+      <div style="font-size: 13px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">
+        Choose Preferred Payment Method:
+      </div>
+      <div class="payments-row">
+        <div class="pay-chip selected" id="pay-paypal" onclick="selectPayment('PayPal')">
+          <span>🅿️</span> <span>PayPal</span>
+        </div>
+        <div class="pay-chip" id="pay-upi" onclick="selectPayment('UPI')">
+          <span>⚡</span> <span>UPI (GPay/PhonePe/Paytm)</span>
+        </div>
+        <div class="pay-chip" id="pay-crypto" onclick="selectPayment('Crypto')">
+          <span>🪙</span> <span>Crypto (USDT / BTC / LTC)</span>
+        </div>
+        <div class="pay-chip" id="pay-card" onclick="selectPayment('Cards')">
+          <span>💳</span> <span>Credit / Debit Cards</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Live Order Summary & One-Click Contact -->
+    <div class="box">
+      <div class="section-title">
+        <span class="step">3</span>
+        <span>Order Summary & Instant Key Dispatch</span>
+      </div>
+
+      <div class="summary-box">
+        <div class="sum-left">
+          <div class="sum-label">Selected Access Pack</div>
+          <div class="sum-title" id="sum-name">Monthly Pass</div>
+          <div class="sum-detail" id="sum-meta">30 Days Access • Payment via PayPal</div>
+        </div>
+        <div class="sum-right">
+          <div class="sum-label">Total Amount</div>
+          <div class="sum-total" id="sum-price">$3.00</div>
+        </div>
+      </div>
+
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+        Click below to send your order. Your Device ID and pack details will be automatically pre-filled:
+      </p>
+
+      <div class="actions-grid">
+        <a class="btn-action btn-gmail" id="action-gmail" href="#" target="_blank">
+          <span>📧</span>
+          <span>Open in Gmail (Web Browser)</span>
+        </a>
+
+        <a class="btn-action btn-reddit" id="action-reddit" href="#" target="_blank">
+          <span>💬</span>
+          <span>Message on Reddit (u/post_matrix)</span>
+        </a>
+
+        <button class="btn-action btn-discord" onclick="copyDiscordContact()">
+          <span>💬</span>
+          <span>Discord: matrix0456 (Click to Copy)</span>
+        </button>
+
+        <button class="btn-action btn-copy-order" onclick="copyCompleteOrder()">
+          <span id="copy-order-icon">📋</span>
+          <span id="copy-order-txt">Copy Order Template</span>
+        </button>
+      </div>
+
+      <div style="text-align: center; margin-top: 10px;">
+        <a id="action-mailto" href="#" style="color: #64748b; font-size: 11px; text-decoration: underline;">
+          Or open in default desktop email client (mailto:)
+        </a>
+      </div>
+
+      <div class="guarantees">
+        <div class="guarantee-item">
+          <span>🛡️</span>
+          <span><strong>Zero-Gem Guard:</strong> Strictly vetoes gem dialogs</span>
+        </div>
+        <div class="guarantee-item">
+          <span>🔒</span>
+          <span><strong>Ed25519 Security:</strong> Verified 100% offline</span>
+        </div>
+        <div class="guarantee-item">
+          <span>⚡</span>
+          <span><strong>Fast Delivery:</strong> Instant response from dev</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      ApexClash Pro • Autonomous Combat Suite • Developer: cockingkeshav@gmail.com • Discord: matrix0456 • Reddit: u/post_matrix<br>
+      © 2026 ApexClash Pro. All rights reserved.
+    </div>
+  </div>
+
+  <script>
+    const DEVELOPER_EMAIL = 'cockingkeshav@gmail.com';
+    const DEVELOPER_REDDIT = 'post_matrix';
+    const DEVELOPER_DISCORD = 'matrix0456';
+
+    const PACKS = {
+      weekly: { name: 'Weekly Pass', price: '$1.00', duration: '7 Days Access' },
+      monthly: { name: 'Monthly Pass', price: '$3.00', duration: '30 Days Access' },
+      annual: { name: 'Annual Pass', price: '$10.00', duration: '365 Days Access' },
+      lifetime: { name: 'Lifetime VIP Pass', price: '$15.00', duration: 'Permanent VIP Access' }
+    };
+
+    let currentPack = { key: 'monthly', ...PACKS['monthly'] };
+    let currentPayment = 'PayPal';
+
+    function getMachineId() {
+      const input = document.getElementById('hw-id-val');
+      return (input && input.value.trim()) ? input.value.trim() : 'YOUR_DEVICE_ID';
+    }
+
+    function selectPack(key) {
+      if (!PACKS[key]) return;
+      currentPack = { key, ...PACKS[key] };
+      
+      document.querySelectorAll('.pack-card').forEach(card => card.classList.remove('selected'));
+      const activeCard = document.getElementById('pack-' + key);
+      if (activeCard) activeCard.classList.add('selected');
+
+      updateLiveSummary();
+    }
+
+    function selectPayment(method) {
+      currentPayment = method;
+      document.querySelectorAll('.pay-chip').forEach(chip => chip.classList.remove('selected'));
+      const chipId = 'pay-' + method.toLowerCase().replace(/[^a-z]/g, '');
+      const activeChip = document.getElementById(chipId);
+      if (activeChip) activeChip.classList.add('selected');
+
+      updateLiveSummary();
+    }
+
+    function updateLiveSummary() {
+      document.getElementById('sum-name').innerText = currentPack.name;
+      document.getElementById('sum-meta').innerText = currentPack.duration + ' • Payment via ' + currentPayment;
+      document.getElementById('sum-price').innerText = currentPack.price;
+
+      const mid = getMachineId();
+      const subject = encodeURIComponent('ApexClash Pro Purchase Request - ' + currentPack.name);
+      const body = encodeURIComponent(
+        'Hi Keshav,\n\n' +
+        'I would like to purchase ApexClash Pro.\n\n' +
+        'Plan Selected: ' + currentPack.name + ' (' + currentPack.price + ')\n' +
+        'My Device ID: ' + mid + '\n' +
+        'Preferred Payment: ' + currentPayment + '\n\n' +
+        'Thank you!'
+      );
+
+      const gmailLink = document.getElementById('action-gmail');
+      if (gmailLink) {
+        gmailLink.href = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + DEVELOPER_EMAIL + '&su=' + subject + '&body=' + body;
+      }
+
+      const redditLink = document.getElementById('action-reddit');
+      if (redditLink) {
+        redditLink.href = 'https://www.reddit.com/message/compose/?to=' + DEVELOPER_REDDIT + 
+          '&subject=' + subject + 
+          '&message=' + encodeURIComponent('Hi Keshav, I would like to buy ' + currentPack.name + ' (' + currentPack.price + '). My Device ID is: ' + mid + ' (Payment via ' + currentPayment + ')');
+      }
+
+      const mailtoLink = document.getElementById('action-mailto');
+      if (mailtoLink) {
+        mailtoLink.href = 'mailto:' + DEVELOPER_EMAIL + '?subject=' + subject + '&body=' + body;
+      }
+    }
+
+    function copyHwId() {
+      const mid = getMachineId();
+      navigator.clipboard.writeText(mid).then(() => {
+        const toast = document.getElementById('hw-toast');
+        const btnTxt = document.getElementById('btn-copy-txt');
+        toast.innerText = '✓ Device ID copied!';
+        btnTxt.innerText = 'Copied!';
+        setTimeout(() => {
+          toast.innerText = '';
+          btnTxt.innerText = 'Copy ID';
+        }, 2500);
+      }).catch(() => {
+        alert('Device ID: ' + mid);
+      });
+    }
+
+    function copyDiscordContact() {
+      navigator.clipboard.writeText(DEVELOPER_DISCORD).then(() => {
+        alert('Discord handle "' + DEVELOPER_DISCORD + '" copied to clipboard! Send a direct message or friend request on Discord.');
+      }).catch(() => {
+        alert('Discord ID: ' + DEVELOPER_DISCORD);
+      });
+    }
+
+    function copyCompleteOrder() {
+      const mid = getMachineId();
+      const orderText = 
+        'ApexClash Pro Purchase Request\n' +
+        '==============================\n' +
+        'Pass: ' + currentPack.name + ' (' + currentPack.price + ')\n' +
+        'Device ID: ' + mid + '\n' +
+        'Payment: ' + currentPayment + '\n' +
+        'Developer: ' + DEVELOPER_EMAIL + ' / Discord: ' + DEVELOPER_DISCORD;
+      
+      navigator.clipboard.writeText(orderText).then(() => {
+        const btnTxt = document.getElementById('copy-order-txt');
+        const btnIcon = document.getElementById('copy-order-icon');
+        btnTxt.innerText = 'Order Copied to Clipboard!';
+        btnIcon.innerText = '✓';
+        setTimeout(() => {
+          btnTxt.innerText = 'Copy Order Template';
+          btnIcon.innerText = '📋';
+        }, 3000);
+      }).catch(() => {
+        alert(orderText);
+      });
+    }
+
+    // Initialize from URL query parameters (e.g. ?hwid=XYZ&pack=monthly&pay=paypal)
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hw = urlParams.get('hwid') || urlParams.get('device_id') || urlParams.get('machine_id');
+      if (hw) {
+        document.getElementById('hw-id-val').value = hw;
+      }
+      
+      const packParam = urlParams.get('pack') || urlParams.get('tier');
+      if (packParam) {
+        const pLow = packParam.toLowerCase();
+        if (pLow.includes('life')) selectPack('lifetime');
+        else if (pLow.includes('week')) selectPack('weekly');
+        else if (pLow.includes('annu') || pLow.includes('year')) selectPack('annual');
+        else selectPack('monthly');
+      }
+
+      const payParam = urlParams.get('pay');
+      if (payParam) {
+        const payLow = payParam.toLowerCase();
+        if (payLow.includes('upi')) selectPayment('UPI');
+        else if (payLow.includes('crypto') || payLow.includes('usdt')) selectPayment('Crypto');
+        else if (payLow.includes('card')) selectPayment('Cards');
+        else selectPayment('PayPal');
+      } else {
+        updateLiveSummary();
+      }
+
+      // Re-bind input event to update links when user edits Device ID manually
+      document.getElementById('hw-id-val').addEventListener('input', updateLiveSummary);
+    });
+  </script>
+</body>
+</html>

@@ -963,14 +963,36 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
 """
 
 
+STORE_URL = "https://keshav-x.github.io/coc-bot/"
+
+
+def get_live_purchase_url(machine_id: str, selected_tier: str = "monthly") -> str:
+    """Build the official live GitHub Pages checkout URL with pre-filled query params."""
+    norm = selected_tier.lower()
+    pack = "monthly"
+    if "life" in norm:
+        pack = "lifetime"
+    elif "week" in norm:
+        pack = "weekly"
+    elif "annu" in norm or "year" in norm:
+        pack = "annual"
+    params = urllib.parse.urlencode({"hwid": machine_id, "pack": pack})
+    return f"{STORE_URL}?{params}"
+
+
 def open_purchase_portal(machine_id: str, selected_tier: str = "Monthly ($3/mo)") -> str:
-    """Write checkout page to disk and open it in the user's default browser."""
+    """Open the live GitHub Pages store, and write offline fallback purchase.html to disk."""
     app_data = get_user_app_data_dir()
     ensure_dir(app_data)
     html_file = app_data / "purchase.html"
     content = generate_purchase_html(machine_id, selected_tier)
     html_file.write_text(content, encoding="utf-8")
 
-    file_uri = html_file.resolve().as_uri()
-    webbrowser.open(file_uri)
-    return file_uri
+    live_url = get_live_purchase_url(machine_id, selected_tier)
+    try:
+        webbrowser.open(live_url)
+        return live_url
+    except Exception:
+        file_uri = html_file.resolve().as_uri()
+        webbrowser.open(file_uri)
+        return file_uri
