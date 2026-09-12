@@ -97,6 +97,7 @@ empty_frame = np.full((1080, 1920, 3), 45, dtype=np.uint8)
 cv2.putText(empty_frame, "Archer Tower Lv 19", (800, 500), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (240, 240, 240), 2)
 bot.window.screenshot = lambda: empty_frame
 bot._find_home_village_builder = lambda f, r: (960, 50)
+bot.vision.find_template = lambda f, t, **k: (100, 900) if 'attack' in t else (None, None)
 bot._upgrade_walls()
 # Verify empty click was sent to dismiss menu cleanly
 assert len(empty_clicks) >= 2, "Expected click on builder then click on empty"

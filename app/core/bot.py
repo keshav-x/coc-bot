@@ -397,20 +397,20 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         p2 = self.config.scale_point([
             p2_ref[0],
             p2_ref[1]])
-        (x1, y1) = (int(p1[0]), int(p1[1]))  # [recovered: pycdc reversed STORE_FAST_STORE_FAST pairs]
-        (x2, y2) = (int(p2[0]), int(p2[1]))
-        self.input.move(x1, y1)
-        self.input.mouse_down(x1, y1)
+        (x_top, y_top) = (int(p1[0]), int(p1[1]))
+        (x_bot, y_bot) = (int(p2[0]), int(p2[1]))
+        self.input.move(x_bot, y_bot)
+        self.input.mouse_down(x_bot, y_bot)
         
         try:
-            self.input.human_move(x1, y1, x2, y2, duration = 0.5)
+            self.input.human_move(x_bot, y_bot, x_top, y_top, duration = 0.5)
             if self.stop_event.wait(0.3):
-                self.input.mouse_up(x2, y2)
+                self.input.mouse_up(x_top, y_top)
                 return None
-            self.input.mouse_up(x2, y2)
+            self.input.mouse_up(x_top, y_top)
             return None
         except:
-            self.input.mouse_up(x2, y2)
+            self.input.mouse_up(x_top, y_top)
 
 
     
@@ -733,6 +733,9 @@ deselect, which would eat the upcoming Attack click.'''
         if ox:
             self.input.click(ox, oy, pause = 0.3)
             logger.info('Wall upgrade batch confirmed')
+            if self.stop_event.wait(0.35):
+                return None
+            self._dismiss_gem_prompt_if_open()
 
     
     def _upgrade_walls(self):
@@ -787,6 +790,7 @@ deselect, which would eat the upcoming Attack click.'''
                 return None
         if not wall_pt:
             logger.info('Wall upgrade: Wall label OCR missed at all scroll positions — skipping this pass')
+            self._deselect_wall_ui()
             return None
         self.input.click(pause = 0.6, *wall_pt)
         # Clicking the Wall row pans the camera to a wall before the selection bar
@@ -879,14 +883,37 @@ deselect, which would eat the upcoming Attack click.'''
         self._upgrade_walls_pick_resource_and_okay()
 
     
+    def _dismiss_gem_prompt_if_open(self, frame = None):
+        '''Strict Zero-Gem Policy: Detect and abort any dialog attempting to charge gems.'''
+        if frame is None:
+            frame = self.window.screenshot()
+        if frame is None:
+            return False
+        self._update_config_size(frame)
+        prompt = VisionService.detect_gem_spending_dialog(frame)
+        if prompt and prompt.detected:
+            logger.warning('SECURITY ALERT: Gem spending dialog detected (%s) — strictly vetoed by Zero-Gem Policy!', prompt.reason)
+            cb = getattr(self, '_status_callback', None)
+            if cb:
+                cb('Gem prompt blocked (Zero-Gem Guard)')
+            if prompt.cancel_point:
+                self.input.click(pause = 0.3, *prompt.cancel_point)
+            self.input.send_escape()
+            self.input.click(pause = 0.3, *self.config.get_point('empty'))
+            return True
+        return False
+
     def _dismiss_okay_or_exit_on_frame(self, frame):
-        '''If ``okay.png``, ``exit.png``, or a known dialog-specific control is visible,
-        click it. Returns True if dismissed. The Daily Reward popup (blocked the bot a
-        whole night) must be CLAIMED before its X works ("Claim reward first!"), so the
-        green Claim button outranks its grey X; both have their own art (exit.png does
-        not match).'''
+        '''If a gem dialog is open, veto/dismiss it immediately. If okay.png, exit.png, or known dialog-specific
+        controls are visible, click them. If a Supercell update/event uncancelable progression button
+        is visible, click it safely.'''
+        # 1. Zero-Gem Guard check
+        if self._dismiss_gem_prompt_if_open(frame):
+            return True
+
+        # 2. Template dismissal checks
         names = ['okay.png', 'exit.png']
-        for extra in ('claim_btn.png', 'dailyreward_x.png', 'needgold_x.png'):
+        for extra in ('claim_btn.png', 'chestcontinue.png', 'chestclaim.png', 'dailyreward_x.png', 'needgold_x.png'):
             if get_template_path(extra).exists():
                 names.append(extra)
         for name in names:
@@ -895,6 +922,14 @@ deselect, which would eat the upcoming Attack click.'''
                 continue
             self.input.click(x, y, pause = 0.15)
             return True
+
+        # 3. Supercell uncancelable progression dialogs (Update announcements, Season rewards)
+        prog_pt = VisionService.find_uncancelable_progression_button(frame)
+        if prog_pt:
+            logger.info('Dismissing Supercell update/event modal via progression button at %s', prog_pt)
+            self.input.click(prog_pt[0], prog_pt[1], pause = 0.25)
+            return True
+
         return False
 
     
@@ -915,8 +950,6 @@ deselect, which would eat the upcoming Attack click.'''
                 continue
             (sx, sy) = self.vision.find_template(frame, 'surrender.png')
             if sx:
-                # We are inside a live battle — nudge clicks would deploy troops. Bail out and
-                # let _home_screen_recovery surrender/return-home.
                 logger.warning('Attack wait: live battle detected (surrender visible) — leaving it to recovery')
                 return (None, None)
             search_region = self._search_region_for_template(frame, 'attack.png', None, None, 200)
@@ -926,8 +959,17 @@ deselect, which would eat the upcoming Attack click.'''
             self._nudge_view_to_reveal_attack()
             if self.stop_event.wait(0.35):
                 return (None, None)
+        # Timeout reached: run one recovery pass to clear any human interference/overlays and check once more
+        self._home_screen_recovery()
+        frame = self.window.screenshot()
+        if frame is not None:
+            self._update_config_size(frame)
+            search_region = self._search_region_for_template(frame, 'attack.png', None, None, 200)
+            (ax, ay) = self.vision.find_template(frame, 'attack.png', region = search_region)
+            if ax:
+                return (ax, ay)
         if error:
-            logger.warning('Timeout waiting for attack.png')  # [recovered: decompiler misnested this inside the loop — it spammed once per poll]
+            logger.warning('Timeout waiting for attack.png')
         return (None, None)
 
     
@@ -1547,8 +1589,9 @@ Returns (``"return"`` | ``"chest"``, x, y) or (None, None, None) on timeout.
 
     
     def _home_screen_recovery(self):
-        '''Ensures we are back at home screen. Escapes popups, stray screens, live battles, and end screens.'''
-        for _ in range(20):
+        '''Ensures we are back at Home Village. Escapes popups, stray screens, live battles,
+        Builder Base, and human interference (Clan Chat, Profile, Settings, Shop).'''
+        for iteration in range(25):
             self._check_stop()
             frame = self.window.screenshot()
             if frame is None:
@@ -1556,24 +1599,53 @@ Returns (``"return"`` | ``"chest"``, x, y) or (None, None, None) on timeout.
                     return None
                 continue
             self._update_config_size(frame)
-            if self._dismiss_okay_or_exit_on_frame(frame):
-                if self.stop_event.wait(0.3):
+
+            # 1. Universal Zero-Gem Guard: dismiss any gem purchase dialog immediately
+            if self._dismiss_gem_prompt_if_open(frame):
+                if self.stop_event.wait(0.35):
                     return None
                 continue
+
+            # 2. Live battle detection: surrender/finish to return home
             (sx, sy) = self.vision.find_template(frame, 'surrender.png')
             if sx:
-                logger.info('Recovery: live battle — surrendering to get home')
+                logger.info('Recovery: live battle detected — surrendering to return home')
                 self.input.click(sx, sy, pause = 0.3)
                 if self.stop_event.wait(0.5):
                     return None
                 continue
-            (rx, ry) = self.vision.find_template(frame, 'returnhome.png')
-            if rx:
-                logger.info('Recovery: clicking Return Home')
-                self.input.click(rx, ry, pause = 0.3)
+
+            (ebx, eby) = self.vision.find_template(frame, 'endbattle.png')
+            if ebx:
+                logger.info('Recovery: end battle button detected — ending battle')
+                self.input.click(ebx, eby, pause = 0.3)
                 if self.stop_event.wait(0.5):
                     return None
                 continue
+
+            # 3. Return home button detection (Home and Builder Base)
+            for r_tpl in ('returnhome.png', 'returnhome2.png', 'breturnhome.png', 'breturnhome1920.png'):
+                if get_template_path(r_tpl).exists():
+                    (rx, ry) = self.vision.find_template(frame, r_tpl)
+                    if rx:
+                        logger.info('Recovery: clicking %s', r_tpl)
+                        self.input.click(rx, ry, pause = 0.3)
+                        if self.stop_event.wait(0.5):
+                            return None
+                        break
+
+            # 4. Builder Base stranded check: click boat to return to Home Village
+            for b_tpl in ('boat.png', 'nboat.png'):
+                if get_template_path(b_tpl).exists():
+                    (bx, by) = self.vision.find_template(frame, b_tpl, threshold = 0.72)
+                    if bx:
+                        logger.info('Recovery: stranded in Builder Base — clicking %s to return to Home Village', b_tpl)
+                        self.input.click(bx, by, pause = 0.3)
+                        if self.stop_event.wait(1.5):
+                            return None
+                        break
+
+            # 5. Connection reload dialog handling
             if get_template_path('reload.png').exists():
                 (lx, ly) = self.vision.find_template(frame, 'reload.png')
                 if lx:
@@ -1581,7 +1653,7 @@ Returns (``"return"`` | ``"chest"``, x, y) or (None, None, None) on timeout.
                     first = getattr(self, '_reload_first_seen', None)
                     if first is None:
                         self._reload_first_seen = now
-                        logger.warning('Recovery: connection-lost dialog detected — waiting %ds before reloading (another device may be using the account)', _RELOAD_GRACE_SECONDS)
+                        logger.warning('Recovery: connection-lost dialog detected — waiting %ds before reloading', _RELOAD_GRACE_SECONDS)
                     elif now - first >= _RELOAD_GRACE_SECONDS:
                         logger.warning('Recovery: connection-lost dialog persisted — clicking RELOAD')
                         self.input.click(lx, ly, pause = 1.0)
@@ -1591,13 +1663,29 @@ Returns (``"return"`` | ``"chest"``, x, y) or (None, None, None) on timeout.
                     if self.stop_event.wait(2):
                         return None
                     continue
-            top_roi = VisionService.top_half_region(frame)
-            (hx, hy) = self._find_home_village_builder(frame, top_roi)
-            if hx:
-                self._reload_first_seen = None
-                return None
-            if not self.stop_event.wait(1):
+
+            # 6. Standard dialogs & Supercell progression announcements
+            if self._dismiss_okay_or_exit_on_frame(frame):
+                if self.stop_event.wait(0.35):
+                    return None
                 continue
+
+            # 7. Check if Home Village HUD is fully visible and active
+            top_roi = VisionService.top_half_region(frame)
+            home_roi = VisionService.bottom_half_region(frame)
+            (ax, ay) = self.vision.find_template(frame, 'attack.png', region = home_roi)
+            (hx, hy) = self._find_home_village_builder(frame, top_roi)
+            if ax or hx:
+                self._reload_first_seen = None
+                self._deselect_wall_ui()
+                return None
+
+            # 8. Human interference fallback: Clan Chat open, Profile, Settings, Shop, or selection overlay
+            logger.info('Recovery: Human interference / overlay detected — sending Escape and deselecting')
+            self.input.send_escape()
+            self.input.click(pause = 0.3, *self.config.get_point('empty'))
+            if self.stop_event.wait(0.5):
+                return None
         return None
 
     
@@ -1770,11 +1858,13 @@ dimensions and dragging.
     def _multi_run_collect_home_village_resources(self):
         '''Multi-run: tap Home Village collect bubbles if visible, before taking the boat to Builder Base.'''
         cb = getattr(self, '_status_callback', None)
-        logger.info('Multi-run: Home Village collect (hgold, helixir, hdelixir)')
+        logger.info('Multi-run: Home Village collect (hgold, helixir, hdelixir, collect)')
         if cb:
             cb('Multi-run: Home Village collect')
-        for tpl in ('hgold.png', 'helixir.png', 'hdelixir.png'):
+        for tpl in ('hgold.png', 'helixir.png', 'hdelixir.png', 'collect.png'):
             self._check_stop()
+            if not get_template_path(tpl).exists():
+                continue
             (rx, ry) = self._find_template_once(tpl, threshold = 0.7)
             if not rx:
                 continue

@@ -101,6 +101,15 @@ class UpgradeCostRednessPair:
     elixir: UpgradeCostIconRedness
 
 
+@dataclass(frozen=True)
+class GemPromptDetection:
+    """Detection result for modal prompts attempting to charge gems."""
+
+    detected: bool
+    reason: str = ""
+    cancel_point: Optional[Tuple[int, int]] = None
+
+
 BOTTOM_HALF_BOT_TEMPLATES = frozenset({
     "nightwitch.png",
     "bstar.png",
@@ -141,8 +150,8 @@ _CC_INK_AREA_AT_BASELINE: Dict[str, Tuple[int, int]] = {
 }
 
 _TOP_CENTER_MENU_SQUARE_SIDE_AT_BASELINE: Dict[str, int] = {
-    ASPECT_16_10: 1000,
-    ASPECT_16_9: 1000,
+    ASPECT_16_10: 1400,
+    ASPECT_16_9: 1260,
 }
 
 _WALL_MENU_LETTER_CC_AT_BASELINE: Dict[str, Tuple[int, int]] = {
@@ -1582,7 +1591,7 @@ class VisionService:
             return None
 
         cfg = (
-            "--psm 11 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            "--psm 11"
             if tesseract_config is None
             else str(tesseract_config).strip()
         )
@@ -1617,11 +1626,157 @@ class VisionService:
 
         matches = [b for b in words if "wall" in b.text.lower()]
         if not matches:
+            # Fallback: inspect raw word boxes in top center ROI without letter-only filter
+            roi = VisionService.top_middle_square_roi(w_s, h_s, side=side)
+            raw_words = VisionService.find_words_ocr(
+                screen_img,
+                roi,
+                min_confidence=min_confidence,
+                preprocess=True,
+                white_text=white_text,
+                brightness_floor=brightness_floor,
+                cc_filter_blobs=False,
+                tesseract_config=cfg,
+            )
+            raw_in_fence = [
+                b for b in raw_words
+                if x_min <= b.left < x_max and b.top >= y_min
+            ]
+            matches = [b for b in raw_in_fence if "wall" in b.text.lower()]
+
+        if not matches:
             return None
         # Choose the lowest match (Wall is at bottom of the upgrades list)
         best = max(matches, key=lambda b: b.top + b.height)
         logger.info("Found wall label %r at (%d, %d)", best.text, best.center[0], best.center[1])
         return best.center
+
+    @staticmethod
+    def detect_gem_spending_dialog(
+        screen_img: np.ndarray,
+    ) -> GemPromptDetection:
+        """Strict Zero-Gem Policy: Detect any modal/dialog asking to spend gems.
+
+        Checks for:
+        1. Gem icon (bgem.png) in the modal center/bottom confirmation region.
+        2. OCR text indicating missing resources or buying with gems.
+        3. Attempts to locate the Cancel / 'X' button coordinates.
+        """
+        if screen_img is None or getattr(screen_img, "size", 0) == 0:
+            return GemPromptDetection(detected=False)
+
+        h, w = screen_img.shape[:2]
+        # Modal body region (center 70% of screen horizontally, 15% to 85% vertically)
+        modal_roi = (int(w * 0.15), int(h * 0.15), int(w * 0.70), int(h * 0.70))
+
+        # Check 1: Gem icon template in the modal confirmation area (excluding top HUD gem counter)
+        btn_roi = (int(w * 0.25), int(h * 0.40), int(w * 0.50), int(h * 0.45))
+        try:
+            from app.utils.common import get_template_path
+            if get_template_path("bgem.png").exists():
+                gx, gy = VisionService.find_template(
+                    screen_img, "bgem.png", threshold=0.72, region=btn_roi
+                )
+                if gx is not None:
+                    # Locate cancel button if present
+                    cx, cy = VisionService.find_template(screen_img, "exit.png", region=modal_roi)
+                    if not cx:
+                        cx, cy = VisionService.find_template(screen_img, "needgold_x.png", region=modal_roi)
+                    return GemPromptDetection(
+                        detected=True,
+                        reason=f"Gem icon detected in modal action button at ({gx}, {gy})",
+                        cancel_point=(cx, cy) if cx else None,
+                    )
+        except Exception:
+            logger.debug("Gem icon template check failed", exc_info=True)
+
+        # Check 2: OCR text scan for gem purchase indicators in modal
+        try:
+            words = VisionService.find_words_ocr(
+                screen_img,
+                region=modal_roi,
+                preprocess=True,
+                white_text=True,
+                min_confidence=25,
+                tesseract_config="--psm 11",
+            )
+            raw_text = " ".join(w.text.lower() for w in words)
+            gem_triggers = [
+                "missing resources",
+                "missing resource",
+                "not enough gold",
+                "not enough elixir",
+                "not enough dark",
+                "buy with gems",
+                "purchase missing",
+                "finish now for",
+                "gems to finish",
+                "buy for",
+            ]
+            for trig in gem_triggers:
+                if trig in raw_text:
+                    cancel_box = next((w for w in words if "cancel" in w.text.lower()), None)
+                    cancel_pt = cancel_box.center if cancel_box else None
+                    if not cancel_pt:
+                        cx, cy = VisionService.find_template(screen_img, "exit.png", region=modal_roi)
+                        if cx:
+                            cancel_pt = (cx, cy)
+                    return GemPromptDetection(
+                        detected=True,
+                        reason=f"Gem trigger phrase {trig!r} found in dialog text",
+                        cancel_point=cancel_pt,
+                    )
+
+            has_gem_word = any(w.text.lower() in ("gem", "gems") for w in words)
+            has_buy_word = any(w.text.lower() in ("buy", "cost", "finish", "purchase", "missing") for w in words)
+            if has_gem_word and has_buy_word:
+                cancel_box = next((w for w in words if "cancel" in w.text.lower()), None)
+                return GemPromptDetection(
+                    detected=True,
+                    reason=f"Gem purchase keywords detected: {[w.text for w in words if w.text.lower() in ('gem', 'gems', 'buy', 'cost', 'finish', 'purchase')]}",
+                    cancel_point=cancel_box.center if cancel_box else None,
+                )
+        except Exception:
+            logger.debug("Gem OCR scan failed", exc_info=True)
+
+        return GemPromptDetection(detected=False)
+
+    @staticmethod
+    def find_uncancelable_progression_button(
+        screen_img: np.ndarray,
+        *,
+        min_confidence: int = 30,
+    ) -> Optional[Tuple[int, int]]:
+        """Find progression buttons in Supercell update/event announcement modals
+        that have no 'X'/Cancel button (e.g. 'Okay', 'Continue', 'Claim', 'Awesome', 'Got it', 'Next').
+        Ensures the button is NOT a gem purchase before returning its center.
+        """
+        if screen_img is None or getattr(screen_img, "size", 0) == 0:
+            return None
+        h, w = screen_img.shape[:2]
+        # Search the bottom-half center modal button area
+        btn_roi = (int(w * 0.20), int(h * 0.45), int(w * 0.60), int(h * 0.45))
+        try:
+            words = VisionService.find_words_ocr(
+                screen_img,
+                region=btn_roi,
+                preprocess=True,
+                white_text=True,
+                min_confidence=min_confidence,
+                tesseract_config="--psm 11",
+            )
+            PROGRESSION_KEYWORDS = ("okay", "continue", "claim", "awesome", "got it", "next", "start")
+            for w_box in words:
+                clean = "".join(ch for ch in w_box.text.lower() if ch.isalnum())
+                if any(kw.replace(" ", "") in clean for kw in PROGRESSION_KEYWORDS):
+                    (cx, cy) = w_box.center
+                    patch = screen_img[max(0, cy - 25):min(h, cy + 25), max(0, cx - 60):min(w, cx + 60)]
+                    if VisionService.red_hue_fraction(patch) < 0.15:
+                        return (cx, cy)
+        except Exception:
+            logger.debug("Progression button OCR scan failed", exc_info=True)
+        return None
+
 
     @staticmethod
     def _ocr_word_y_center(box: OcrWordBox) -> float:

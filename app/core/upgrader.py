@@ -689,6 +689,11 @@ class UpgradeAdvisor:
                 logger.warning('Upgrade exec: Upgrade word still visible after %d clicks — aborting', clicks)
                 _dump_debug_frame(frame, 'upgexec_fail')
                 return False
+            # Zero-gem guard: ensure the target confirmation screen is not asking for gems
+            pre_gem = VisionService.detect_gem_spending_dialog(frame)
+            if pre_gem and pre_gem.detected:
+                logger.warning('Upgrade exec: Gem prompt detected (%s) — vetoing click strictly', pre_gem.reason)
+                return False
             logger.info('Upgrade exec: clicking Upgrade/Confirm at %s (click %d)', pt, clicks + 1)
             self.input.click(pause = 0.7, *pt)
             clicks += 1
@@ -698,6 +703,13 @@ class UpgradeAdvisor:
             # clicks 1s apart on one dialog).
             if self.stop_event.wait(1.2):
                 return False
+            post_frame = self._frame()
+            if post_frame is not None:
+                post_gem = VisionService.detect_gem_spending_dialog(post_frame)
+                if post_gem and post_gem.detected:
+                    logger.warning('Upgrade exec: Post-click gem prompt detected (%s) — escaping immediately', post_gem.reason)
+                    self._escape_ui('post-click gem prompt detected')
+                    return False
         if clicks == 0:
             frame = self._frame()
             if frame is not None:

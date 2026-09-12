@@ -61,6 +61,43 @@ class AttackStrategy:
     def _point(self, key: str) -> Tuple[int, int]:
         return self.config.get_point(key)
 
+    def _quantize_deploy_to_frame(self, x: int, y: int, frame_w: int, frame_h: int) -> Tuple[int, int]:
+        """Clamp deploy coordinates to valid red-line exterior grass."""
+        min_x = int(frame_w * 0.08)
+        max_x = int(frame_w * 0.92)
+        min_y = int(frame_h * 0.12)
+        max_y = int(frame_h * 0.81)
+        cx = max(min_x, min(max_x, int(x)))
+        cy = max(min_y, min(max_y, int(y)))
+        return (cx, cy)
+
+    def deploy_multi_wave(
+        self,
+        troop_x: int,
+        troop_y: int,
+        start_pt: Tuple[int, int],
+        end_pt: Tuple[int, int],
+        count_per_wave: int = 4,
+        num_waves: int = 1,
+        delay: float = 0.05,
+    ) -> None:
+        """Surgical multi-wave deployment along a line segment between start_pt and end_pt."""
+        self.input.click(troop_x, troop_y, pause=0.15, rand=False)
+        w, h = 1920, 1080
+        if self.config:
+            sz = getattr(self.config, "target_size", None)
+            if sz:
+                w, h = sz
+        for _ in range(num_waves):
+            if self.stop_event and self.stop_event.is_set():
+                break
+            for i in range(count_per_wave):
+                t = i / max(1, count_per_wave - 1)
+                x = int(start_pt[0] + t * (end_pt[0] - start_pt[0]))
+                y = int(start_pt[1] + t * (end_pt[1] - start_pt[1]))
+                cx, cy = self._quantize_deploy_to_frame(x, y, w, h)
+                self.input.click(cx, cy, pause=delay, rand=True)
+
     def _scaled_deployment_data(self) -> dict:
         return {key: self._point(key) for key in self.CORNER_ORDER}
 
@@ -456,9 +493,9 @@ class TroopSpamStrategy(AttackStrategy):
         input_service: InputService,
         vision_service: VisionService,
         config: Config,
-        stop_event: Any,
-        troop_name: str,
-        duration: float,
+        stop_event: Any = None,
+        troop_name: str = "sneaky",
+        duration: float = 8.0,
         status_callback: Optional[Any] = None,
         earthquake_method: str = EARTHQUAKE_METHOD_CURVE,
     ) -> None:
@@ -477,14 +514,15 @@ class TroopSpamStrategy(AttackStrategy):
         ev = stop_event or self.stop_event
         self._sync_frame_size(frame)
         logger.info(f"Executing {self.troop_name} strategy")
-        roi = self.vision.bottom_half_region(frame)
-        tx, ty = self.vision.find_template(frame, f"{self.troop_name}.png", region=roi)
+        roi = self.vision.bottom_half_region(frame) if self.vision else None
+        tx, ty = (None, None)
+        if self.vision and roi:
+            tx, ty = self.vision.find_template(frame, f"{self.troop_name}.png", region=roi)
+        (fh, fw) = frame.shape[:2] if hasattr(frame, "shape") else (1080, 1920)
         if tx is None:
-            msg = f"Troop {self.troop_name} not found!"
-            logger.warning(msg)
-            if self.status_callback:
-                self.status_callback(msg)
-            return False
+            # Fallback to standard slot 1 if template not found
+            tx, ty = int(fw * 0.18), int(fh * 0.92)
+            logger.info(f"Troop {self.troop_name} not found via template; using fallback slot at ({tx}, {ty})")
         self.input.click(tx, ty, pause=0.3, rand=False)
         if ev and ev.wait(0.2):
             return True
@@ -499,7 +537,9 @@ class TroopSpamStrategy(AttackStrategy):
             idx = (start_idx + i * direction) % 4
             ordered_corners.append(corners[idx])
         start_corner = ordered_corners[0]
-        curr_x, curr_y = self._expand_loc(*self._point(start_corner))
+        sp = self._point(start_corner)
+        curr_x, curr_y = self._quantize_deploy_to_frame(sp[0], sp[1], fw, fh)
+        curr_x, curr_y = self._quantize_deploy_to_frame(*self._expand_loc(curr_x, curr_y), fw, fh)
         self.input.mouse_down(curr_x, curr_y)
         if ev and ev.wait(0.65):
             self.input.mouse_up(curr_x, curr_y)
@@ -511,7 +551,9 @@ class TroopSpamStrategy(AttackStrategy):
                 if ev and ev.is_set():
                     break
                 next_c = ordered_corners[i + 1]
-                target_x, target_y = self._expand_loc(*self._point(next_c))
+                np_pt = self._point(next_c)
+                target_x, target_y = self._quantize_deploy_to_frame(np_pt[0], np_pt[1], fw, fh)
+                target_x, target_y = self._quantize_deploy_to_frame(*self._expand_loc(target_x, target_y), fw, fh)
                 seg_dur = random.uniform(segment_duration * 0.9, segment_duration * 1.1)
                 self.input.human_move(curr_x, curr_y, target_x, target_y, duration=seg_dur)
                 curr_y = target_y
@@ -519,18 +561,20 @@ class TroopSpamStrategy(AttackStrategy):
             self.input.mouse_up(curr_x, curr_y)
             if ev and ev.is_set():
                 return True
-            frame = self.input.window_service.screenshot()
-            if frame is not None:
-                self._sync_frame_size(frame)
-                if self.deploy_golden_drags_if_present(frame, ev):
-                    return True
-                self.deploy_heroes(frame)
-                if ev and ev.is_set():
-                    return True
-                frame = self.input.window_service.screenshot()
+            ws = getattr(self.input, "window_service", None)
+            if ws is not None and hasattr(ws, "screenshot"):
+                frame = ws.screenshot()
                 if frame is not None:
                     self._sync_frame_size(frame)
-                    self.deploy_spells(frame)
+                    if self.deploy_golden_drags_if_present(frame, ev):
+                        return True
+                    self.deploy_heroes(frame)
+                    if ev and ev.is_set():
+                        return True
+                    frame = ws.screenshot()
+                    if frame is not None:
+                        self._sync_frame_size(frame)
+                        self.deploy_spells(frame)
             return True
         except Exception:
             self.input.mouse_up(curr_x, curr_y)
@@ -545,7 +589,7 @@ class EdragStrategy(AttackStrategy):
         input_service: InputService,
         vision_service: VisionService,
         config: Config,
-        stop_event: Any,
+        stop_event: Any = None,
         status_callback: Optional[Any] = None,
         earthquake_method: str = EARTHQUAKE_METHOD_CURVE,
     ) -> None:

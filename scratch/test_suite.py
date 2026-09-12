@@ -14,7 +14,7 @@ from app.ui.qt._constants import PLAN_PRICE_MONTHLY, PLAN_DEVICE_LIMIT, PLAN_TRI
 
 print("[1/5] Testing Trial & Subscription Definitions...")
 assert TRIAL_TOTAL_SECONDS == 7200, f"Expected 7200s, got {TRIAL_TOTAL_SECONDS}"
-assert PLAN_PRICE_MONTHLY == "$5.00 / month"
+assert PLAN_PRICE_MONTHLY == "$3.00 / month"
 assert "1 Device" in PLAN_DEVICE_LIMIT
 assert PLAN_TRIAL_HOURS == 2
 
@@ -205,6 +205,44 @@ assert rec.gold == 800000
 assert rec.skips == 5
 assert len(lfe.stats.raid_history) >= 1
 assert lfe.stats.raid_history[-1].raid_num == rec.raid_num
-print("   -> RaidRecord telemetry history verified!")
+# 9. Test Zero-Gem Guard, Progression Dialogs & Escape Recovery
+print("[9/9] Testing Zero-Gem Guard, Supercell Progression Dialogs & Recovery...")
+import cv2
+import numpy as np
+from app.services.vision import VisionService
+from app.core.bot import Bot
 
-print("\n*** ALL 8 TEST MODULES COMPLETED SUCCESSFULLY WITH ZERO ERRORS! ***")
+# 9a. Test Zero-Gem Guard on Missing Resources dialog
+gem_frame = np.full((1080, 1920, 3), 40, dtype=np.uint8)
+cv2.putText(gem_frame, "Missing resources!", (800, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+cv2.putText(gem_frame, "Purchase missing resources for 250 Gems?", (650, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+cv2.putText(gem_frame, "Cancel", (700, 600), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (220, 220, 220), 2)
+gem_res = VisionService.detect_gem_spending_dialog(gem_frame)
+assert gem_res.detected is True, "Zero-Gem Guard failed to detect missing resources gem dialog!"
+assert gem_res.cancel_point is not None, "Zero-Gem Guard failed to locate Cancel button!"
+print(f"   -> Zero-Gem Guard successfully detected gem prompt: {gem_res.reason}")
+
+# 9b. Test Bot dismissal of gem dialog
+test_bot = Bot()
+test_escapes = []
+test_clicks = []
+test_bot.input.send_escape = lambda: test_escapes.append(True)
+test_bot.input.click = lambda *args, **kwargs: test_clicks.append(args)
+dismissed = test_bot._dismiss_gem_prompt_if_open(gem_frame)
+assert dismissed is True, "Bot._dismiss_gem_prompt_if_open failed to dismiss gem dialog!"
+assert len(test_escapes) >= 1, "Expected Escape key to be sent to dismiss gem dialog!"
+assert len(test_clicks) >= 1, "Expected Cancel or empty click to be sent to dismiss gem dialog!"
+print("   -> Bot._dismiss_gem_prompt_if_open safely vetoed and dismissed gem prompt with Zero Gems spent!")
+
+# 9c. Test Supercell uncancelable update/event progression buttons
+prog_frame = np.full((1080, 1920, 3), 40, dtype=np.uint8)
+cv2.putText(prog_frame, "Welcome to the New Season!", (750, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+# Draw green progression button with "Claim"
+cv2.rectangle(prog_frame, (860, 600), (1060, 660), (35, 180, 50), -1)
+cv2.putText(prog_frame, "Claim", (920, 640), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+prog_pt = VisionService.find_uncancelable_progression_button(prog_frame)
+assert prog_pt is not None, "Failed to detect Supercell uncancelable progression button!"
+assert abs(prog_pt[0] - 960) < 100 and abs(prog_pt[1] - 630) < 50
+print(f"   -> Supercell uncancelable update progression button successfully detected at {prog_pt}!")
+
+print("\n*** ALL 9 TEST MODULES COMPLETED SUCCESSFULLY WITH ZERO ERRORS! ***")

@@ -12,6 +12,9 @@ from app.services.window import (
     MK_LBUTTON,
     WM_MOUSEWHEEL,
     WHEEL_DELTA,
+    WM_KEYDOWN,
+    WM_KEYUP,
+    VK_ESCAPE,
 )
 from app.utils.logger import setup_logger
 
@@ -171,3 +174,17 @@ class InputService:
                 self.stop_event.wait(0.02)
             else:
                 time.sleep(0.02)
+
+    def send_escape(self):
+        """Send VK_ESCAPE key to the game window to dismiss overlays, chat, menus, or dialogs."""
+        hwnd = self.window_service.hwnd
+        if not hwnd:
+            return
+        self.user32.SendMessageW(hwnd, WM_KEYDOWN, VK_ESCAPE, 0)
+        dwell = random.uniform(0.04, 0.08)
+        if self.stop_event:
+            self.stop_event.wait(dwell)
+        else:
+            time.sleep(dwell)
+        self.user32.SendMessageW(hwnd, WM_KEYUP, VK_ESCAPE, 0)
+        logger.info("Sent ESCAPE to window to dismiss overlay/menu")
