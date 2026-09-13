@@ -1060,19 +1060,36 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         if self._dismiss_gem_prompt_if_open(frame):
             return True
 
-        # 2. Template dismissal checks
+        h, w = frame.shape[:2]
+
+        # 2. Check if Shop screen is open via header OCR
+        top_roi = (0, 0, w, int(h * 0.22))
+        try:
+            (sx, sy) = self.vision.find_word_on_screen(frame, 'SHOP', region=top_roi, case_sensitive=False, fuzzy_min_ratio=0.8)
+            if sx:
+                logger.info('Shop screen detected via OCR at (%d, %d) — dismissing via escape and close button', sx, sy)
+                self.input.send_escape()
+                exit_x = int(round(w * 0.90))
+                exit_y = int(round(h * 0.11))
+                self.input.click(exit_x, exit_y, pause=0.25)
+                return True
+        except Exception:
+            pass
+
+        # 3. Template dismissal checks
         names = ['okay.png', 'exit.png']
         for extra in ('claim_btn.png', 'chestcontinue.png', 'chestclaim.png', 'dailyreward_x.png', 'needgold_x.png'):
             if get_template_path(extra).exists():
                 names.append(extra)
         for name in names:
-            (x, y) = self.vision.find_template(frame, name)
+            thresh = 0.72 if ('exit' in name or '_x' in name) else 0.8
+            (x, y) = self.vision.find_template(frame, name, threshold=thresh)
             if not x:
                 continue
             self.input.click(x, y, pause = 0.15)
             return True
 
-        # 3. Supercell uncancelable progression dialogs (Update announcements, Season rewards)
+        # 4. Supercell uncancelable progression dialogs (Update announcements, Season rewards)
         prog_pt = VisionService.find_uncancelable_progression_button(frame)
         if prog_pt:
             logger.info('Dismissing Supercell update/event modal via progression button at %s', prog_pt)
@@ -1508,11 +1525,10 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         self._bb_dismiss_okay_and_return_home(retry_battle_template = 'surrender.png')
 
     
-    def _find_next_button(self, frame: np.ndarray) -> Tuple[int, int]:
-        """Locates the 'Next' match button on the multiplayer scout screen."""
+    def _find_next_button(self, frame: np.ndarray) -> Tuple[Optional[int], Optional[int]]:
+        """Locates the 'Next' match button on the multiplayer scout screen.
+        Guards strictly against blind clicks when not actually on the scout screen."""
         h, w = frame.shape[:2]
-        default_x = int(round(w * 0.91))
-        default_y = int(round(h * 0.88))
 
         next_roi = (
             int(round(w * 0.80)),
@@ -1534,7 +1550,19 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         except Exception:
             pass
 
-        return (default_x, default_y)
+        # Verify we are actually on a scout/attack screen before trusting default coordinates!
+        # On the Home Screen or in Shop, (0.91*w, 0.88*h) is the SHOP button.
+        # Surrender or End Battle must be confirmed on screen before clicking default coords.
+        (sx, sy) = self.vision.find_template(frame, 'surrender.png')
+        if not sx:
+            (sx, sy) = self.vision.find_template(frame, 'endbattle.png')
+        if sx:
+            default_x = int(round(w * 0.91))
+            default_y = int(round(h * 0.88))
+            return (default_x, default_y)
+
+        logger.warning('_find_next_button: neither "Next" OCR nor scout templates (surrender/endbattle) found — refusing to click blind default coords (prevents accidental Shop clicks)')
+        return (None, None)
 
     def _find_match_and_attack(self, method_id, ranked_fill = False):
         """One attack cycle. Returns ``'ranked_limit'`` (stop now), ``'troop'`` (troops missing — retry later), or None."""
@@ -1579,6 +1607,9 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             (a2x, a2y) = self._wait_for_image('attack2.png', timeout = 5, error = False)
         if not a2x:
             (a2x, a2y) = self._wait_for_image('attack2.png')
+        if not a2x:
+            logger.warning('attack2.png (Find a Match) not found — cannot start attack')
+            return None
         if method_id == 3 and not self._ensure_valkyrie_army_from_recipes():
             # Attack anyway with whatever is trained — a partial Valkyrie army still loots, and
             # bailing out here would leave the Find a Match screen open with nothing to recover it.
@@ -1587,14 +1618,13 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             cb = getattr(self, '_status_callback', None)
             if cb:
                 cb(msg)
-        if a2x:
-            self.input.click(a2x, a2y, pause = 0.1)
-            if ranked_fill:
-                (rx, ry) = self._wait_for_image('rankedattackconfirm.png', timeout = 10)
-                if not rx:
-                    logger.warning('rankedattackconfirm.png not found after attack2.png')
-                else:
-                    self.input.click(rx, ry, pause = 0.1)
+        self.input.click(a2x, a2y, pause = 0.1)
+        if ranked_fill:
+            (rx, ry) = self._wait_for_image('rankedattackconfirm.png', timeout = 10)
+            if not rx:
+                logger.warning('rankedattackconfirm.png not found after attack2.png')
+            else:
+                self.input.click(rx, ry, pause = 0.1)
         # Match scouting and loot filtration
         skip_count = 0
         self.loot_filter.reload_config()
@@ -1605,8 +1635,8 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         while True:
             self._check_stop()
             matched = self._wait_for_any_image(('surrender.png', 'endbattle.png'), timeout = 35)
-            if not matched:
-                logger.warning('Scouting timeout: neither surrender.png nor endbattle.png appeared.')
+            if not matched or not matched[0]:
+                logger.warning('Scouting timeout: neither surrender.png nor endbattle.png appeared — aborting scout loop')
                 return None
 
             # Settle wait for clouds to disperse and loot HUD to paint
@@ -1660,6 +1690,9 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                 cb(f'Skipping base ({decision.reason}) [{skip_count}/{max_skips}]')
 
             (nx, ny) = self._find_next_button(frame)
+            if not nx:
+                logger.warning('Scout screen lost or Next button not found — aborting scout loop to recover')
+                return None
             self.input.click(nx, ny, pause = 0.2)
 
             # Wait briefly for cloud transition out before next detection loop
@@ -1934,9 +1967,13 @@ Returns (``"return"`` | ``"chest"``, x, y) or (None, None, None) on timeout.
                 continue
 
             # 8. Human interference fallback: Clan Chat open, Profile, Settings, Shop, or selection overlay
-            logger.info('Recovery: Human interference / overlay detected — sending Escape and deselecting')
+            logger.info('Recovery: Human interference / overlay detected — sending Escape and deselecting via top neutral point')
             self.input.send_escape()
-            self.input.click(pause = 0.3, *self.config.get_point('empty'))
+            top_pt = self.config.get_point('top')
+            if top_pt:
+                self.input.click(pause = 0.3, *top_pt)
+            else:
+                self.input.click(pause = 0.3, *self.config.get_point('empty'))
             if self.stop_event.wait(0.5):
                 return None
         return None

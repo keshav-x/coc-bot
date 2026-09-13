@@ -188,11 +188,16 @@ class InputService:
         hwnd = self.window_service.hwnd
         if not hwnd:
             return
-        self.user32.SendMessageW(hwnd, WM_KEYDOWN, VK_ESCAPE, 0)
+        scan_code = self.user32.MapVirtualKeyW(VK_ESCAPE, 0) or 1
+        lparam_down = 1 | (scan_code << 16)
+        lparam_up = 1 | (scan_code << 16) | (1 << 30) | (1 << 31)
+        self.user32.PostMessageW(hwnd, WM_KEYDOWN, VK_ESCAPE, lparam_down)
+        self.user32.SendMessageW(hwnd, WM_KEYDOWN, VK_ESCAPE, lparam_down)
         dwell = random.uniform(0.04, 0.08)
         if self.stop_event:
             self.stop_event.wait(dwell)
         else:
             time.sleep(dwell)
-        self.user32.SendMessageW(hwnd, WM_KEYUP, VK_ESCAPE, 0)
+        self.user32.PostMessageW(hwnd, WM_KEYUP, VK_ESCAPE, lparam_up)
+        self.user32.SendMessageW(hwnd, WM_KEYUP, VK_ESCAPE, lparam_up)
         logger.info("Sent ESCAPE to window to dismiss overlay/menu")
