@@ -778,7 +778,10 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             logger.info('Wall upgrade batch confirmed')
             if self.stop_event.wait(0.35):
                 return None
-            self._dismiss_gem_prompt_if_open()
+            if self._dismiss_gem_prompt_if_open():
+                return False
+            return True
+        return False
 
     
     def _upgrade_walls(self):
@@ -925,11 +928,10 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
 
         upgraded = False
 
-        # Attempt 1: If Upgrade More or Select Row is available, try batch upgrade
-        if actions.upgrade_more or actions.select_row:
-            target = actions.upgrade_more if actions.upgrade_more else actions.select_row
-            logger.info('Wall upgrade: clicking %s at %s', 'Upgrade More' if actions.upgrade_more else 'Select Row', target)
-            self.input.click(pause = 0.4, *target)
+        # Attempt 1: If Upgrade More is available, use the batch dialog
+        if actions.upgrade_more:
+            logger.info('Wall upgrade: clicking Upgrade More at %s', actions.upgrade_more)
+            self.input.click(pause = 0.4, *actions.upgrade_more)
             if self.stop_event.wait(0.35):
                 return None
 
@@ -972,36 +974,15 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                             self.input.click(rwx, rwy, pause = 0.3)
 
                     logger.info('Wall upgrade: %d wall(s) added to batch', added)
-                    self._upgrade_walls_pick_resource_and_okay()
-                    upgraded = True
-                else:
-                    # Row selection expanded: re-read actions for row upgrade buttons
-                    row_actions = VisionService.find_wall_upgrade_actions(frame)
-                    if row_actions.elixir_upgrade and row_actions.elixir_affordable:
-                        logger.info('Wall upgrade: paying row with elixir at %s', row_actions.elixir_upgrade)
-                        self.input.click(pause = 0.4, *row_actions.elixir_upgrade)
-                        upgraded = True
-                    elif row_actions.gold_upgrade and row_actions.gold_affordable:
-                        logger.info('Wall upgrade: paying row with gold at %s', row_actions.gold_upgrade)
-                        self.input.click(pause = 0.4, *row_actions.gold_upgrade)
-                        upgraded = True
-
-                    if upgraded:
-                        if self.stop_event.wait(0.35):
-                            return None
-                        frame = self.window.screenshot()
-                        if frame is not None:
-                            (ox, oy) = self.vision.find_template(frame, 'okay.png')
-                            if ox:
-                                self.input.click(ox, oy, pause = 0.3)
-                            self._dismiss_gem_prompt_if_open(frame)
+                    batch_ok = self._upgrade_walls_pick_resource_and_okay()
+                    upgraded = bool(batch_ok)
 
         # Attempt 2: If batch upgrade wasn't done, do single-wall upgrade
         if not upgraded:
             frame = self.window.screenshot()
             if frame is not None:
                 self._update_config_size(frame)
-                cur_actions = VisionService.find_wall_upgrade_actions(frame)
+                cur_actions = VisionService.find_wall_upgrade_actions(frame) if actions.upgrade_more else actions
                 # Prefer Elixir so Gold is saved for matchmaking entry fee
                 if cur_actions.elixir_upgrade and cur_actions.elixir_affordable:
                     logger.info('Wall upgrade: single wall with elixir at %s', cur_actions.elixir_upgrade)
@@ -1019,10 +1000,13 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                         return None
                     frame = self.window.screenshot()
                     if frame is not None:
-                        (ox, oy) = self.vision.find_template(frame, 'okay.png')
-                        if ox:
-                            self.input.click(ox, oy, pause = 0.3)
-                        self._dismiss_gem_prompt_if_open(frame)
+                        if self._dismiss_gem_prompt_if_open(frame):
+                            logger.warning('Wall upgrade: gem prompt was triggered — upgrade cancelled')
+                            upgraded = False
+                        else:
+                            (ox, oy) = self.vision.find_template(frame, 'okay.png')
+                            if ox:
+                                self.input.click(ox, oy, pause = 0.3)
 
         # Clean deselect so the home screen is ready for attack
         self._deselect_wall_ui()
@@ -1545,18 +1529,19 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         h, w = frame.shape[:2]
 
         next_roi = (
-            int(round(w * 0.80)),
-            int(round(h * 0.74)),
-            int(round(w * 0.20)),
-            int(round(h * 0.26)),
+            int(round(w * 0.78)),
+            int(round(h * 0.72)),
+            int(round(w * 0.22)),
+            int(round(h * 0.28)),
         )
+        # Pass 1: Binarized white text OCR
         try:
             (nx, ny) = self.vision.find_word_on_screen(
                 frame,
                 "Next",
                 region=next_roi,
                 case_sensitive=False,
-                fuzzy_min_ratio=0.75,
+                fuzzy_min_ratio=0.70,
                 white_text=True,
             )
             if nx is not None and ny is not None:
@@ -1564,15 +1549,30 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         except Exception:
             pass
 
+        # Pass 2: Unbinarized grayscale OCR (handles shaded or anti-aliased font on orange background)
+        try:
+            (nx, ny) = self.vision.find_word_on_screen(
+                frame,
+                "Next",
+                region=next_roi,
+                case_sensitive=False,
+                fuzzy_min_ratio=0.70,
+                preprocess=False,
+            )
+            if nx is not None and ny is not None:
+                return (nx, ny)
+        except Exception:
+            pass
+
         # Verify we are actually on a scout/attack screen before trusting default coordinates!
-        # On the Home Screen or in Shop, (0.91*w, 0.88*h) is the SHOP button.
+        # On the Home Screen or in Shop, bottom-right is the SHOP button.
         # Surrender or End Battle must be confirmed on screen before clicking default coords.
-        (sx, sy) = self.vision.find_template(frame, 'surrender.png')
+        (sx, sy) = self._find_surrender_button(frame)
         if not sx:
-            (sx, sy) = self.vision.find_template(frame, 'endbattle.png')
+            (sx, sy) = self._find_end_battle_button(frame)
         if sx:
-            default_x = int(round(w * 0.91))
-            default_y = int(round(h * 0.88))
+            default_x = int(round(w * 0.935))
+            default_y = int(round(h * 0.905))
             return (default_x, default_y)
 
         logger.warning('_find_next_button: neither "Next" OCR nor scout templates (surrender/endbattle) found — refusing to click blind default coords (prevents accidental Shop clicks)')
@@ -1709,9 +1709,27 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                 return None
             self.input.click(nx, ny, pause = 0.2)
 
-            # Wait briefly for cloud transition out before next detection loop
-            if self.stop_event.wait(0.75):
-                return None
+            # Wait for battle buttons to vanish (clouds closing over old base)
+            clouds_closed = False
+            for step in range(12):  # up to 3.0 seconds
+                if self.stop_event.wait(0.25):
+                    return None
+                f_check = self.window.screenshot()
+                if f_check is None:
+                    continue
+                (sx, _) = self._find_surrender_button(f_check)
+                (ebx, _) = self._find_end_battle_button(f_check)
+                if not sx and not ebx:
+                    clouds_closed = True
+                    break
+                if step == 9:  # After ~2.5s, if clouds still haven't closed, re-click Next in case previous click was eaten
+                    logger.info('Clouds did not close after 2.5s — re-clicking Next button')
+                    (rnx, rny) = self._find_next_button(f_check)
+                    if rnx:
+                        self.input.click(rnx, rny, pause = 0.2)
+
+            if not clouds_closed:
+                logger.info('Proceeding after cloud transition wait')
 
         self._last_raid_skips = skip_count
         (h, w) = frame.shape[:2]

@@ -254,8 +254,8 @@ class TaskbarThumb:
                         ctypes.c_long.from_address(flag_stop_ptr).value = 1
             return CallWindowProcW(self._original_wndproc, hwnd, msg, wParam, lParam)
 
-        self._wndproc_ref = wndproc
-        new_proc = ctypes.cast(wndproc, ctypes.c_void_p).value
+        self._wndproc_ref = WNDPROC(wndproc)
+        new_proc = ctypes.cast(self._wndproc_ref, ctypes.c_void_p).value
         SetWindowLongPtrW = user32.SetWindowLongPtrW
         SetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_void_p]
         SetWindowLongPtrW.restype = ctypes.c_void_p

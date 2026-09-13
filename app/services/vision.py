@@ -2300,16 +2300,24 @@ class VisionService:
         """Extracts available enemy loot ``(gold, elixir, dark_elixir)`` from the scout/attack screen."""
         if screen_img is None or screen_img.size == 0:
             return (None, None, None)
+
+        # 1. Primary extractor: extract_battle_loot() handles headers, clusters space-separated numbers,
+        # and strictly excludes opponent level badge / clan badge numbers.
+        battle_loot = VisionService.extract_battle_loot(screen_img)
+        if battle_loot[0] is not None and battle_loot[1] is not None:
+            return battle_loot
+
+        # 2. Secondary fallback: grouped numeric clusters in the top-left ROI
         h_s, w_s = screen_img.shape[:2]
         roi = VisionService.numbers_enemy_loot_roi(w_s, h_s)
 
-        # 1. Primary extractor: grouped numeric clusters in the top-left ROI
         groups = VisionService.extract_grouped_numbers_in_region(
             screen_img,
             roi,
             white_text=True,
             preprocess=True,
             min_confidence=15,
+            cc_filter_blobs=False,
         )
 
         parsed_rows: list[tuple[int, int]] = []
@@ -2318,7 +2326,6 @@ class VisionService:
             if v is not None and v > 0:
                 parsed_rows.append((g.top, v))
 
-        # 2. Secondary fallback: OCR word boxes in the same ROI if grouped extraction found < 2 lines
         if len(parsed_rows) < 2:
             words = VisionService.find_words_ocr(
                 screen_img,
@@ -2339,12 +2346,20 @@ class VisionService:
         # Sort from top to bottom (Gold is row 1, Elixir is row 2, Dark Elixir is row 3)
         parsed_rows.sort(key=lambda r: r[0])
 
-        # Exclude stray single/double digit numbers (e.g. trophy count +28 or town hall badge < 100)
-        candidates = [val for (_, val) in parsed_rows if val >= 50]
-        if len(candidates) < 2:
-            battle_loot = VisionService.extract_battle_loot(screen_img)
-            if battle_loot[0] is not None and battle_loot[1] is not None:
-                return battle_loot
+        # Filter out opponent level badge / clan badge appearing above loot (e.g. level <= 500 while loot >= 5000)
+        while len(parsed_rows) >= 3:
+            first_val = parsed_rows[0][1]
+            second_val = parsed_rows[1][1]
+            if first_val <= 500 and second_val >= 5000:
+                parsed_rows.pop(0)
+            else:
+                break
+
+        # Exclude stray small numbers (trophy delta, badge, etc.)
+        candidates = [val for (_, val) in parsed_rows if val >= 500]
+        if not candidates:
+            # If all candidates were < 500, accept any non-zero as desperate fallback
+            candidates = [val for (_, val) in parsed_rows if val > 0]
 
         if not candidates:
             return (None, None, None)
