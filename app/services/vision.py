@@ -520,6 +520,24 @@ class VisionService:
         return float(np.count_nonzero(mask) / mask.size)
 
     @staticmethod
+    def red_fraction(
+        bgr: np.ndarray,
+        hue_lo1: int = 0,
+        hue_hi1: int = 10,
+        hue_lo2: int = 170,
+        hue_hi2: int = 180,
+        sat_floor: int = 80,
+        val_floor: int = 80,
+    ) -> float:
+        """Fraction of pixels in red hue (OpenCV H 0–179)."""
+        if bgr is None or bgr.size == 0:
+            return 0.0
+        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+        mask = (((h >= hue_lo1) & (h <= hue_hi1)) | ((h >= hue_lo2) & (h <= hue_hi2))) & (s >= sat_floor) & (v >= val_floor)
+        return float(np.count_nonzero(mask) / mask.size)
+
+    @staticmethod
     def find_active_addwall(
         screen_img: np.ndarray,
         region: Optional[Tuple[int, int, int, int]] = None,
@@ -549,11 +567,20 @@ class VisionService:
             crop = screen_img[y0:y1, x0:x1]
             if VisionService.lime_fraction(crop) < lime_threshold:
                 continue
+            # Also ensure the card label below does not have red text (disabled card like '+10 Add Wall')
+            label_y0 = min(frame_h, y1)
+            label_y1 = min(frame_h, y1 + int(th * 4))
+            label_x0 = max(0, x0 - int(tw * 3))
+            label_x1 = min(frame_w, x1 + int(tw * 3))
+            card_label_crop = screen_img[label_y0:label_y1, label_x0:label_x1]
+            if card_label_crop.size > 0 and VisionService.red_fraction(card_label_crop) > 0.04:
+                continue
             passing.append((int(left) + int(tw) // 2, int(top) + int(th) // 2))
 
         if not passing:
             return (None, None)
-        return min(passing, key=lambda pt: pt[0])
+        # Select rightmost button (+1) rather than leftmost (+10)
+        return max(passing, key=lambda pt: pt[0])
 
     @staticmethod
     def yellow_fraction(
