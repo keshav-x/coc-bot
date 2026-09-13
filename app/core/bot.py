@@ -908,23 +908,7 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             self.input.click(cx, cy, pause=pause)
             return True
 
-        # 1. Expand selection: If 'Select Row' is available, click it to select the entire wall row
-        if actions.select_row:
-            logger.info('Wall upgrade: clicking Select Row at %s to select entire wall row', actions.select_row)
-            _safe_click(actions.select_row[0], actions.select_row[1], pause=0.45)
-            if self.stop_event.wait(0.4):
-                return None
-            frame = self.window.screenshot()
-            if frame is None:
-                self._deselect_wall_ui()
-                return None
-            self._update_config_size(frame)
-            if self._dismiss_gem_prompt_if_open(frame):
-                self._deselect_wall_ui()
-                return None
-            actions = VisionService.find_wall_upgrade_actions(frame)
-
-        # 2. Check if Upgrade More button is available to open the multi-wall add/remove interface
+        # 1. Open multi-wall addition interface: Click Upgrade More (do NOT select entire row!)
         upgrade_more_target = actions.upgrade_more
         if not upgrade_more_target:
             bot_roi = VisionService.bottom_half_region(frame)
@@ -935,9 +919,9 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                 upgrade_more_target = (umx, umy)
 
         if upgrade_more_target:
-            logger.info('Wall upgrade: clicking Upgrade More at %s to check for adding walls', upgrade_more_target)
+            logger.info('Wall upgrade: clicking Upgrade More at %s to open multi-wall interface', upgrade_more_target)
             _safe_click(upgrade_more_target[0], upgrade_more_target[1], pause=0.45)
-            if self.stop_event.wait(0.4):
+            if self.stop_event.wait(0.5):
                 return None
             frame = self.window.screenshot()
             if frame is None:
@@ -948,9 +932,16 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                 self._deselect_wall_ui()
                 return None
 
-        # Check if we are in the multi-wall interface (with Add Wall / Remove Wall controls)
-        mid_roi = (fw // 4, fh // 2, fw // 2, fh - fh // 2)
-        (awx, awy) = VisionService.find_active_addwall(frame, region=mid_roi)
+        # 2. Check if we are in the multi-wall interface (with Add Wall / Remove Wall controls)
+        bot_roi = VisionService.bottom_half_region(frame)
+        (awx, awy) = VisionService.find_active_addwall(frame, region=bot_roi)
+        if not awx and upgrade_more_target:
+            if self.stop_event.wait(0.3):
+                return None
+            frame = self.window.screenshot()
+            if frame is not None:
+                self._update_config_size(frame)
+                (awx, awy) = VisionService.find_active_addwall(frame, region=bot_roi)
 
         if awx and awy:
             logger.info('Wall upgrade: multi-wall add interface active (addwall at %d, %d)', awx, awy)
@@ -980,14 +971,13 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             gold_red = _measure_cost_red(gx, cy, frame)
             logger.info('Wall upgrade batch: initial redness Elixir=%.3f, Gold=%.3f', elixir_red, gold_red)
 
-            # 1. If initially unaffordable (e.g. whole row selected costing more than storages),
-            # remove walls one by one until affordable!
+            # A. If initially unaffordable, remove walls one by one until affordable
             removed_count = 0
             for _ in range(20):
                 self._check_stop()
                 if elixir_red < AFFORDABLE_THRESHOLD or gold_red < AFFORDABLE_THRESHOLD:
                     break
-                (rwx, rwy) = VisionService.find_active_removewall(frame, region=mid_roi)
+                (rwx, rwy) = VisionService.find_active_removewall(frame, region=bot_roi)
                 if not rwx:
                     logger.info('Wall upgrade batch: no Remove Wall control found on screen — at minimum walls')
                     break
@@ -999,7 +989,7 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                 frame = self.window.screenshot()
                 if frame is None:
                     break
-                (cur_awx, cur_awy) = VisionService.find_active_addwall(frame, region=mid_roi)
+                (cur_awx, cur_awy) = VisionService.find_active_addwall(frame, region=bot_roi)
                 if cur_awx:
                     awx, awy = cur_awx, cur_awy
                 gx, ex, cy = _get_card_coords(awx, awy)
@@ -1009,7 +999,7 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             if removed_count:
                 logger.info('Wall upgrade batch: removed %d wall(s) to reach affordable cost', removed_count)
 
-            # 2. If affordable and not removed, try to add walls while it remains affordable!
+            # B. If affordable and not removed, try to add walls while it remains affordable!
             gx, ex, cy = _get_card_coords(awx, awy)
             elixir_red = _measure_cost_red(ex, cy, frame)
             gold_red = _measure_cost_red(gx, cy, frame)
@@ -1019,7 +1009,7 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                 for _ in range(max_adds):
                     self._check_stop()
                     # Re-verify addwall button is still active
-                    (cur_awx, cur_awy) = VisionService.find_active_addwall(frame, region=mid_roi)
+                    (cur_awx, cur_awy) = VisionService.find_active_addwall(frame, region=bot_roi)
                     if not cur_awx:
                         logger.info('Wall upgrade batch: Add Wall button no longer active — reached end of adjacent walls')
                         break
@@ -1031,7 +1021,7 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                     frame = self.window.screenshot()
                     if frame is None:
                         break
-                    (next_awx, next_awy) = VisionService.find_active_addwall(frame, region=mid_roi)
+                    (next_awx, next_awy) = VisionService.find_active_addwall(frame, region=bot_roi)
                     if next_awx:
                         awx, awy = next_awx, next_awy
                     gx, ex, cy = _get_card_coords(awx, awy)
@@ -1040,14 +1030,14 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                     if elixir_red >= AFFORDABLE_THRESHOLD and gold_red >= AFFORDABLE_THRESHOLD:
                         # Cost turned red: remove the last wall added to restore affordability
                         logger.info('Wall upgrade batch: cost exceeded budget after adding (E=%.3f, G=%.3f) — reverting last addition', elixir_red, gold_red)
-                        (rwx, rwy) = VisionService.find_active_removewall(frame, region=mid_roi)
+                        (rwx, rwy) = VisionService.find_active_removewall(frame, region=bot_roi)
                         if rwx:
                             _safe_click(rwx, rwy, pause=0.3)
                             if self.stop_event.wait(0.35):
                                 return None
                             frame = self.window.screenshot()
                             if frame is not None:
-                                (next_awx, next_awy) = VisionService.find_active_addwall(frame, region=mid_roi)
+                                (next_awx, next_awy) = VisionService.find_active_addwall(frame, region=bot_roi)
                                 if next_awx:
                                     awx, awy = next_awx, next_awy
                                 gx, ex, cy = _get_card_coords(awx, awy)

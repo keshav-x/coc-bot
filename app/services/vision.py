@@ -1740,7 +1740,7 @@ class VisionService:
                         select_row_pt = (roi_x0 + max_l[0] + sa.shape[1] // 2, roi_y0 + max_l[1] + sa.shape[0] // 2)
                         info_is_selected = True
 
-        # 3. Template match for upgrademore_card.png
+        # 3. Template match for upgrademore_card.png and upgrademore.png
         um_path = get_template_path("upgrademore_card.png")
         if um_path.exists():
             um_tpl = cv2.imread(str(um_path))
@@ -1752,6 +1752,19 @@ class VisionService:
                     if max_um >= 0.70:
                         upgrade_more_pt = (roi_x0 + max_lc[0] + sc.shape[1] // 2, roi_y0 + max_lc[1] + sc.shape[0] // 2)
                         info_is_selected = True
+
+        if not upgrade_more_pt:
+            um_path2 = get_template_path("upgrademore.png")
+            if um_path2.exists():
+                um_tpl2 = cv2.imread(str(um_path2))
+                if um_tpl2 is not None and um_tpl2.size > 0:
+                    sc2 = cv2.resize(um_tpl2, (0, 0), fx=scale, fy=scale)
+                    if sc2.shape[0] < roi.shape[0] and sc2.shape[1] < roi.shape[1]:
+                        res_um2 = cv2.matchTemplate(roi, sc2, cv2.TM_CCOEFF_NORMED)
+                        _, max_um2, _, max_lc2 = cv2.minMaxLoc(res_um2)
+                        if max_um2 >= 0.70:
+                            upgrade_more_pt = (roi_x0 + max_lc2[0] + sc2.shape[1] // 2, roi_y0 + max_lc2[1] + sc2.shape[0] // 2)
+                            info_is_selected = True
 
         # 4. OCR fallback for text cards and selection confirmation
         ocr_upgrades: List[Tuple[int, int]] = []
