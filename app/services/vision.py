@@ -538,6 +538,16 @@ class VisionService:
         return float(np.count_nonzero(mask) / mask.size)
 
     @staticmethod
+    def measure_cost_redness(crop: np.ndarray) -> float:
+        """Fraction of pixels in Clash of Clans red font within a cost crop."""
+        if crop is None or crop.size == 0:
+            return 0.0
+        hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+        red1 = cv2.inRange(hsv, (0, 35, 80), (25, 255, 255))
+        red2 = cv2.inRange(hsv, (160, 35, 80), (180, 255, 255))
+        return float((red1 | red2).mean() / 255.0)
+
+    @staticmethod
     def find_active_addwall(
         screen_img: np.ndarray,
         region: Optional[Tuple[int, int, int, int]] = None,
@@ -1773,11 +1783,8 @@ class VisionService:
             x0, x1 = max(0, cx - box_half_w), min(w_s, cx + box_half_w)
             crop = screen_img[y0:y1, x0:x1]
             if crop.size > 0:
-                hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-                red1 = cv2.inRange(hsv, (0, 100, 100), (10, 255, 255))
-                red2 = cv2.inRange(hsv, (170, 100, 100), (180, 255, 255))
-                redness = float((red1 | red2).mean() / 255.0)
-                affordable = redness < 0.18
+                redness = VisionService.measure_cost_redness(crop)
+                affordable = redness < 0.02
                 if btn_type == "gold":
                     gold_affordable = affordable
                 else:
