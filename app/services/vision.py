@@ -144,8 +144,11 @@ BOTTOM_HALF_BOT_TEMPLATES = frozenset({
     "battlemachine.png",
     "findnow.png",
     "babydragon.png",
-    "surrender.png",
     "flyingmachine.png",
+})
+
+BOTTOM_LEFT_BOT_TEMPLATES = frozenset({
+    "surrender.png",
     "endbattle.png",
 })
 
@@ -221,6 +224,13 @@ class VisionService:
         h, w = screen_img.shape[:2]
         y0 = h // 2
         return (0, y0, w, h - y0)
+
+    @staticmethod
+    def bottom_left_region(screen_img: np.ndarray) -> Tuple[int, int, int, int]:
+        """ROI (x, y, w, h) strictly covering the bottom-left corner for battle controls (Surrender / End Battle).
+        Prevents any matching against troops or spells in the bottom deployment bar."""
+        h, w = screen_img.shape[:2]
+        return (0, int(h * 0.65), int(w * 0.25), int(h * 0.35))
 
     @staticmethod
     def top_half_region(screen_img: np.ndarray) -> Tuple[int, int, int, int]:

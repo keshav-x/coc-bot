@@ -7,7 +7,7 @@ from app.core.strategies import AttackStrategy, EdragStrategy, TroopSpamStrategy
 from app.core.upgrader import AUTO_UPGRADE_MODES, LIVE_UPGRADE_MODES, MODE_OFF, UpgradeAdvisor
 from app.core.village_state import read_hud_triplet_stable, read_village_state, read_village_state_stable
 from app.services.input import InputService
-from app.services.vision import BOTTOM_HALF_BOT_TEMPLATES, TOP_HALF_BOT_TEMPLATES, VisionService
+from app.services.vision import BOTTOM_HALF_BOT_TEMPLATES, BOTTOM_LEFT_BOT_TEMPLATES, TOP_HALF_BOT_TEMPLATES, VisionService
 from app.services.window import WindowService
 from app.utils.common import get_template_path
 from app.utils.logger import setup_logger
@@ -1746,26 +1746,69 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         return TroopSpamStrategy(self.input, self.vision, self.config, self.stop_event, 'sneaky', 15, status_callback = cb, earthquake_method = eq)
 
     
+    def _find_surrender_button(self, frame: np.ndarray) -> Tuple[Optional[int], Optional[int]]:
+        """Finds the Surrender button in the bottom-left corner via OCR or template.
+        Confined strictly to bottom_left_region to avoid matching spells/troops."""
+        bl_roi = VisionService.bottom_left_region(frame)
+        try:
+            (sx, sy) = self.vision.find_word_on_screen(
+                frame, 'Surrender', region=bl_roi, case_sensitive=False, fuzzy_min_ratio=0.75, white_text=True
+            )
+            if sx and sy:
+                return (sx, sy)
+        except Exception:
+            pass
+        return self.vision.find_template(frame, 'surrender.png', region=bl_roi, threshold=0.75)
+
+    def _find_end_battle_button(self, frame: np.ndarray) -> Tuple[Optional[int], Optional[int]]:
+        """Finds the End Battle button in the bottom-left corner via OCR or template."""
+        bl_roi = VisionService.bottom_left_region(frame)
+        try:
+            (bx, by) = self.vision.find_word_on_screen(
+                frame, 'End', region=bl_roi, case_sensitive=False, fuzzy_min_ratio=0.75, white_text=True
+            )
+            if bx and by:
+                return (bx, by)
+        except Exception:
+            pass
+        return self.vision.find_template(frame, 'endbattle.png', region=bl_roi, threshold=0.75)
+
+    def _surrender_battle(self, sx: int, sy: int):
+        '''Click surrender button in bottom-left and immediately confirm via Okay.'''
+        logger.info('Surrendering battle at (%d, %d)', sx, sy)
+        self.input.click(sx, sy, pause = 0.25)
+        (ox, oy) = self._wait_for_image('okay.png', timeout = 4, error = False)
+        if ox:
+            logger.info('Surrender confirmation: clicking okay.png at (%d, %d)', ox, oy)
+            self.input.click(ox, oy, pause = 0.2)
+
     def _wait_for_battle_end(self, is_sneaky):
         if is_sneaky:
             if self.stop_event.wait(3):
                 return None
-            (sx, sy) = self._wait_for_image('surrender.png', timeout = 2, error = False)
-            if sx:
-                self.input.click(sx, sy, pause = 0.1)
-                return None
-            (bx, by) = self._wait_for_image('endbattle.png', timeout = 2, error = False)
-            if bx:
-                self.input.click(bx, by, pause = 0.1)
-                return None
+            for _ in range(6):
+                self._check_stop()
+                frame = self.window.screenshot()
+                if frame is None:
+                    continue
+                (sx, sy) = self._find_surrender_button(frame)
+                if sx:
+                    self._surrender_battle(sx, sy)
+                    return None
+                (bx, by) = self._find_end_battle_button(frame)
+                if bx:
+                    self._surrender_battle(bx, by)
+                    return None
+                if self.stop_event.wait(0.5):
+                    return None
             return None
         (bx, by) = self._wait_for_image('endbattle.png', timeout = 60, error = False)
         if bx:
-            self.input.click(bx, by, pause = 0.1)
+            self._surrender_battle(bx, by)
             return None
         (sx, sy) = self._wait_for_image('surrender.png', timeout = 2, error = False)
         if sx:
-            self.input.click(sx, sy, pause = 0.1)
+            self._surrender_battle(sx, sy)
             return None
 
     
@@ -1901,18 +1944,18 @@ Returns (``"return"`` | ``"chest"``, x, y) or (None, None, None) on timeout.
                 continue
 
             # 2. Live battle detection: surrender/finish to return home
-            (sx, sy) = self.vision.find_template(frame, 'surrender.png')
+            (sx, sy) = self._find_surrender_button(frame)
             if sx:
                 logger.info('Recovery: live battle detected — surrendering to return home')
-                self.input.click(sx, sy, pause = 0.3)
+                self._surrender_battle(sx, sy)
                 if self.stop_event.wait(0.5):
                     return None
                 continue
 
-            (ebx, eby) = self.vision.find_template(frame, 'endbattle.png')
+            (ebx, eby) = self._find_end_battle_button(frame)
             if ebx:
                 logger.info('Recovery: end battle button detected — ending battle')
-                self.input.click(ebx, eby, pause = 0.3)
+                self._surrender_battle(ebx, eby)
                 if self.stop_event.wait(0.5):
                     return None
                 continue
@@ -2356,6 +2399,8 @@ OCR is limited to the right half of the window unless ``region`` is passed expli
             return (0, y0, w, y1 - y0)
         if template in TOP_HALF_BOT_TEMPLATES:
             return VisionService.top_half_region(frame)
+        if template in BOTTOM_LEFT_BOT_TEMPLATES:
+            return VisionService.bottom_left_region(frame)
         if template in BOTTOM_HALF_BOT_TEMPLATES:
             return VisionService.bottom_half_region(frame)
 
