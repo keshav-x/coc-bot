@@ -1814,25 +1814,31 @@ class VisionService:
         def is_builder_wall_label(b) -> bool:
             t = b.text.lower().strip()
             reject_keywords = (
-                "townhall", "town hall", "clan", "castle", "mine", "drill",
+                "hall", "town", "clan", "castle", "mine", "drill",
                 "cannon", "barracks", "camp", "lab", "forge", "storage",
                 "collector", "monolith", "workshop", "pet", "hut", "inferno",
                 "eagle", "scatter", "mortar", "tesla", "sweeper", "tower",
                 "hero", "king", "queen", "warden", "champion", "artillery",
-                "gold", "elixir", "dark", "upgrade"
+                "gold", "elixir", "dark", "upgrade", "defense", "trap", "bomb"
             )
             if any(k in t for k in reject_keywords):
                 return False
             # Normalize common OCR glyph confusions: 1 -> l, i -> l, vv -> w
             clean = t.replace("1", "l").replace("i", "l").replace("vv", "w")
             clean = re.sub(r"[^a-z0-9]", "", clean)
-            # Must contain "wal" (e.g. wall, walls, wal, tjwall, _jwalll)
+            if "hall" in clean:
+                return False
+            # Must strictly contain "wall" or "wal" starting with 'w'
             if "wall" in clean or "wal" in clean:
-                if "hall" in clean and "wall" not in clean.replace("hall", ""):
+                w_idx = clean.find("wal")
+                if w_idx > 1:
                     return False
                 return True
-            import difflib
-            return difflib.SequenceMatcher(None, clean, "wall").ratio() >= 0.75
+            # Fuzzy match only if clean starts with 'w'
+            if clean.startswith("w") and len(clean) >= 4:
+                import difflib
+                return difflib.SequenceMatcher(None, clean[:5], "walls" if "s" in clean else "wall").ratio() >= 0.80
+            return False
 
         words = [
             b for b in words

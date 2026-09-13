@@ -512,9 +512,8 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
 
 
     def _deselect_wall_ui(self):
-        '''Dismiss any open popup, send Escape, and tap safe top neutral ground outside any action bar.'''
+        '''Dismiss any open popup and tap safe top neutral ground to deselect any building/wall.'''
         self._dismiss_open_popup()
-        self.input.send_escape()
         top_pt = self.config.get_point('top')
         if top_pt:
             self.input.click(pause = 0.2, *top_pt)
@@ -533,7 +532,6 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         for _ in range(2):
             self._check_stop()
             self._upgrade_walls()
-            self._deselect_wall_ui()
         # Re-baseline after spending on walls so the spend is not counted as negative raid loot
         triplet = self._read_hud_triplet_stable()
         if triplet is not None:
@@ -1076,7 +1074,23 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         except Exception:
             pass
 
-        # 3. Template dismissal checks
+        # 3. Check for quit/exit confirmation prompt: if detected, click Cancel to stay in game
+        try:
+            (qx, qy) = self.vision.find_word_on_screen(frame, 'quit', case_sensitive=False, fuzzy_min_ratio=0.8)
+            if qx:
+                logger.warning('Quit game confirmation detected — clicking Cancel to stay in game')
+                (cx, cy) = self.vision.find_word_on_screen(frame, 'cancel', case_sensitive=False, fuzzy_min_ratio=0.8)
+                if cx:
+                    self.input.click(cx, cy, pause=0.25)
+                    return True
+                top_pt = self.config.get_point('top')
+                if top_pt:
+                    self.input.click(pause=0.25, *top_pt)
+                    return True
+        except Exception:
+            pass
+
+        # 4. Template dismissal checks
         names = ['okay.png', 'exit.png']
         for extra in ('claim_btn.png', 'chestcontinue.png', 'chestclaim.png', 'dailyreward_x.png', 'needgold_x.png'):
             if get_template_path(extra).exists():
