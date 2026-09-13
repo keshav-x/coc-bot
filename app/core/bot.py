@@ -1530,9 +1530,9 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
 
         next_roi = (
             int(round(w * 0.78)),
-            int(round(h * 0.72)),
-            int(round(w * 0.22)),
-            int(round(h * 0.28)),
+            int(round(h * 0.70)),
+            int(round(w * 0.20)),
+            int(round(h * 0.18)),
         )
         # Pass 1: Binarized white text OCR
         try:
@@ -1545,7 +1545,8 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                 white_text=True,
             )
             if nx is not None and ny is not None:
-                return (nx, ny)
+                if int(round(h * 0.65)) <= ny <= int(round(h * 0.88)):
+                    return (nx, ny)
         except Exception:
             pass
 
@@ -1560,22 +1561,28 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                 preprocess=False,
             )
             if nx is not None and ny is not None:
-                return (nx, ny)
+                if int(round(h * 0.65)) <= ny <= int(round(h * 0.88)):
+                    return (nx, ny)
         except Exception:
             pass
 
-        # Verify we are actually on a scout/attack screen before trusting default coordinates!
-        # On the Home Screen or in Shop, bottom-right is the SHOP button.
-        # Surrender or End Battle must be confirmed on screen before clicking default coords.
-        (sx, sy) = self._find_surrender_button(frame)
+        # Pass 3: Symmetrical horizontal reflection from End Battle or Surrender button.
+        # On the scout screen, the End Battle button sits in the bottom-left and Next sits in the bottom-right.
+        # Both buttons share the exact same vertical baseline (sy) and symmetrical horizontal margin.
+        (sx, sy) = self._find_end_battle_button(frame)
         if not sx:
-            (sx, sy) = self._find_end_battle_button(frame)
-        if sx:
-            default_x = int(round(w * 0.935))
-            default_y = int(round(h * 0.905))
-            return (default_x, default_y)
+            (sx, sy) = self._find_surrender_button(frame)
+        if sx and sy:
+            nx = w - sx
+            if nx < int(round(w * 0.82)) or nx > int(round(w * 0.98)):
+                nx = int(round(w * 0.925))
+            ny = sy
+            if ny < int(round(h * 0.65)) or ny > int(round(h * 0.88)):
+                ny = int(round(h * 0.786))
+            logger.info("Scout Next button aligned with battle button (%d, %d) -> (%d, %d)", sx, sy, nx, ny)
+            return (nx, ny)
 
-        logger.warning('_find_next_button: neither "Next" OCR nor scout templates (surrender/endbattle) found — refusing to click blind default coords (prevents accidental Shop clicks)')
+        logger.warning('_find_next_button: neither "Next" OCR nor scout templates (endbattle/surrender) found — refusing to click blind default coords (prevents accidental Shop clicks)')
         return (None, None)
 
     def _find_match_and_attack(self, method_id, ranked_fill = False):
@@ -1674,7 +1681,6 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
                             frame = retry_frame
                             (gold, elixir, dark_elixir) = (g2, e2, de2)
 
-            self._last_accepted_target_loot = (gold or 0, elixir or 0, dark_elixir or 0)
             logger.info(
                 'Scouted Base #%d: Gold=%s, Elixir=%s, DarkElixir=%s',
                 skip_count + 1,
@@ -1685,12 +1691,14 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
 
             # In ranked fill or when loot filter is disabled, accept the first base immediately
             if not filter_active:
+                self._last_accepted_target_loot = (gold or 0, elixir or 0, dark_elixir or 0)
                 if cb:
                     cb('Target accepted (filter inactive/ranked) — Attacking!')
                 break
 
             decision = self.loot_filter.evaluate(gold, elixir, dark_elixir, current_skip_count = skip_count)
             if decision.should_attack:
+                self._last_accepted_target_loot = (gold or 0, elixir or 0, dark_elixir or 0)
                 logger.info('Loot Filter ACCEPTED base: %s (after %d skips). Commencing attack!', decision.reason, skip_count)
                 if cb:
                     cb(f'Target accepted ({decision.reason}) — Attacking!')
@@ -1698,38 +1706,53 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
 
             # Filter rejected base — click Next
             logger.info('Loot Filter REJECTED base: %s. Skipping to next base...', decision.reason)
-            self.loot_filter.stats.record_skip()
-            skip_count += 1
             if cb:
-                cb(f'Skipping base ({decision.reason}) [{skip_count}/{max_skips}]')
+                cb(f'Skipping base ({decision.reason}) [{skip_count + 1}/{max_skips}]')
 
             (nx, ny) = self._find_next_button(frame)
             if not nx:
                 logger.warning('Scout screen lost or Next button not found — aborting scout loop to recover')
                 return None
+            logger.info('Clicking Next button at (%d, %d)', nx, ny)
             self.input.click(nx, ny, pause = 0.2)
 
             # Wait for battle buttons to vanish (clouds closing over old base)
             clouds_closed = False
-            for step in range(12):  # up to 3.0 seconds
+            f_check = None
+            for step in range(16):  # up to 4.0 seconds
                 if self.stop_event.wait(0.25):
                     return None
                 f_check = self.window.screenshot()
                 if f_check is None:
                     continue
-                (sx, _) = self._find_surrender_button(f_check)
-                (ebx, _) = self._find_end_battle_button(f_check)
-                if not sx and not ebx:
+                (sx, _) = self._find_end_battle_button(f_check)
+                if not sx:
+                    (sx, _) = self._find_surrender_button(f_check)
+                if not sx:
                     clouds_closed = True
                     break
-                if step == 9:  # After ~2.5s, if clouds still haven't closed, re-click Next in case previous click was eaten
-                    logger.info('Clouds did not close after 2.5s — re-clicking Next button')
+                if step in (6, 11):  # After ~1.5s and ~3.0s, re-click Next in case previous click was eaten
+                    logger.info('Clouds did not close after %.1fs — re-clicking Next button', (step + 1) * 0.25)
                     (rnx, rny) = self._find_next_button(f_check)
                     if rnx:
                         self.input.click(rnx, rny, pause = 0.2)
 
-            if not clouds_closed:
-                logger.info('Proceeding after cloud transition wait')
+            if clouds_closed:
+                self.loot_filter.stats.record_skip()
+                skip_count += 1
+            else:
+                logger.warning('Failed to skip base: clouds did not close after 4.0s of Next clicks (out of Gold or UI unresponsive)')
+                last_frame = f_check if f_check is not None else frame
+                (bx, by) = self._find_end_battle_button(last_frame)
+                if not bx:
+                    (bx, by) = self._find_surrender_button(last_frame)
+                if bx:
+                    logger.info('Returning home safely via End Battle at (%d, %d) to prevent attacking rejected base', bx, by)
+                    self._surrender_battle(bx, by)
+                    self._return_home()
+                else:
+                    logger.warning('Neither End Battle nor Surrender button found — aborting scout loop to recover')
+                return None
 
         self._last_raid_skips = skip_count
         (h, w) = frame.shape[:2]
