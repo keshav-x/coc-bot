@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app import __version__
 from app.ui.qt.branding import APP_NAME, APP_SUBTITLE, logo_pixmap
 from app.ui.qt.theme import SPACING, TOKENS
 from app.ui.qt.widgets import Card, PageTitle, SectionTitle
@@ -61,7 +62,7 @@ class AboutPage(QWidget):
         title_lbl.setStyleSheet(f"color: {TOKENS['accent_cyan']}; font-size: 22px; font-weight: bold;")
         title_row.addWidget(title_lbl)
 
-        ver_badge = QLabel("v1.0.0 PRO")
+        ver_badge = QLabel(f"v{__version__} PRO")
         ver_badge.setStyleSheet(
             f"background-color: {TOKENS['surface_hi']}; color: {TOKENS['accent_gold']}; "
             f"border: 1px solid {TOKENS['border_hi']}; padding: 3px 8px; border-radius: 4px; "
@@ -118,7 +119,7 @@ class AboutPage(QWidget):
             "• <b>Autonomous Wall Upgrader:</b> Prevents resource waste by automatically sinking excess gold & elixir into wall upgrades.<br>"
             "• <b>Tactical Hero Ability Timing:</b> Deploys King, Queen, Warden, and Champion with delayed ability activation.<br>"
             "• <b>Discord Webhooks:</b> Live raid reports, loot summaries, and status alerts sent straight to your phone.<br>"
-            "• <b>Multi-Platform Support:</b> 1-Click native execution on Windows, Linux, macOS, and Raspberry Pi."
+            "• <b>Multi-Platform Support:</b> 1-Click native execution on Windows, Linux, and macOS."
         )
         features_text.setTextFormat(Qt.TextFormat.RichText)
         features_text.setWordWrap(True)

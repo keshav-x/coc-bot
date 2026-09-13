@@ -41,7 +41,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-glx libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1
+          sudo apt-get install -y libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1
 
       - name: Install Python Dependencies
         run: |
@@ -92,13 +92,13 @@ jobs:
           path: release-assets
           merge-multiple: true
 
-      - name: Package Linux & Raspberry Pi Universal 1-Click Release
+      - name: Package Linux Universal 1-Click Release
         run: |
-          mkdir -p rpi-pkg/ApexClashPro
-          cp -r app assets templates tessdata main.py requirements.txt README.md install_linux.sh start_linux.sh start_mac.command install_mac.command start_windows.bat rpi-pkg/ApexClashPro/
-          chmod +x rpi-pkg/ApexClashPro/*.sh rpi-pkg/ApexClashPro/*.command
-          tar -czf release-assets/ApexClashPro-Linux-RaspberryPi-Universal.tar.gz -C rpi-pkg ApexClashPro
-          cd rpi-pkg && zip -r ../release-assets/ApexClashPro-macOS-Universal.zip ApexClashPro
+          mkdir -p linux-pkg/ApexClashPro
+          cp -r app assets templates tessdata main.py requirements.txt README.md install_linux.sh start_linux.sh start_mac.command install_mac.command start_windows.bat linux-pkg/ApexClashPro/
+          chmod +x linux-pkg/ApexClashPro/*.sh linux-pkg/ApexClashPro/*.command
+          tar -czf release-assets/ApexClashPro-Linux-Universal.tar.gz -C linux-pkg ApexClashPro
+          cd linux-pkg && zip -r ../release-assets/ApexClashPro-macOS-Universal.zip ApexClashPro
 
       - name: List Artifacts
         run: ls -la release-assets
@@ -124,8 +124,7 @@ jobs:
             | Operating System | Package | Architecture | Launch Method |
             | :--- | :--- | :--- | :--- |
             | 🪟 **Windows** | `ApexClashPro-Windows-x64.zip` | 64-bit (Windows 10/11) | Run `ApexClashPro.exe` |
-            | 🐧 **Linux** | `ApexClashPro-Linux-x64.tar.gz` | x86_64 | Run `./start_linux.sh` |
-            | 🍓 **Raspberry Pi & Linux** | `ApexClashPro-Linux-RaspberryPi-Universal.tar.gz` | ARM64 / aarch64 / armv7l / all Linux | Run `./install_linux.sh` |
+            | 🐧 **Linux** | `ApexClashPro-Linux-Universal.tar.gz` | x86_64, aarch64, all Linux | Run `./install_linux.sh` |
             | 🍎 **macOS** | `ApexClashPro-macOS-Universal.zip` | Apple Silicon / Intel | Double-click `start_mac.command` |
 
             ---

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Clash AutoLoot — Linux & Raspberry Pi 1-Click Installer
-# Supports: Ubuntu, Debian, Raspberry Pi OS (ARM64 / aarch64 / armv7l), Fedora, Arch
+# ApexClash Pro — Linux 1-Click Installer
+# Supports: Ubuntu, Debian, Fedora, Arch Linux
 # ==============================================================================
 
 set -e
@@ -10,29 +10,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "======================================================="
-echo "   ⚡ ApexClash Pro — 1-Click Linux & Raspberry Pi Setup"
+echo "   ⚡ ApexClash Pro — 1-Click Linux Setup"
 echo "======================================================="
 
 # Detect System & Architecture
 ARCH="$(uname -m)"
 OS_NAME="Linux"
-IS_RPI=false
 
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS_NAME="$NAME"
 fi
 
-if [ -f /proc/device-tree/model ] && grep -qi "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
-    IS_RPI=true
-elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "armv7l" ]; then
-    IS_RPI=true
-fi
-
 echo "[*] Detected OS: $OS_NAME ($ARCH)"
-if [ "$IS_RPI" = true ]; then
-    echo "[*] Device detected: Raspberry Pi / ARM architecture ($ARCH)"
-fi
 
 # Function: Install system libraries via package manager
 install_system_deps() {
@@ -47,7 +37,7 @@ install_system_deps() {
     fi
 
     if command -v apt-get >/dev/null 2>&1; then
-        echo "[*] Detected Debian / Ubuntu / Raspberry Pi OS (apt)..."
+        echo "[*] Detected Debian / Ubuntu (apt)..."
         if [ -n "$SUDO_CMD" ] || [ "$EUID" -eq 0 ]; then
             $SUDO_CMD apt-get update -y || true
             $SUDO_CMD apt-get install -y \
@@ -62,11 +52,6 @@ install_system_deps() {
                 libxcb-cursor0 \
                 tesseract-ocr \
                 libtesseract-dev || true
-
-            # On Raspberry Pi OS, also install system PySide6 if available
-            if [ "$IS_RPI" = true ]; then
-                $SUDO_CMD apt-get install -y python3-pyside6 python3-opencv || true
-            fi
         fi
     elif command -v dnf5 >/dev/null 2>&1; then
         echo "[*] Detected Fedora / RHEL (dnf5)..."
@@ -118,12 +103,7 @@ echo "[*] Found Python $PY_VER"
 VENV_DIR="$SCRIPT_DIR/.venv"
 if [ ! -d "$VENV_DIR" ]; then
     echo "[*] Creating virtual environment at $VENV_DIR..."
-    # If on Raspberry Pi, allow system site packages in case PySide6 or OpenCV was installed via apt
-    if [ "$IS_RPI" = true ]; then
-        python3 -m venv --system-site-packages "$VENV_DIR" || python3 -m venv "$VENV_DIR"
-    else
-        python3 -m venv "$VENV_DIR"
-    fi
+    python3 -m venv "$VENV_DIR"
 fi
 
 # Activate Virtual Environment
@@ -135,14 +115,8 @@ pip install --upgrade pip wheel setuptools --quiet
 # Install Python requirements
 echo "[*] Installing Python dependencies from requirements.txt..."
 if ! pip install -r requirements.txt; then
-    if [ "$IS_RPI" = true ]; then
-        echo "[!] Note: Standard pip install encountered an issue on ARM. Retrying with compatible flags..."
-        pip install --upgrade pip
-        pip install -r requirements.txt --extra-index-url https://www.piwheels.org/simple || true
-    else
-        echo "[!] Error installing requirements. Please check above logs."
-        exit 1
-    fi
+    echo "[!] Error installing requirements. Please check above logs."
+    exit 1
 fi
 
 # Ensure executable permissions on launcher scripts
@@ -177,7 +151,7 @@ StartupNotify=true"
     if [ -d "$HOME/Desktop" ]; then
         echo "$DESKTOP_ENTRY" > "$HOME/Desktop/ApexClashPro.desktop"
         chmod +x "$HOME/Desktop/ApexClashPro.desktop"
-        # On modern GNOME / Ubuntu / Pi OS, allow launching
+        # On modern GNOME / Ubuntu desktops, allow launching
         if command -v gio >/dev/null 2>&1; then
             gio set "$HOME/Desktop/ApexClashPro.desktop" metadata::trusted true 2>/dev/null || true
         fi
@@ -185,7 +159,7 @@ StartupNotify=true"
     fi
 }
 
-create_desktop_shortcut
+create_desktop_shortcut()
 
 echo ""
 echo "======================================================="

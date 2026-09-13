@@ -6,7 +6,7 @@
 ### *The Ultimate Autonomous Farming, Combat & Humanized Anti-Ban Suite for Clash of Clans*
 
 [![Release](https://img.shields.io/github/v/release/keshav-x/coc-bot?style=for-the-badge&color=00E5FF&label=Release)](https://github.com/keshav-x/coc-bot/releases)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Raspberry%20Pi-0078D4?style=for-the-badge)](https://github.com/keshav-x/coc-bot/releases)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D4?style=for-the-badge)](https://github.com/keshav-x/coc-bot/releases)
 [![Anti-Ban](https://img.shields.io/badge/Anti--Ban-Engine%203.0%20Active-22C55E?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
 [![Trial](https://img.shields.io/badge/Free%20Trial-2%20Hours%20Included-FFB300?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
 [![Python](https://img.shields.io/badge/Engine-OpenCV%20%2B%20Tesseract-5C3EE8?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
@@ -15,7 +15,7 @@
   <b>100% External Vision</b> • <b>Humanized Bézier Movement</b> • <b>Zero Memory Injection</b> • <b>24/7 Automated Loot Velocity</b>
 </p>
 
-[**📥 Download Latest Release**](https://github.com/keshav-x/coc-bot/releases/tag/v1.0.0) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**💬 Join Support on Discord**](https://discord.com)
+[**📥 Download Latest Release**](https://github.com/keshav-x/coc-bot/releases/tag/v1.1.0) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**💬 Join Support on Discord**](https://discord.com)
 
 </div>
 
@@ -86,12 +86,12 @@ Account safety is our highest priority. Unlike unsafe cheat tools that hook into
 ApexClash Pro is designed to be completely zero-friction on every major operating system:
 
 ### 🪟 Windows (1-Click Run)
-1. Download **`ApexClashPro-Windows-x64.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.0.0).
+1. Download **`ApexClashPro-Windows-x64.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.1.0).
 2. Extract the ZIP folder.
 3. Double-click **`ApexClashPro.exe`** to launch! *(Or double-click `start_windows.bat` if running from source)*.
 
-### 🐧 Linux & 🍓 Raspberry Pi (1-Click Setup)
-Full support for **Fedora**, **Ubuntu**, **Debian**, **Arch Linux**, and **Raspberry Pi OS (ARM64 / aarch64 / armv7l)**:
+### 🐧 Linux (1-Click Setup)
+Full support for **Fedora**, **Ubuntu**, **Debian**, and **Arch Linux**:
 
 #### ⚡ Universal 1-Line Git Command (Clone, Install & Run):
 On any Linux distribution, simply paste this one command into your terminal:
@@ -108,7 +108,7 @@ If you prefer to install system dependencies manually before running:
   # Fedora uses dnf (or dnf5 on Fedora 41+)
   sudo dnf install -y python3 python3-pip python3-devel mesa-libGL glib2 libxkbcommon-x11 xcb-util-cursor tesseract tesseract-devel git
   ```
-- **Ubuntu / Debian / Raspberry Pi OS (APT)**:
+- **Ubuntu / Debian (APT)**:
   ```bash
   sudo apt-get update && sudo apt-get install -y python3 python3-pip python3-venv python3-dev libgl1 libglib2.0-0 libxkbcommon-x11-0 libxcb-cursor0 tesseract-ocr git
   ```
@@ -125,7 +125,7 @@ After installation, start ApexClash Pro anytime with:
 *(Or double-click the **ApexClash Pro** icon on your Desktop / Application Menu).*
 
 ### 🍎 macOS (1-Click Finder Launch)
-1. Download **`ApexClashPro-macOS-Universal.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.0.0).
+1. Download **`ApexClashPro-macOS-Universal.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.1.0).
 2. Extract the archive in Finder.
 3. **Double-click `start_mac.command`** directly in Finder. It will configure the environment and open ApexClash Pro immediately!
 
@@ -179,7 +179,7 @@ ApexClash Pro includes an automatic **2-Hour Free Trial** on first launch — te
 ---
 
 ## 🔍 Tags & Keywords
-`clash-of-clans-bot` `coc-bot` `clash-bot` `clash-of-clans-automation` `coc-farming-bot` `sneaky-goblin-farm` `anti-ban` `opencv` `tesseract-ocr` `supercell-bot` `clash-bot-2026` `auto-loot` `wall-upgrader` `dead-base-finder` `raspberry-pi-bot` `macos-clash-bot` `windows-clash-bot`
+`clash-of-clans-bot` `coc-bot` `clash-bot` `clash-of-clans-automation` `coc-farming-bot` `sneaky-goblin-farm` `anti-ban` `opencv` `tesseract-ocr` `supercell-bot` `clash-bot-2026` `auto-loot` `wall-upgrader` `dead-base-finder` `macos-clash-bot` `windows-clash-bot` `linux-clash-bot`
 
 ---
 
