@@ -899,8 +899,32 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
         (fh, fw) = frame.shape[:2]
         scale = fw / 2560.0
 
-        # RULE: Always check for trying to add wall first!
-        # Check if Upgrade More button is available to open the multi-wall add/remove interface
+        def _safe_click(cx, cy, pause=0.3):
+            # Strict safety guard: NEVER click inside the left shore/boat dock area
+            # In COC 16:10 / 16:9, the boat is at x < 22% of width and y > 58% of height
+            if cx < int(fw * 0.22) and cy > int(fh * 0.58):
+                logger.warning('WALL SAFETY: Blocked click at (%d, %d) inside boat shore danger zone!', cx, cy)
+                return False
+            self.input.click(cx, cy, pause=pause)
+            return True
+
+        # 1. Expand selection: If 'Select Row' is available, click it to select the entire wall row
+        if actions.select_row:
+            logger.info('Wall upgrade: clicking Select Row at %s to select entire wall row', actions.select_row)
+            _safe_click(actions.select_row[0], actions.select_row[1], pause=0.45)
+            if self.stop_event.wait(0.4):
+                return None
+            frame = self.window.screenshot()
+            if frame is None:
+                self._deselect_wall_ui()
+                return None
+            self._update_config_size(frame)
+            if self._dismiss_gem_prompt_if_open(frame):
+                self._deselect_wall_ui()
+                return None
+            actions = VisionService.find_wall_upgrade_actions(frame)
+
+        # 2. Check if Upgrade More button is available to open the multi-wall add/remove interface
         upgrade_more_target = actions.upgrade_more
         if not upgrade_more_target:
             bot_roi = VisionService.bottom_half_region(frame)
@@ -912,7 +936,7 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
 
         if upgrade_more_target:
             logger.info('Wall upgrade: clicking Upgrade More at %s to check for adding walls', upgrade_more_target)
-            self.input.click(pause=0.45, *upgrade_more_target)
+            _safe_click(upgrade_more_target[0], upgrade_more_target[1], pause=0.45)
             if self.stop_event.wait(0.4):
                 return None
             frame = self.window.screenshot()
@@ -930,92 +954,121 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
 
         if awx and awy:
             logger.info('Wall upgrade: multi-wall add interface active (addwall at %d, %d)', awx, awy)
-            card_spacing = int(0.122 * fw)
-            rwx, rwy = awx - 2 * card_spacing, awy
-            gold_x, gold_y = awx + card_spacing, awy
-            elixir_x, elixir_y = awx + 2 * card_spacing, awy
+            card_spacing = int(0.120 * fw)
+            AFFORDABLE_THRESHOLD = 0.12
 
-            def _measure_card_redness(cx, cy, current_frame):
-                cx_cost = cx - int(20 * scale)
-                cy_cost = cy - int(45 * scale)
-                bw, bh = int(90 * scale), int(22 * scale)
+            def _get_card_coords(base_awx, base_awy):
+                gx = base_awx + card_spacing
+                ex = base_awx + 2 * card_spacing
+                return gx, ex, base_awy
+
+            def _measure_cost_red(cx, cy, current_frame):
+                cy_cost = cy - int(72 * scale)
+                bh = int(18 * scale)
+                bw = int(60 * scale)
                 h_f, w_f = current_frame.shape[:2]
                 y0 = max(0, cy_cost - bh)
                 y1 = min(h_f, cy_cost + bh)
-                x0 = max(0, cx_cost - bw)
-                x1 = min(w_f, cx_cost + bw)
+                x0 = max(0, cx - bw)
+                x1 = min(w_f, cx + int(20 * scale))
                 crop = current_frame[y0:y1, x0:x1]
                 return VisionService.measure_cost_redness(crop)
 
             # Check initial affordability of Elixir and Gold
-            elixir_red = _measure_card_redness(elixir_x, elixir_y, frame)
-            gold_red = _measure_card_redness(gold_x, gold_y, frame)
+            gx, ex, cy = _get_card_coords(awx, awy)
+            elixir_red = _measure_cost_red(ex, cy, frame)
+            gold_red = _measure_cost_red(gx, cy, frame)
             logger.info('Wall upgrade batch: initial redness Elixir=%.3f, Gold=%.3f', elixir_red, gold_red)
 
-            # 1. If initially unaffordable (e.g. 11 walls selected costing 16.5M),
+            # 1. If initially unaffordable (e.g. whole row selected costing more than storages),
             # remove walls one by one until affordable!
             removed_count = 0
-            for _ in range(15):
+            for _ in range(20):
                 self._check_stop()
-                if elixir_red < 0.02 or gold_red < 0.02:
+                if elixir_red < AFFORDABLE_THRESHOLD or gold_red < AFFORDABLE_THRESHOLD:
                     break
-                logger.info('Wall upgrade batch: cost is unaffordable (red) — clicking Remove Wall (-1)')
-                self.input.click(rwx, rwy, pause=0.3)
+                (rwx, rwy) = VisionService.find_active_removewall(frame, region=mid_roi)
+                if not rwx:
+                    logger.info('Wall upgrade batch: no Remove Wall control found on screen — at minimum walls')
+                    break
+                logger.info('Wall upgrade batch: cost is unaffordable (E=%.3f, G=%.3f) — clicking Remove Wall (-1) at (%d, %d)', elixir_red, gold_red, rwx, rwy)
+                _safe_click(rwx, rwy, pause=0.3)
                 removed_count += 1
                 if self.stop_event.wait(0.35):
                     return None
                 frame = self.window.screenshot()
                 if frame is None:
                     break
-                elixir_red = _measure_card_redness(elixir_x, elixir_y, frame)
-                gold_red = _measure_card_redness(gold_x, gold_y, frame)
+                (cur_awx, cur_awy) = VisionService.find_active_addwall(frame, region=mid_roi)
+                if cur_awx:
+                    awx, awy = cur_awx, cur_awy
+                gx, ex, cy = _get_card_coords(awx, awy)
+                elixir_red = _measure_cost_red(ex, cy, frame)
+                gold_red = _measure_cost_red(gx, cy, frame)
 
             if removed_count:
                 logger.info('Wall upgrade batch: removed %d wall(s) to reach affordable cost', removed_count)
 
             # 2. If affordable and not removed, try to add walls while it remains affordable!
-            if removed_count == 0 and (elixir_red < 0.02 or gold_red < 0.02):
+            gx, ex, cy = _get_card_coords(awx, awy)
+            elixir_red = _measure_cost_red(ex, cy, frame)
+            gold_red = _measure_cost_red(gx, cy, frame)
+            if removed_count == 0 and (elixir_red < AFFORDABLE_THRESHOLD or gold_red < AFFORDABLE_THRESHOLD):
                 added_count = 0
-                max_adds = 8
+                max_adds = 15
                 for _ in range(max_adds):
                     self._check_stop()
                     # Re-verify addwall button is still active
                     (cur_awx, cur_awy) = VisionService.find_active_addwall(frame, region=mid_roi)
                     if not cur_awx:
+                        logger.info('Wall upgrade batch: Add Wall button no longer active — reached end of adjacent walls')
                         break
                     logger.info('Wall upgrade batch: adding wall (+1) at (%d, %d)', cur_awx, cur_awy)
-                    self.input.click(cur_awx, cur_awy, pause=0.3)
+                    _safe_click(cur_awx, cur_awy, pause=0.3)
                     added_count += 1
                     if self.stop_event.wait(0.35):
                         return None
                     frame = self.window.screenshot()
                     if frame is None:
                         break
-                    elixir_red = _measure_card_redness(elixir_x, elixir_y, frame)
-                    gold_red = _measure_card_redness(gold_x, gold_y, frame)
-                    if elixir_red >= 0.02 and gold_red >= 0.02:
+                    (next_awx, next_awy) = VisionService.find_active_addwall(frame, region=mid_roi)
+                    if next_awx:
+                        awx, awy = next_awx, next_awy
+                    gx, ex, cy = _get_card_coords(awx, awy)
+                    elixir_red = _measure_cost_red(ex, cy, frame)
+                    gold_red = _measure_cost_red(gx, cy, frame)
+                    if elixir_red >= AFFORDABLE_THRESHOLD and gold_red >= AFFORDABLE_THRESHOLD:
                         # Cost turned red: remove the last wall added to restore affordability
-                        logger.info('Wall upgrade batch: cost exceeded budget after adding — clicking Remove Wall (-1)')
-                        self.input.click(rwx, rwy, pause=0.3)
-                        if self.stop_event.wait(0.35):
-                            return None
-                        frame = self.window.screenshot()
-                        if frame is not None:
-                            elixir_red = _measure_card_redness(elixir_x, elixir_y, frame)
-                            gold_red = _measure_card_redness(gold_x, gold_y, frame)
+                        logger.info('Wall upgrade batch: cost exceeded budget after adding (E=%.3f, G=%.3f) — reverting last addition', elixir_red, gold_red)
+                        (rwx, rwy) = VisionService.find_active_removewall(frame, region=mid_roi)
+                        if rwx:
+                            _safe_click(rwx, rwy, pause=0.3)
+                            if self.stop_event.wait(0.35):
+                                return None
+                            frame = self.window.screenshot()
+                            if frame is not None:
+                                (next_awx, next_awy) = VisionService.find_active_addwall(frame, region=mid_roi)
+                                if next_awx:
+                                    awx, awy = next_awx, next_awy
+                                gx, ex, cy = _get_card_coords(awx, awy)
+                                elixir_red = _measure_cost_red(ex, cy, frame)
+                                gold_red = _measure_cost_red(gx, cy, frame)
                         break
 
                 if added_count:
                     logger.info('Wall upgrade batch: added %d wall(s) to upgrade batch', added_count)
 
             # 3. Now execute the batch upgrade (prefer Elixir over Gold)
-            if elixir_red < 0.02:
-                logger.info('Wall upgrade batch: paying with Elixir at (%d, %d)', elixir_x, elixir_y)
-                self.input.click(elixir_x, elixir_y, pause=0.4)
+            gx, ex, cy = _get_card_coords(awx, awy)
+            elixir_red = _measure_cost_red(ex, cy, frame)
+            gold_red = _measure_cost_red(gx, cy, frame)
+            if elixir_red < AFFORDABLE_THRESHOLD:
+                logger.info('Wall upgrade batch: paying with Elixir at (%d, %d)', ex, cy)
+                _safe_click(ex, cy, pause=0.4)
                 upgraded = True
-            elif gold_red < 0.02:
-                logger.info('Wall upgrade batch: paying with Gold at (%d, %d)', gold_x, gold_y)
-                self.input.click(gold_x, gold_y, pause=0.4)
+            elif gold_red < AFFORDABLE_THRESHOLD:
+                logger.info('Wall upgrade batch: paying with Gold at (%d, %d)', gx, cy)
+                _safe_click(gx, cy, pause=0.4)
                 upgraded = True
             else:
                 logger.warning('Wall upgrade batch: neither resource affordable (Elixir=%.3f, Gold=%.3f) — skipping', elixir_red, gold_red)
@@ -1025,11 +1078,11 @@ past the bottom is a harmless no-op, so this can be called repeatedly.
             cur_actions = actions
             if cur_actions.elixir_upgrade and cur_actions.elixir_affordable:
                 logger.info('Wall upgrade: single wall with elixir at %s', cur_actions.elixir_upgrade)
-                self.input.click(*cur_actions.elixir_upgrade, pause=0.4)
+                _safe_click(cur_actions.elixir_upgrade[0], cur_actions.elixir_upgrade[1], pause=0.4)
                 upgraded = True
             elif cur_actions.gold_upgrade and cur_actions.gold_affordable:
                 logger.info('Wall upgrade: single wall with gold at %s', cur_actions.gold_upgrade)
-                self.input.click(*cur_actions.gold_upgrade, pause=0.4)
+                _safe_click(cur_actions.gold_upgrade[0], cur_actions.gold_upgrade[1], pause=0.4)
                 upgraded = True
             else:
                 logger.info('Wall upgrade: single wall neither elixir nor gold affordable')
@@ -2052,32 +2105,26 @@ Returns (``"return"`` | ``"chest"``, x, y) or (None, None, None) on timeout.
                             return None
                         break
 
-            # 4. Check if Home Village HUD is fully visible and active
+            # 4. Check if stranded in Builder Base: Master Builder portrait in top HUD
+            # CRITICAL: ONLY rely on mbuilder.png in top_roi! NEVER search for 'nboat.png'
+            # across the whole screen because nboat.png falsely matches the Home Village boat!
             top_roi = VisionService.top_half_region(frame)
-            home_roi = VisionService.bottom_half_region(frame)
-            (ax, ay) = self.vision.find_template(frame, 'attack.png', region = home_roi)
-            (hx, hy) = self._find_home_village_builder(frame, top_roi)
-            if ax or hx:
-                self._reload_first_seen = None
-                self._deselect_wall_ui()
-                return None
-
-            # 5. Stranded in Builder Base check: leave via nboat to return to Home Village
-            # (Note: NEVER search for or click 'boat.png' here! 'boat.png' is in Home Village and opens Builder Base!)
-            is_bb = False
             (mx, my) = self.vision.find_template(frame, 'mbuilder.png', region = top_roi)
             if mx:
-                is_bb = True
-            elif get_template_path('nboat.png').exists():
-                (nx, ny) = self.vision.find_template(frame, 'nboat.png', threshold = 0.72)
-                if nx:
-                    is_bb = True
-            if is_bb:
-                logger.info('Recovery: stranded in Builder Base — leaving via nboat to return to Home Village')
+                logger.info('Recovery: stranded in Builder Base (mbuilder.png detected) — leaving via nboat to return to Home Village')
                 self._leave_builder_base_with_nboat(settle_before_drag = False)
                 if self.stop_event.wait(1.0):
                     return None
                 continue
+
+            # 5. Check if Home Village HUD is fully visible and active
+            home_roi = VisionService.bottom_half_region(frame)
+            (ax, ay) = self.vision.find_template(frame, 'attack.png', region = home_roi)
+            (hx, hy) = self._find_home_village_builder(frame, top_roi)
+            if hx or ax:
+                self._reload_first_seen = None
+                self._deselect_wall_ui()
+                return None
 
             # 6. Connection reload dialog handling
             if get_template_path('reload.png').exists():
@@ -2272,6 +2319,10 @@ Does not check ``mbuilder.png`` first — call only when a BB→HV trip is inten
 dimensions and dragging.
 '''
         self._check_stop()
+        village = self._detect_village_type()
+        if village == 'home':
+            logger.info('Already in Home Village (builder portrait verified); skipping _leave_builder_base_with_nboat')
+            return True
         if settle_before_drag and self.stop_event.wait(0.75):
             self._check_stop()
         logger.info('Leaving Builder Base (drag + nboat)')
@@ -2282,8 +2333,10 @@ dimensions and dragging.
         (nx, ny) = self._wait_for_image('nboat.png', timeout = 12, error = False)
         if nx:
             self.input.click(nx, ny, pause = 0.25)
-            return None
+            self.stop_event.wait(1.5)
+            return True
         logger.warning('nboat.png not found after Builder Base drag — may still be in Builder Base')
+        return False
 
     
     def _multi_run_collect_home_village_resources(self):

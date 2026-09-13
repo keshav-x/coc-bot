@@ -542,10 +542,10 @@ class VisionService:
         """Fraction of pixels in Clash of Clans red font within a cost crop."""
         if crop is None or crop.size == 0:
             return 0.0
-        hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-        red1 = cv2.inRange(hsv, (0, 35, 80), (25, 255, 255))
-        red2 = cv2.inRange(hsv, (160, 35, 80), (180, 255, 255))
-        return float((red1 | red2).mean() / 255.0)
+        b, g, r = cv2.split(crop.astype(float))
+        # In Clash of Clans, unaffordable cost text is salmon/red (R > 150, R > G + 25, R > B + 25)
+        red_mask = (r > 150) & (r > g + 25) & (r > b + 25)
+        return float(red_mask.mean())
 
     @staticmethod
     def find_active_addwall(
@@ -591,6 +591,43 @@ class VisionService:
             return (None, None)
         # Select rightmost button (+1) rather than leftmost (+10)
         return max(passing, key=lambda pt: pt[0])
+
+    @staticmethod
+    def find_active_removewall(
+        screen_img: np.ndarray,
+        region: Optional[Tuple[int, int, int, int]] = None,
+        *,
+        template_threshold: float = 0.70,
+        yellow_threshold: float = 0.15,
+        max_matches: int = 16,
+    ) -> Tuple[Optional[int], Optional[int]]:
+        """Locate an active Remove Wall (-1) control via ``removewall.png``."""
+        matches = VisionService._find_template_matches(
+            screen_img,
+            "removewall.png",
+            template_threshold,
+            region,
+            max_matches=max_matches,
+        )
+        if not matches:
+            return (None, None)
+
+        frame_h, frame_w = screen_img.shape[:2]
+        passing = []
+        for left, top, tw, th, _score in matches:
+            x0 = max(0, min(int(left), frame_w))
+            y0 = max(0, min(int(top), frame_h))
+            x1 = max(0, min(int(left) + int(tw), frame_w))
+            y1 = max(0, min(int(top) + int(th), frame_h))
+            crop = screen_img[y0:y1, x0:x1]
+            if VisionService.yellow_fraction(crop) < yellow_threshold:
+                continue
+            passing.append((int(left) + int(tw) // 2, int(top) + int(th) // 2))
+
+        if not passing:
+            return (None, None)
+        # Select leftmost button (-1)
+        return min(passing, key=lambda pt: pt[0])
 
     @staticmethod
     def yellow_fraction(
