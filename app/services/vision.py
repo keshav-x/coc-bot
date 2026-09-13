@@ -1834,7 +1834,7 @@ class VisionService:
             crop = screen_img[y0:y1, x0:x1]
             if crop.size > 0:
                 redness = VisionService.measure_cost_redness(crop)
-                affordable = redness < 0.02
+                affordable = redness < 0.12
                 if btn_type == "gold":
                     gold_affordable = affordable
                 else:
