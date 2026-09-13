@@ -15,7 +15,7 @@
   <b>100% External Vision</b> • <b>Humanized Bézier Movement</b> • <b>Zero Memory Injection</b> • <b>24/7 Automated Loot Velocity</b>
 </p>
 
-[**📥 Download Latest Release**](https://github.com/keshav-x/coc-bot/releases/tag/v1.1.0) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**💬 Join Support on Discord**](https://discord.com)
+[**📥 Download Latest Release**](https://github.com/keshav-x/coc-bot/releases/tag/v1.2) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**💬 Join Support on Discord**](https://discord.com)
 
 </div>
 
@@ -86,7 +86,7 @@ Account safety is our highest priority. Unlike unsafe cheat tools that hook into
 ApexClash Pro is designed to be completely zero-friction on every major operating system:
 
 ### 🪟 Windows (1-Click Run)
-1. Download **`ApexClashPro-Windows-x64.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.1.0).
+1. Download **`ApexClashPro-Windows-x64.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.2).
 2. Extract the ZIP folder.
 3. Double-click **`ApexClashPro.exe`** to launch! *(Or double-click `start_windows.bat` if running from source)*.
 
@@ -125,7 +125,7 @@ After installation, start ApexClash Pro anytime with:
 *(Or double-click the **ApexClash Pro** icon on your Desktop / Application Menu).*
 
 ### 🍎 macOS (1-Click Finder Launch)
-1. Download **`ApexClashPro-macOS-Universal.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.1.0).
+1. Download **`ApexClashPro-macOS-Universal.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.2).
 2. Extract the archive in Finder.
 3. **Double-click `start_mac.command`** directly in Finder. It will configure the environment and open ApexClash Pro immediately!
 
