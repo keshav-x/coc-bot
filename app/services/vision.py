@@ -1813,7 +1813,9 @@ class VisionService:
             return WallUpgradeActionInfo()
 
         # Combine hammer template detections and OCR upgrade centers
-        upgrade_centers = hammers if hammers else ocr_upgrades
+        # When hammers are absent, OCR "Upgrade" words are at the bottom of the card (~1345 on 2560);
+        # normalize them upward by ~78*scale to match the card center (~1267 on 2560).
+        upgrade_centers = hammers if hammers else [(p[0], p[1] - int(78 * scale)) for p in ocr_upgrades]
         if upgrade_centers:
             if len(upgrade_centers) >= 2:
                 gold_pt = upgrade_centers[0]
@@ -1826,15 +1828,15 @@ class VisionService:
             if pt is None:
                 continue
             cx, cy = pt
-            cy_cost = cy - int(60 * scale)
-            box_half_w = int(70 * scale)
-            box_half_h = int(25 * scale)
+            cy_cost = cy - int(58 * scale)
+            box_half_w = int(65 * scale)
+            box_half_h = int(22 * scale)
             y0, y1 = max(0, cy_cost - box_half_h), min(h_s, cy_cost + box_half_h)
             x0, x1 = max(0, cx - box_half_w), min(w_s, cx + box_half_w)
             crop = screen_img[y0:y1, x0:x1]
             if crop.size > 0:
                 redness = VisionService.measure_cost_redness(crop)
-                affordable = redness < 0.12
+                affordable = redness < 0.18
                 if btn_type == "gold":
                     gold_affordable = affordable
                 else:
