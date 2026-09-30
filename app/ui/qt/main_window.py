@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import platform
 import sys
+from typing import Optional
 
 from PySide6.QtCore import QSettings, QTimer, Qt
 from PySide6.QtGui import QCloseEvent

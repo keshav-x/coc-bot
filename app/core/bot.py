@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import time
 import random
 import threading
 from typing import Callable, List, Optional, Tuple
+
+import numpy as np
 from app.config import ASPECT_16_10, ASPECT_16_9, Config
 from app.core.strategies import AttackStrategy, EdragStrategy, TroopSpamStrategy, _EDRAG_DELAY
 from app.core.upgrader import AUTO_UPGRADE_MODES, LIVE_UPGRADE_MODES, MODE_OFF, UpgradeAdvisor
