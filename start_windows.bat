@@ -7,6 +7,12 @@ echo    ⚡ ApexClash Pro - Windows 1-Click Launcher
 echo =======================================================
 
 
+if exist "ApexClashPro.exe" (
+    echo [*] Launching ApexClash Pro...
+    start "" "ApexClashPro.exe" %*
+    exit /b 0
+)
+
 if not exist ".venv\Scripts\activate.bat" (
     echo [*] First time setup detected. Creating virtual environment...
     python -m venv .venv

@@ -37,23 +37,25 @@ class NotificationService:
                     _tray_instance.showMessage(title, message, QSystemTrayIcon.MessageIcon.Information, msecs)
                     return
 
-                # PowerShell fallback if tray icon is not attached
-                import subprocess
-                clean_title = title.replace('"', '\\"')
-                clean_msg = message.replace('"', '\\"')
-                ps_script = (
-                    f'[reflection.assembly]::loadwithpartialname("System.Windows.Forms"); '
-                    f'$notify = new-object system.windows.forms.notifyicon; '
-                    f'$notify.icon = [system.drawing.systemicons]::information; '
-                    f'$notify.visible = $true; '
-                    f'$notify.showballoontip(5000, "{clean_title}", "{clean_msg}", [system.windows.forms.tooltipicon]::info);'
-                )
-                subprocess.Popen(
-                    ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_script],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    creationflags=0x08000000,  # CREATE_NO_WINDOW
-                )
+                # PowerShell fallback if tray icon is not attached (Windows only)
+                import sys
+                if sys.platform == "win32":
+                    import subprocess
+                    clean_title = title.replace('"', '\\"')
+                    clean_msg = message.replace('"', '\\"')
+                    ps_script = (
+                        f'[reflection.assembly]::loadwithpartialname("System.Windows.Forms"); '
+                        f'$notify = new-object system.windows.forms.notifyicon; '
+                        f'$notify.icon = [system.drawing.systemicons]::information; '
+                        f'$notify.visible = $true; '
+                        f'$notify.showballoontip(5000, "{clean_title}", "{clean_msg}", [system.windows.forms.tooltipicon]::info);'
+                    )
+                    subprocess.Popen(
+                        ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_script],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        creationflags=0x08000000,  # CREATE_NO_WINDOW
+                    )
             except Exception as e:
                 logger.debug(f"Could not send native desktop notification: {e}")
 

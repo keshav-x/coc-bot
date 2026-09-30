@@ -10,6 +10,12 @@ cd "$SCRIPT_DIR"
 
 VENV_DIR="$SCRIPT_DIR/.venv"
 
+# If running from a compiled distribution package, launch binary directly
+if [ -f "$SCRIPT_DIR/ApexClashPro" ]; then
+    chmod +x "$SCRIPT_DIR/ApexClashPro"
+    exec "$SCRIPT_DIR/ApexClashPro" "$@"
+fi
+
 # If not installed yet, run 1-click installer first
 if [ ! -d "$VENV_DIR" ] || [ ! -f "$VENV_DIR/bin/activate" ]; then
     echo "[*] First time launch detected. Running 1-click installer..."

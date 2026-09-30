@@ -14,6 +14,12 @@ echo "======================================================="
 echo "   ⚡ ApexClash Pro — macOS Launcher"
 echo "======================================================="
 
+# If running from a compiled distribution package, launch binary directly
+if [ -f "$SCRIPT_DIR/ApexClashPro" ]; then
+    chmod +x "$SCRIPT_DIR/ApexClashPro"
+    exec "$SCRIPT_DIR/ApexClashPro" "$@"
+fi
+
 # If virtual environment is missing, run installer automatically
 if [ ! -d "$VENV_DIR" ] || [ ! -f "$VENV_DIR/bin/activate" ]; then
     echo "[*] First run detected. Initializing 1-click setup..."

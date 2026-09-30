@@ -13,13 +13,22 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
+import sys
 import threading
 import time
-import winreg
+from datetime import date, datetime
 from enum import Enum, auto
 from pathlib import Path
-from datetime import date, datetime
 from typing import Callable, Optional
+
+if sys.platform == "win32":
+    try:
+        import winreg
+    except ImportError:
+        winreg = None
+else:
+    winreg = None
 
 import requests
 
@@ -72,14 +81,32 @@ class HardwareFingerprint:
 
     @classmethod
     def _machine_guid(cls) -> str:
+        if sys.platform == "win32" and winreg is not None:
+            try:
+                key = winreg.OpenKey(
+                    winreg.HKEY_LOCAL_MACHINE,
+                    r"SOFTWARE\Microsoft\Cryptography",
+                )
+                value, _ = winreg.QueryValueEx(key, "MachineGuid")
+                winreg.CloseKey(key)
+                return str(value).strip()
+            except Exception:
+                pass
+
+        # Linux / macOS machine-id fallbacks
+        for path in ("/etc/machine-id", "/var/lib/dbus/machine-id"):
+            try:
+                p = Path(path)
+                if p.is_file():
+                    mid = p.read_text(encoding="utf-8").strip()
+                    if mid:
+                        return mid
+            except Exception:
+                pass
+
         try:
-            key = winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE,
-                r"SOFTWARE\Microsoft\Cryptography",
-            )
-            value, _ = winreg.QueryValueEx(key, "MachineGuid")
-            winreg.CloseKey(key)
-            return str(value).strip()
+            import uuid
+            return str(uuid.getnode())
         except Exception:
             return "<unavailable>"
 
