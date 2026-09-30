@@ -11,22 +11,8 @@ permissions:
 
 jobs:
   build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            artifact_name: ApexClashPro-Windows-x64.zip
-            platform: windows
-          - os: ubuntu-latest
-            artifact_name: ApexClashPro-Linux-x64.tar.gz
-            platform: linux
-          - os: macos-latest
-            artifact_name: ApexClashPro-macOS-x64.zip
-            platform: macos
-
+    name: Build (Windows x64)
+    runs-on: windows-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -36,12 +22,6 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-
-      - name: Install Linux GUI Dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1
 
       - name: Install Python Dependencies
         run: |
@@ -54,29 +34,16 @@ jobs:
           pyinstaller ApexClashPro.spec
 
       - name: Package Release (Windows)
-        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           Copy-Item start_windows.bat dist/ApexClashPro/ -ErrorAction SilentlyContinue
-          Compress-Archive -Path dist/ApexClashPro/* -DestinationPath ${{ matrix.artifact_name }}
-
-      - name: Package Release (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          cp install_linux.sh start_linux.sh dist/ApexClashPro/ 2>/dev/null || true
-          tar -czf ${{ matrix.artifact_name }} -C dist ApexClashPro
-
-      - name: Package Release (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          cp start_mac.command install_mac.command dist/ApexClashPro/ 2>/dev/null || true
-          cd dist && zip -r ../${{ matrix.artifact_name }} ApexClashPro
+          Compress-Archive -Path dist/ApexClashPro/* -DestinationPath ApexClashPro-Windows-x64.zip
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}-build
-          path: ${{ matrix.artifact_name }}
+          name: windows-build
+          path: ApexClashPro-Windows-x64.zip
 
   publish:
     name: Publish GitHub Release
@@ -86,22 +53,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Download All Build Artifacts
+      - name: Download Build Artifact
         uses: actions/download-artifact@v4
         with:
+          name: windows-build
           path: release-assets
-          merge-multiple: true
-
-      - name: Package Linux Universal 1-Click Release
-        run: |
-          mkdir -p linux-pkg/ApexClashPro
-          cp -r app assets templates tessdata main.py requirements.txt README.md install_linux.sh start_linux.sh start_mac.command install_mac.command start_windows.bat linux-pkg/ApexClashPro/
-          chmod +x linux-pkg/ApexClashPro/*.sh linux-pkg/ApexClashPro/*.command
-          tar -czf release-assets/ApexClashPro-Linux-Universal.tar.gz -C linux-pkg ApexClashPro
-          cd linux-pkg && zip -r ../release-assets/ApexClashPro-macOS-Universal.zip ApexClashPro
-
-      - name: List Artifacts
-        run: ls -la release-assets
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -113,19 +69,19 @@ jobs:
           prerelease: false
           files: release-assets/*
           body: |
-            # ApexClash Pro — Official Multi-Platform Release
+            # ApexClash Pro — Official Release
 
             High-velocity autonomous farming bot for **Clash of Clans** powered by OpenCV template matching, Tesseract OCR loot filtration, and human-like Bézier antiban movement.
 
             ---
 
-            ## 📥 Downloads & 1-Click Launchers
+            ## 📥 Download
 
             | Operating System | Package | Architecture | Launch Method |
             | :--- | :--- | :--- | :--- |
             | 🪟 **Windows** | `ApexClashPro-Windows-x64.zip` | 64-bit (Windows 10/11) | Run `ApexClashPro.exe` |
-            | 🐧 **Linux** | `ApexClashPro-Linux-Universal.tar.gz` | x86_64, aarch64, all Linux | Run `./install_linux.sh` |
-            | 🍎 **macOS** | `ApexClashPro-macOS-Universal.zip` | Apple Silicon / Intel | Double-click `start_mac.command` |
+
+            > ℹ️ **macOS & Linux Users**: Google Play Games on PC is currently a Windows-exclusive application. macOS and Linux users can run ApexClash Pro through a Windows 10/11 Virtual Machine (e.g. Parallels Desktop, VMware Fusion, or KVM) with virtualization enabled. Native ADB mode for direct Android control is in development.
 
             ---
 

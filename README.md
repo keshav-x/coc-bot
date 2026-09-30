@@ -6,7 +6,7 @@
 ### *The Ultimate Autonomous Farming, Combat & Humanized Anti-Ban Suite for Clash of Clans*
 
 [![Release](https://img.shields.io/github/v/release/keshav-x/coc-bot?style=for-the-badge&color=00E5FF&label=Release)](https://github.com/keshav-x/coc-bot/releases)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D4?style=for-the-badge)](https://github.com/keshav-x/coc-bot/releases)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20(64--bit)-0078D4?style=for-the-badge)](https://github.com/keshav-x/coc-bot/releases)
 [![Anti-Ban](https://img.shields.io/badge/Anti--Ban-Engine%203.0%20Active-22C55E?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
 [![Trial](https://img.shields.io/badge/Free%20Trial-2%20Hours%20Included-FFB300?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
 [![Python](https://img.shields.io/badge/Engine-OpenCV%20%2B%20Tesseract-5C3EE8?style=for-the-badge)](https://github.com/keshav-x/coc-bot)
@@ -15,7 +15,7 @@
   <b>100% External Vision</b> • <b>Humanized Bézier Movement</b> • <b>Zero Memory Injection</b> • <b>24/7 Automated Loot Velocity</b>
 </p>
 
-[**📥 Download Latest Release**](https://github.com/keshav-x/coc-bot/releases/tag/v1.3) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**💬 Join Support on Discord**](https://discord.com)
+[**📥 Download Latest Release**](https://github.com/keshav-x/coc-bot/releases/tag/v1.3.1) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**💬 Join Support on Discord**](https://discord.com)
 
 </div>
 
@@ -81,53 +81,24 @@ Account safety is our highest priority. Unlike unsafe cheat tools that hook into
 
 ---
 
-## 🚀 1-Click Installation & Launch Guide
+## 🖥️ System Requirements & Supported Platforms
 
-ApexClash Pro is designed to be completely zero-friction on every major operating system:
+| Component | Requirement |
+| :--- | :--- |
+| **Operating System** | **Windows 10 / Windows 11 (64-bit)** |
+| **Game Client** | **[Google Play Games on PC](https://play.google.com/googleplaygames)** *(Official Supercell-supported client, recommended)* or **BlueStacks 5** |
+| **Display** | 1080p, 1440p, or 4K with 16:9 or 16:10 aspect ratio |
+| **macOS & Linux** | Google Play Games on PC and the low-level Win32 visual capture pipeline are Windows-native. macOS and Linux users can run ApexClash Pro smoothly inside a **Windows 10/11 Virtual Machine** (e.g. Parallels Desktop, VMware Fusion, or KVM) with virtualization enabled. Native ADB mode for direct Android control is planned for a future update. |
 
-### 🪟 Windows (1-Click Run)
-1. Download **`ApexClashPro-Windows-x64.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.3).
-2. Extract the ZIP folder.
-3. Double-click **`ApexClashPro.exe`** to launch! *(Or double-click `start_windows.bat` if running from source)*.
+---
 
-### 🐧 Linux (1-Click Setup)
-Full support for **Fedora**, **Ubuntu**, **Debian**, and **Arch Linux**:
+## 🚀 1-Click Launch Guide (Windows)
 
-#### ⚡ Universal 1-Line Git Command (Clone, Install & Run):
-On any Linux distribution, simply paste this one command into your terminal:
-```bash
-git clone https://github.com/keshav-x/coc-bot.git && cd coc-bot && chmod +x install_linux.sh start_linux.sh && ./install_linux.sh
-```
-*The script auto-detects your distribution, configures required libraries, sets up the virtual environment, creates an **ApexClash Pro** desktop shortcut, and starts the bot!*
-
-#### 📦 Distro-Specific Prerequisites (Manual / Source):
-If you prefer to install system dependencies manually before running:
-
-- **Fedora / RHEL (DNF / DNF5)**:
-  ```bash
-  # Fedora uses dnf (or dnf5 on Fedora 41+)
-  sudo dnf install -y python3 python3-pip python3-devel mesa-libGL glib2 libxkbcommon-x11 xcb-util-cursor tesseract tesseract-devel git
-  ```
-- **Ubuntu / Debian (APT)**:
-  ```bash
-  sudo apt-get update && sudo apt-get install -y python3 python3-pip python3-venv python3-dev libgl1 libglib2.0-0 libxkbcommon-x11-0 libxcb-cursor0 tesseract-ocr git
-  ```
-- **Arch Linux (Pacman)**:
-  ```bash
-  sudo pacman -Sy --noconfirm python python-pip mesa glib2 libxkbcommon xcb-util-cursor tesseract git
-  ```
-
-#### 🚀 Daily Launch:
-After installation, start ApexClash Pro anytime with:
-```bash
-./start_linux.sh
-```
-*(Or double-click the **ApexClash Pro** icon on your Desktop / Application Menu).*
-
-### 🍎 macOS (1-Click Finder Launch)
-1. Download **`ApexClashPro-macOS-Universal.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.3).
-2. Extract the archive in Finder.
-3. **Double-click `start_mac.command`** directly in Finder. It will configure the environment and open ApexClash Pro immediately!
+1. Download **`ApexClashPro-Windows-x64.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.3.1).
+2. Extract the ZIP folder to any directory on your PC.
+3. Double-click **`ApexClashPro.exe`** to launch! *(Or double-click `start_windows.bat`)*.
+4. Launch Google Play Games on PC, open Clash of Clans, and ensure the village is loaded.
+5. In ApexClash Pro, configure your preferred strategy, set your Loot Filter limits, and click **Start Bot**!
 
 ---
 
