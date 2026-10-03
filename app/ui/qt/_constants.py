@@ -28,7 +28,7 @@ PAGE_LICENSE = "license"
 
 CONTACT_EMAIL = "keshavchaudhary2609@gmail.com"
 CONTACT_REDDIT = "post_matrix"
-CONTACT_TELEGRAM = "@Apexlegend_pro_bot"
+CONTACT_TELEGRAM = "@keshavchaudhary0025"
 
 STRIPE_LIFETIME_URL = "https://keshav-x.github.io/coc-bot/?pack=lifetime"
 SUBSCRIBE_CHECKOUT_URL = "https://keshav-x.github.io/coc-bot/?pack=monthly"

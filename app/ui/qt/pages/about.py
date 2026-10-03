@@ -149,7 +149,7 @@ class AboutPage(QWidget):
         contact_text = QLabel(
             "Reach out directly for purchase activations, license transfers, questions, or custom setups:<br>"
             "• 📧 <b>Email:</b> <a style='color: #38bdf8;' href='mailto:keshavchaudhary2609@gmail.com'>keshavchaudhary2609@gmail.com</a><br>"
-            "• 📱 <b>Telegram:</b> <a style='color: #38bdf8;' href='https://t.me/Apexlegend_pro_bot'>@Apexlegend_pro_bot</a><br>"
+            "• 📱 <b>Telegram:</b> <a style='color: #38bdf8;' href='https://t.me/keshavchaudhary0025'>@keshavchaudhary0025</a><br>"
             "• 🌐 <b>Reddit:</b> <span style='color: #f59e0b;'>u/post_matrix</span><br>"
             "• 📖 <b>Help &amp; Setup Center:</b> <a style='color: #38bdf8;' href='https://keshav-x.github.io/coc-bot/help.html'>https://keshav-x.github.io/coc-bot/help.html</a><br>"
             "<i>Accepted Payment Methods: PayPal, Cards, PhonePe, GPay, Paytm (UPI).</i>"

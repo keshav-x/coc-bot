@@ -421,7 +421,7 @@ class ManageLicenseDialog(QDialog):
             f"<b>Device ID:</b> {machine_id}<br><br>"
             "To renew your subscription pass, upgrade to Lifetime VIP ($24.99), or transfer your license to a new PC, please contact the developer directly:<br>"
             "• <b>Email:</b> <a style='color: #38bdf8;' href='mailto:keshavchaudhary2609@gmail.com'>keshavchaudhary2609@gmail.com</a><br>"
-            "• <b>Telegram:</b> <a style='color: #38bdf8;' href='https://t.me/Apexlegend_pro_bot'>@Apexlegend_pro_bot</a><br>"
+            "• <b>Telegram:</b> <a style='color: #38bdf8;' href='https://t.me/keshavchaudhary0025'>@keshavchaudhary0025</a><br>"
             "• <b>Reddit:</b> <span style='color: #f59e0b; font-weight: bold;'>u/post_matrix</span>"
         )
         info.setTextFormat(Qt.TextFormat.RichText)
