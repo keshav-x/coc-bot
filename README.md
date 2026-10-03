@@ -149,7 +149,7 @@ ApexClash Pro includes an automatic **2-Hour Free Trial** on first launch — te
 1. Click **📋 Copy Device ID** in the app.
 2. Send your Device ID to the developer:
    - 📧 **Email**: [cockingkeshav@gmail.com](mailto:cockingkeshav@gmail.com)
-   - 💬 **Discord**: `matrix0456`
+   - 📱 **Telegram**: [@Apexlegend_pro_bot](https://t.me/Apexlegend_pro_bot)
    - 🌐 **Reddit**: `u/post_matrix`
 3. Receive your cryptographically signed key immediately upon payment confirmation!
 

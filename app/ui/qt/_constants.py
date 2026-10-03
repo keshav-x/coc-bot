@@ -16,19 +16,19 @@ BUILDER_BASE_ATTACK_STRATEGIES_UNDER_DEV: tuple[str, ...] = ()
 
 BUILDER_BASE_PRIORITISE_LABELS = ("Gold", "Both", "Elixir")
 
-PLAN_PRICE_WEEKLY = "₹99 / $1.99 / week"
-PLAN_PRICE_MONTHLY = "₹249 / $4.99 / month"
-PLAN_PRICE_ANNUAL = "₹799 / $14.99 / year"
-PLAN_PRICE_LIFETIME = "₹1,299 / $24.99 lifetime"
+PLAN_PRICE_WEEKLY = "$1.99 / ₹99 / week"
+PLAN_PRICE_MONTHLY = "$4.99 / ₹249 / month"
+PLAN_PRICE_ANNUAL = "$14.99 / ₹799 / year"
+PLAN_PRICE_LIFETIME = "$24.99 / ₹1,299 lifetime"
 PLAN_DEVICE_LIMIT = "1 Device (Hardware Bound)"
 PLAN_TRIAL_HOURS = 2
-PLAN_DESCRIPTION = "Pro passes (₹99/wk, ₹249/mo, ₹1,299 lifetime) with instant PhonePe/UPI & PayPal activation"
+PLAN_DESCRIPTION = "Pro passes ($1.99/wk, $4.99/mo, $24.99 lifetime) with instant PayPal & UPI activation"
 
 PAGE_LICENSE = "license"
 
 CONTACT_EMAIL = "cockingkeshav@gmail.com"
 CONTACT_REDDIT = "post_matrix"
-CONTACT_DISCORD = "matrix0456"
+CONTACT_TELEGRAM = "@Apexlegend_pro_bot"
 
 STRIPE_LIFETIME_URL = "https://keshav-x.github.io/coc-bot/?pack=lifetime"
 SUBSCRIBE_CHECKOUT_URL = "https://keshav-x.github.io/coc-bot/?pack=monthly"

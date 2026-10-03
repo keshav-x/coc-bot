@@ -419,9 +419,9 @@ class ManageLicenseDialog(QDialog):
             f"<b>Active Key:</b> {current_key if current_key else '(No key entered)'}<br>"
             f"<b>Status:</b> {status_desc}<br>"
             f"<b>Device ID:</b> {machine_id}<br><br>"
-            "To renew your subscription pass, upgrade to Lifetime VIP ($15), or transfer your license to a new PC, please contact the developer directly:<br>"
+            "To renew your subscription pass, upgrade to Lifetime VIP ($24.99), or transfer your license to a new PC, please contact the developer directly:<br>"
             "• <b>Email:</b> <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
-            "• <b>Discord:</b> <span style='color: #22c55e; font-weight: bold;'>matrix0456</span><br>"
+            "• <b>Telegram:</b> <a style='color: #38bdf8;' href='https://t.me/Apexlegend_pro_bot'>@Apexlegend_pro_bot</a><br>"
             "• <b>Reddit:</b> <span style='color: #f59e0b; font-weight: bold;'>u/post_matrix</span>"
         )
         info.setTextFormat(Qt.TextFormat.RichText)
