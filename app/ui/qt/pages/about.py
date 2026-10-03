@@ -132,10 +132,10 @@ class AboutPage(QWidget):
         pricing_card.card_layout.addWidget(SectionTitle("🔑 Access Passes & Pricing"))
         pricing_text = QLabel(
             "• <b>2-Hour Free Trial:</b> Automatically active on first launch — test everything risk-free.<br>"
-            "• <b>Weekly Pass:</b> <b>$1.00</b> (7 Days) — Quick trial & weekend farming.<br>"
-            "• <b>Monthly Pass:</b> <b>$3.00</b> (30 Days) — Continuous regular farming.<br>"
-            "• <b>Annual Pass:</b> <b>$10.00</b> (365 Days) — High value & all updates included.<br>"
-            "• <b>Lifetime Pass:</b> <b>$15.00</b> (Permanent) — Permanent VIP Access with priority support."
+            "• <b>Weekly Pass:</b> <b>₹99 / $1.99</b> (7 Days) — Quick trial & weekend farming.<br>"
+            "• <b>Monthly Pass:</b> <b>₹249 / $4.99</b> (30 Days) — Continuous regular farming (Most Popular).<br>"
+            "• <b>Annual Pass:</b> <b>₹799 / $14.99</b> (365 Days) — 50% discount & all updates included.<br>"
+            "• <b>Lifetime Pass:</b> <b>₹1,299 / $24.99</b> (Permanent) — Permanent VIP Access with priority support."
         )
         pricing_text.setTextFormat(Qt.TextFormat.RichText)
         pricing_text.setWordWrap(True)
@@ -145,13 +145,14 @@ class AboutPage(QWidget):
 
         # Developer & Purchase Support Card
         contact_card = Card()
-        contact_card.card_layout.addWidget(SectionTitle("💬 Contact & Support"))
+        contact_card.card_layout.addWidget(SectionTitle("💬 Help & Support"))
         contact_text = QLabel(
-            "Reach out directly for purchase activations, questions, or custom setups:<br>"
+            "Reach out directly for purchase activations, license transfers, questions, or custom setups:<br>"
             "• 📧 <b>Email:</b> <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
             "• 💬 <b>Discord:</b> <span style='color: #22c55e;'>matrix0456</span><br>"
             "• 🌐 <b>Reddit:</b> <span style='color: #f59e0b;'>u/post_matrix</span><br>"
-            "<i>Accepted Payment Methods: PayPal, Crypto (USDT / BTC / LTC), UPI, Cards.</i>"
+            "• 📖 <b>Help &amp; Setup Center:</b> <a style='color: #38bdf8;' href='https://keshav-x.github.io/coc-bot/help.html'>https://keshav-x.github.io/coc-bot/help.html</a><br>"
+            "<i>Accepted Payment Methods: PhonePe, GPay, Paytm (UPI), PayPal, Cards.</i>"
         )
         contact_text.setTextFormat(Qt.TextFormat.RichText)
         contact_text.setOpenExternalLinks(True)

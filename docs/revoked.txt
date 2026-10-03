@@ -1,0 +1,3 @@
+# ApexClash Pro — Revocation Blacklist
+# One revoked key, machine ID, or transaction ID per line
+# Used by the desktop bot to revoke fraudulent or refunded access

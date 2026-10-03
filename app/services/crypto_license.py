@@ -32,10 +32,95 @@ MCowBQYDK2VwAyEApHskl5I35iw8dPqMWQDbRy1B0tguVjJPT40pC9ySDBo=
 -----END PUBLIC KEY-----"""
 
 LICENSE_PREFIX = "CAL"
-TIER_WEEKLY = "W07"    # 7 Days ($1.00)
-TIER_MONTHLY = "M30"   # 30 Days ($3.00)
-TIER_ANNUAL = "Y36"    # 365 Days ($10.00)
-TIER_LIFETIME = "LIFE" # Permanent VIP ($15.00)
+TXN_LICENSE_PREFIX = "TXN"
+
+TIER_WEEKLY = "W07"    # 7 Days (₹99 / $1.99)
+TIER_MONTHLY = "M30"   # 30 Days (₹249 / $4.99)
+TIER_ANNUAL = "Y36"    # 365 Days (₹799 / $14.99)
+TIER_LIFETIME = "LIFE" # Permanent VIP (₹1,299 / $24.99)
+
+import re
+
+_PAYPAL_PATTERN = re.compile(r"^[0-9A-Z]{17}$")
+_UPI_DIGITS_PATTERN = re.compile(r"^\d{10,25}$")
+_PHONEPE_TXN_PATTERN = re.compile(r"^[TPtp][0-9A-Za-z]{14,32}$")
+_GENERIC_UPI_ALPHANUM_PATTERN = re.compile(r"^[0-9A-Za-z_-]{10,32}$")
+
+
+def validate_txn_id(txn_id: str) -> Tuple[bool, str, str]:
+    """Validates UPI / PhonePe / PayPal transaction ID.
+    Returns (is_valid: bool, clean_id: str, method: str).
+    """
+    clean = txn_id.strip().replace(" ", "")
+    if not clean:
+        return False, "", ""
+
+    # PayPal: 17 alphanumeric chars
+    clean_upper = clean.upper()
+    if _PAYPAL_PATTERN.match(clean_upper):
+        return True, clean_upper, "paypal"
+
+    # UPI UTR: 10-25 digits
+    if _UPI_DIGITS_PATTERN.match(clean):
+        return True, clean, "upi"
+
+    # PhonePe: starts with T or P
+    if _PHONEPE_TXN_PATTERN.match(clean):
+        return True, clean_upper, "upi"
+
+    # Generic alphanumeric reference with at least 2 digits
+    if _GENERIC_UPI_ALPHANUM_PATTERN.match(clean) and sum(c.isdigit() for c in clean) >= 2:
+        return True, clean, "upi"
+
+    return False, clean, ""
+
+
+def is_known_test_id(txn_id: str) -> bool:
+    """Rejects obviously fake placeholder transaction IDs and trivial repetition."""
+    clean = txn_id.strip().upper().replace(" ", "")
+    fake_patterns = {
+        "123456789012",
+        "000000000000",
+        "111111111111",
+        "222222222222",
+        "999999999999",
+        "12345678901234567",
+        "5LY36029PD1738444",
+        "8MC585209K746392H",
+        "012345678901",
+        "1234567890",
+        "0000000000",
+    }
+    if clean in fake_patterns:
+        return True
+    if len(clean) >= 10 and len(set(clean)) <= 2:
+        return True
+    return False
+
+
+def generate_txn_license(
+    txn_id: str,
+    tier: str = TIER_MONTHLY,
+    machine_id: Optional[str] = None,
+    days: int = 30,
+) -> str:
+    """Generates a hardware-bound transaction license key.
+    Format: TXN-[TIER]-[EXPDATE]-[CLEAN_TXN_ID]-[MACHINE_HASH]
+    """
+    clean_txn = txn_id.strip().upper().replace(" ", "")
+    if tier == TIER_LIFETIME or days <= 0:
+        exp_code = "PERP"
+    else:
+        exp_ts = int(time.time()) + (days * 86400)
+        exp_code = datetime.fromtimestamp(exp_ts, tz=timezone.utc).strftime("%Y%m%d")
+
+    if machine_id:
+        m_hash = hashlib.sha256(machine_id.strip().encode()).hexdigest()[:8].upper()
+    else:
+        m_hash = "UNIV"
+
+    return f"TXN-{tier}-{exp_code}-{clean_txn}-{m_hash}"
+
 
 TRIAL_TOTAL_SECONDS = 7200  # 2 Hours
 _TRIAL_SALT = b"CLASH_AUTOLOOT_LOCAL_TRIAL_SEAL_v1"
@@ -115,15 +200,80 @@ class CryptoLicenseEngine:
             return LicenseValidationResult(is_valid=False, reason="empty")
 
         parts = key.strip().split("-", 4)
-        if len(parts) != 5 or parts[0].upper() != LICENSE_PREFIX:
+        if len(parts) != 5:
+            return LicenseValidationResult(is_valid=False, reason="invalid_format")
+
+        prefix = parts[0].upper()
+        if prefix not in (LICENSE_PREFIX, TXN_LICENSE_PREFIX):
             return LicenseValidationResult(is_valid=False, reason="invalid_format")
 
         tier = parts[1].upper()
         exp_code = parts[2].upper()
+
+        if prefix == TXN_LICENSE_PREFIX:
+            clean_txn = parts[3].upper()
+            m_hash = parts[4].upper()
+
+            if is_known_test_id(clean_txn):
+                return LicenseValidationResult(is_valid=False, reason="not_found")
+
+            is_valid_txn, _, _ = validate_txn_id(clean_txn)
+            if not is_valid_txn:
+                return LicenseValidationResult(is_valid=False, reason="invalid_format")
+
+            # Parse expiration timestamp
+            if exp_code == "PERP":
+                exp_ts = 0
+            else:
+                try:
+                    dt = datetime.strptime(exp_code, "%Y%m%d").replace(
+                        hour=23, minute=59, second=59, tzinfo=timezone.utc
+                    )
+                    exp_ts = int(dt.timestamp())
+                except ValueError:
+                    return LicenseValidationResult(is_valid=False, reason="invalid_format")
+
+            # Verify Expiry
+            now = int(time.time())
+            if tier != TIER_LIFETIME and exp_ts > 0 and now > exp_ts:
+                return LicenseValidationResult(
+                    is_valid=False,
+                    reason="expired",
+                    tier=tier,
+                    expires_at_timestamp=exp_ts,
+                )
+
+            # Verify Hardware Binding
+            curr_m_hash = hashlib.sha256(current_machine_id.strip().encode()).hexdigest()[:8].upper()
+            if m_hash != "UNIV":
+                if m_hash != curr_m_hash:
+                    return LicenseValidationResult(
+                        is_valid=False,
+                        reason="machine_mismatch",
+                        tier=tier,
+                        expires_at_timestamp=exp_ts,
+                    )
+            else:
+                if saved_bound_machine and saved_bound_machine != current_machine_id:
+                    return LicenseValidationResult(
+                        is_valid=False,
+                        reason="machine_mismatch",
+                        tier=tier,
+                        expires_at_timestamp=exp_ts,
+                    )
+
+            return LicenseValidationResult(
+                is_valid=True,
+                reason="valid",
+                tier=tier,
+                expires_at_timestamp=exp_ts if exp_ts > 0 else None,
+                bound_machine_id=current_machine_id,
+            )
+
+        # Prefix is CAL: Verify Ed25519 asymmetric signature with embedded Public Key
         m_hash = parts[3].upper()
         sig_b64 = parts[4]
 
-        # Verify Ed25519 asymmetric signature with embedded Public Key
         raw_payload = f"CAL:{tier}:{exp_code}:{m_hash}".encode("utf-8")
         try:
             from Crypto.PublicKey import ECC

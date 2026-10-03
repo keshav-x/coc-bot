@@ -43,3 +43,8 @@ private_keygen/
 reference/
 scratch/
 
+# Sales bot secrets and databases
+sales_bot/config.json
+sales_bot/orders.json
+sales_bot/revoked_keys.json
+

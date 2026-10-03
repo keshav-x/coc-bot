@@ -666,14 +666,14 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
       </div>
       <div class="pack-grid">
         <!-- Weekly -->
-        <div class="pack-card" id="pack-weekly" onclick="selectPack('weekly', 'Weekly Pass', '$1.00', '7 Days Access')">
+        <div class="pack-card" id="pack-weekly" onclick="selectPack('weekly', 'Weekly Pass', '₹99 / $1.99', '7 Days Access')">
           <div class="pack-top">
             <span class="pack-badge badge-blue">Trial</span>
             <div class="radio-circle"><div class="radio-dot"></div></div>
           </div>
           <div>
             <div class="pack-name">Weekly Pass</div>
-            <div class="pack-price">$1.00</div>
+            <div class="pack-price">₹99 / $1.99</div>
             <div class="pack-sub">7 Days Full VIP</div>
           </div>
           <ul class="pack-features">
@@ -684,14 +684,14 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
         </div>
 
         <!-- Monthly -->
-        <div class="pack-card featured" id="pack-monthly" onclick="selectPack('monthly', 'Monthly Pass', '$3.00', '30 Days Access')">
+        <div class="pack-card featured" id="pack-monthly" onclick="selectPack('monthly', 'Monthly Pass', '₹249 / $4.99', '30 Days Access')">
           <div class="pack-top">
             <span class="pack-badge badge-green">Popular</span>
             <div class="radio-circle"><div class="radio-dot"></div></div>
           </div>
           <div>
             <div class="pack-name">Monthly Pass</div>
-            <div class="pack-price">$3.00</div>
+            <div class="pack-price">₹249 / $4.99</div>
             <div class="pack-sub">30 Days Full VIP</div>
           </div>
           <ul class="pack-features">
@@ -702,14 +702,14 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
         </div>
 
         <!-- Annual -->
-        <div class="pack-card" id="pack-annual" onclick="selectPack('annual', 'Annual Pass', '$10.00', '365 Days Access')">
+        <div class="pack-card" id="pack-annual" onclick="selectPack('annual', 'Annual Pass', '₹799 / $14.99', '365 Days Access')">
           <div class="pack-top">
             <span class="pack-badge badge-blue">Best Value</span>
             <div class="radio-circle"><div class="radio-dot"></div></div>
           </div>
           <div>
             <div class="pack-name">Annual Pass</div>
-            <div class="pack-price">$10.00</div>
+            <div class="pack-price">₹799 / $14.99</div>
             <div class="pack-sub">365 Days Full VIP</div>
           </div>
           <ul class="pack-features">
@@ -720,14 +720,14 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
         </div>
 
         <!-- Lifetime -->
-        <div class="pack-card vip" id="pack-lifetime" onclick="selectPack('lifetime', 'Lifetime VIP Pass', '$15.00', 'Permanent Access')">
+        <div class="pack-card vip" id="pack-lifetime" onclick="selectPack('lifetime', 'Lifetime VIP Pass', '₹1,299 / $24.99', 'Permanent Access')">
           <div class="pack-top">
             <span class="pack-badge badge-gold">VIP Choice</span>
             <div class="radio-circle"><div class="radio-dot"></div></div>
           </div>
           <div>
             <div class="pack-name">Lifetime VIP</div>
-            <div class="pack-price">$15.00</div>
+            <div class="pack-price">₹1,299 / $24.99</div>
             <div class="pack-sub">Permanent Access</div>
           </div>
           <ul class="pack-features">
@@ -841,16 +841,16 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
     let currentPack = {{
       key: '{initial_pack}',
       name: 'Monthly Pass',
-      price: '$3.00',
+      price: '₹249 / $4.99',
       duration: '30 Days Access'
     }};
     let currentPayment = 'PayPal';
 
     const PACKS = {{
-      weekly: {{ name: 'Weekly Pass', price: '$1.00', duration: '7 Days Access' }},
-      monthly: {{ name: 'Monthly Pass', price: '$3.00', duration: '30 Days Access' }},
-      annual: {{ name: 'Annual Pass', price: '$10.00', duration: '365 Days Access' }},
-      lifetime: {{ name: 'Lifetime VIP Pass', price: '$15.00', duration: 'Permanent VIP Access' }}
+      weekly: {{ name: 'Weekly Pass', price: '₹99 / $1.99', duration: '7 Days Access' }},
+      monthly: {{ name: 'Monthly Pass', price: '₹249 / $4.99', duration: '30 Days Access' }},
+      annual: {{ name: 'Annual Pass', price: '₹799 / $14.99', duration: '365 Days Access' }},
+      lifetime: {{ name: 'Lifetime VIP Pass', price: '₹1,299 / $24.99', duration: 'Permanent VIP Access' }}
     }};
 
     function selectPack(key) {{

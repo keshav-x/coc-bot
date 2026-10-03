@@ -16,13 +16,13 @@ BUILDER_BASE_ATTACK_STRATEGIES_UNDER_DEV: tuple[str, ...] = ()
 
 BUILDER_BASE_PRIORITISE_LABELS = ("Gold", "Both", "Elixir")
 
-PLAN_PRICE_WEEKLY = "$1.00 / week"
-PLAN_PRICE_MONTHLY = "$3.00 / month"
-PLAN_PRICE_ANNUAL = "$10.00 / year"
-PLAN_PRICE_LIFETIME = "$15.00 lifetime"
+PLAN_PRICE_WEEKLY = "₹99 / $1.99 / week"
+PLAN_PRICE_MONTHLY = "₹249 / $4.99 / month"
+PLAN_PRICE_ANNUAL = "₹799 / $14.99 / year"
+PLAN_PRICE_LIFETIME = "₹1,299 / $24.99 lifetime"
 PLAN_DEVICE_LIMIT = "1 Device (Hardware Bound)"
 PLAN_TRIAL_HOURS = 2
-PLAN_DESCRIPTION = "Cheap passes ($1/wk, $3/mo, $10/yr, $15 lifetime) with instant activation and 2-Hour Free Trial"
+PLAN_DESCRIPTION = "Pro passes (₹99/wk, ₹249/mo, ₹1,299 lifetime) with instant PhonePe/UPI & PayPal activation"
 
 PAGE_LICENSE = "license"
 
@@ -30,8 +30,8 @@ CONTACT_EMAIL = "cockingkeshav@gmail.com"
 CONTACT_REDDIT = "post_matrix"
 CONTACT_DISCORD = "matrix0456"
 
-STRIPE_LIFETIME_URL = "mailto:cockingkeshav@gmail.com?subject=ApexClash%20Pro%20Lifetime%20Pass%20Purchase"
-SUBSCRIBE_CHECKOUT_URL = "mailto:cockingkeshav@gmail.com?subject=ApexClash%20Pro%20Subscription%20Pass%20Purchase"
+STRIPE_LIFETIME_URL = "https://keshav-x.github.io/coc-bot/?pack=lifetime"
+SUBSCRIBE_CHECKOUT_URL = "https://keshav-x.github.io/coc-bot/?pack=monthly"
 
 PORTAL_USER_ERRORS: dict[str, str] = {
     "empty": "Enter your license key in the field above first.",

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help & Support — ApexClash Pro</title>
+  <meta name="description" content="Official help, troubleshooting, setup guides, and developer support for ApexClash Pro. Contact us at cockingkeshav@gmail.com.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════
+       Design Tokens (Synchronized with store)
+    ══════════════════════════════════════ */
+    :root {
+      --bg:          #050810;
+      --surface-0:   #0a0f1e;
+      --surface-1:   #111827;
+      --surface-2:   #1a2236;
+      --border:      rgba(255,255,255,0.07);
+      --border-hi:   rgba(255,255,255,0.14);
+
+      --blue:        #3b82f6;
+      --blue-dim:    rgba(59,130,246,0.15);
+      --blue-glow:   rgba(59,130,246,0.35);
+      --cyan:        #22d3ee;
+      --purple:      #a855f7;
+      --green:       #10b981;
+      --green-dim:   rgba(16,185,129,0.15);
+      --gold:        #f59e0b;
+      --red:         #ef4444;
+
+      --text:        #f1f5f9;
+      --text-2:      #94a3b8;
+      --text-3:      #64748b;
+
+      --radius-card: 20px;
+      --radius-btn:  12px;
+      --font:        'Inter', system-ui, sans-serif;
+      --mono:        'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background glowing orbs */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-orbs span {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.16;
+      animation: orb-float 22s ease-in-out infinite;
+    }
+    .bg-orbs span:nth-child(1) { width:650px;height:650px;background:var(--blue);top:-200px;left:-150px; }
+    .bg-orbs span:nth-child(2) { width:550px;height:550px;background:var(--purple);bottom:-150px;right:-120px;animation-delay:-8s; }
+    .bg-orbs span:nth-child(3) { width:420px;height:420px;background:var(--cyan);top:45%;left:45%;animation-delay:-14s; }
+
+    @keyframes orb-float {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50%      { transform: translate(35px,-25px) scale(1.05); }
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 20px 80px;
+    }
+
+    /* Nav */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .nav-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px var(--blue-glow);
+    }
+    .nav-name {
+      font-size: 17px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.3px;
+    }
+    .nav-name sub {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      -webkit-text-fill-color: var(--text-2);
+      display: block;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .nav-link {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-2);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: #fff; }
+    .btn-nav-store {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: var(--blue-dim);
+      border: 1px solid rgba(59,130,246,0.4);
+      color: var(--cyan);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-nav-store:hover {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 20px 0 40px;
+    }
+    .badge-support {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      background: rgba(34,211,238,0.1);
+      border: 1px solid rgba(34,211,238,0.25);
+      border-radius: 20px;
+      padding: 5px 14px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+      margin-bottom: 14px;
+    }
+    h1 span {
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: 16px;
+      color: var(--text-2);
+      max-width: 580px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Cards */
+    .card {
+      background: rgba(10,15,30,0.7);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    .card-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    /* Direct Contact Banner */
+    .contact-banner {
+      background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(168,85,247,0.1));
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: var(--radius-card);
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+    @media(max-width: 640px) {
+      .contact-banner { grid-template-columns: 1fr; }
+    }
+    .contact-banner h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .contact-banner p {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+    .mail-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-hi);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--cyan);
+      margin-top: 10px;
+    }
+    .btn-mail {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 14px 24px;
+      border-radius: var(--radius-btn);
+      box-shadow: 0 6px 20px var(--blue-glow);
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-mail:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(59,130,246,0.5);
+    }
+
+    /* Grid for contact channels */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    @media(max-width: 640px) {
+      .contact-grid { grid-template-columns: 1fr; }
+    }
+    .channel-card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.2s;
+    }
+    .channel-card:hover { border-color: var(--border-hi); }
+    .channel-icon { font-size: 24px; margin-bottom: 4px; }
+    .channel-name { font-size: 12px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; }
+    .channel-val { font-size: 14px; font-weight: 700; color: #fff; word-break: break-all; }
+    .channel-val a { color: var(--cyan); text-decoration: none; }
+    .channel-val a:hover { text-decoration: underline; }
+
+    /* FAQ accordion */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .faq-item {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .faq-item:hover { border-color: var(--border-hi); }
+    .faq-question {
+      padding: 18px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      user-select: none;
+    }
+    .faq-question::after {
+      content: "+";
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--cyan);
+      transition: transform 0.25s;
+    }
+    .faq-item.open .faq-question::after {
+      transform: rotate(45deg);
+      color: var(--gold);
+    }
+    .faq-answer {
+      display: none;
+      padding: 0 20px 20px;
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.65;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      margin-top: -4px;
+      padding-top: 14px;
+    }
+    .faq-item.open .faq-answer { display: block; }
+    .faq-answer code {
+      font-family: var(--mono);
+      background: var(--surface-2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--cyan);
+      font-size: 12px;
+    }
+    .faq-answer ol, .faq-answer ul {
+      margin-left: 20px;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+    .faq-answer li { margin-bottom: 6px; }
+
+    /* Troubleshooting cards */
+    .step-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .step-box strong { color: #fff; display: block; margin-bottom: 4px; }
+
+    /* Interactive Mail Launcher */
+    .mail-composer {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-3);
+    }
+    .form-input, .form-textarea {
+      background: var(--surface-1);
+      border: 1px solid var(--border-hi);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #fff;
+      font-family: var(--font);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-textarea:focus { border-color: var(--blue); }
+    .form-textarea { min-height: 100px; resize: vertical; }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding-top: 40px;
+      font-size: 12px;
+      color: var(--text-3);
+      line-height: 1.8;
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+    footer a { color: var(--text-2); text-decoration: underline; }
+    footer a:hover { color: #fff; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--green);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 30px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      transition: transform 0.35s cubic-bezier(.2,.8,.3,1);
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <span></span><span></span><span></span>
+</div>
+
+<div class="page">
+
+  <!-- Nav -->
+  <nav>
+    <a href="index.html" class="nav-brand">
+      <img class="nav-logo" src="logo.png" alt="ApexClash Pro">
+      <div>
+        <div class="nav-name">ApexClash Pro <sub>Autonomous Farming Suite</sub></div>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">← Store &amp; Pricing</a>
+      <a href="index.html" class="btn-nav-store">Get License Key</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="badge-support">Official Support Center</div>
+    <h1>Help, Setup &amp; <span>Developer Support</span></h1>
+    <p class="hero-sub">
+      Find answers to activation questions, emulator requirements, payment verification, or contact the developer directly.
+    </p>
+  </div>
+
+  <!-- Direct Contact Highlight -->
+  <div class="contact-banner">
+    <div>
+      <h2>Need Direct Assistance?</h2>
+      <p>
+        Whether you have questions regarding purchase activations, custom deployment, or license transfer, reach out directly to the developer:
+      </p>
+      <div class="mail-pill">
+        <span>📧</span>
+        <strong id="display-email">cockingkeshav@gmail.com</strong>
+      </div>
+    </div>
+    <div>
+      <a href="mailto:cockingkeshav@gmail.com?subject=ApexClash%20Pro%20Support%20Request" class="btn-mail">
+        ✉️ Email Developer Now
+      </a>
+    </div>
+  </div>
+
+  <!-- Channel Cards -->
+  <div class="contact-grid">
+    <div class="channel-card">
+      <div class="channel-icon">📧</div>
+      <div class="channel-name">Primary Email Support</div>
+      <div class="channel-val">
+        <a href="mailto:cockingkeshav@gmail.com">cockingkeshav@gmail.com</a>
+      </div>
+    </div>
+    <div class="channel-card">
+      <div class="channel-icon">💬</div>
+      <div class="channel-name">Discord Support</div>
+      <div class="channel-val">
+        <span style="color:var(--cyan);cursor:pointer;" onclick="copyText('matrix0456', 'Discord tag copied!')">matrix0456 (Click to copy)</span>
+      </div>
+    </div>
+    <div class="channel-card">
+      <div class="channel-icon">🌐</div>
+      <div class="channel-name">Reddit Community</div>
+      <div class="channel-val">
+        <a href="https://reddit.com/user/post_matrix" target="_blank" rel="noopener">u/post_matrix</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ Section -->
+  <div class="card">
+    <div class="card-title">
+      <span>❓</span> Frequently Asked Questions (FAQ)
+    </div>
+    <div class="faq-list">
+
+      <!-- Item 1 -->
+      <div class="faq-item open">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          How do I activate my license key?
+        </div>
+        <div class="faq-answer">
+          Activating takes less than 30 seconds:
+          <ol>
+            <li>Launch <strong>ApexClash Pro</strong> on your Windows PC.</li>
+            <li>Click the <strong>License</strong> tab on the left sidebar.</li>
+            <li>Paste your key (starts with <code>CAL-...</code>) into the key field.</li>
+            <li>Click <strong>Activate License</strong>. Your key is verified cryptographically via Ed25519 signature and bound to your PC immediately.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Item 2 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          How does the automated payment &amp; key delivery work?
+        </div>
+        <div class="faq-answer">
+          You can buy either through our <strong>Discord Bot</strong> (type <code>/store</code>) or on our <a href="index.html" style="color:var(--cyan);">Store Page</a>:
+          <ul>
+            <li><strong>PhonePe / UPI (India):</strong> Scan the QR code with PhonePe, Google Pay, or Paytm. Submit your 12-digit UTR or PhonePe Transaction ID (starts with <code>T...</code>). Your key is delivered automatically.</li>
+            <li><strong>PayPal / Credit Card (Global):</strong> Pay via PayPal.me in USD. Paste your 17-character PayPal Transaction ID (e.g. <code>5LY36029PD1738444</code>). Your key is delivered automatically in seconds.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Item 3 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          Where do I find my Transaction ID / UTR?
+        </div>
+        <div class="faq-answer">
+          <ul>
+            <li><strong>PhonePe:</strong> Open PhonePe ➔ History ➔ Tap payment ➔ Copy <strong>Transaction ID</strong> (starts with <code>T24...</code>) or <strong>UTR</strong> (12 digits).</li>
+            <li><strong>Google Pay:</strong> Open GPay ➔ See all payment activity ➔ Tap payment ➔ Copy <strong>UPI transaction ID</strong> (12 digits).</li>
+            <li><strong>Paytm:</strong> Balance &amp; History ➔ Tap payment ➔ Copy <strong>UPI Ref No.</strong> (12 digits).</li>
+            <li><strong>PayPal:</strong> Open PayPal ➔ Activity ➔ Tap payment ➔ Copy <strong>Transaction ID</strong> (17 characters).</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Item 4 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          What Android emulator and settings do I need?
+        </div>
+        <div class="faq-answer">
+          ApexClash Pro works with any standard Android emulator running Clash of Clans:
+          <div class="step-box">
+            <strong>Recommended Emulator:</strong>
+            BlueStacks 5 (Pie 64-bit or Android 11) or LDPlayer 9 / MuMu Player 12.
+          </div>
+          <div class="step-box" style="margin-top:8px;">
+            <strong>Recommended Emulator Display Settings:</strong>
+            Resolution: <strong>1600 × 900</strong> or <strong>1280 × 720</strong> | DPI: <strong>240 DPI</strong> | Graphics Mode: <strong>DirectX / Vulkan</strong>.
+          </div>
+          <div class="step-box" style="margin-top:8px;">
+            <strong>In-Game Setting:</strong>
+            Set Clash of Clans language to <strong>English</strong> so the OCR Loot Filter and Base Detection recognize text accurately.
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 5 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          Can I transfer my key to a new PC?
+        </div>
+        <div class="faq-answer">
+          Yes! Each license key binds to 1 PC hardware fingerprint on first activation to protect against sharing. If you format your PC or buy a new computer, email <a href="mailto:cockingkeshav@gmail.com" style="color:var(--cyan);">cockingkeshav@gmail.com</a> with your Order ID or license key, and your hardware binding will be reset for free.
+        </div>
+      </div>
+
+      <!-- Item 6 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          What if my payment transaction was flagged or key was revoked?
+        </div>
+        <div class="faq-answer">
+          Our system validates transaction formats and duplicates to block fraudulent test submissions. If your payment was legitimate but your key was revoked or unverified, simply email <a href="mailto:cockingkeshav@gmail.com" style="color:var(--cyan);">cockingkeshav@gmail.com</a> with a screenshot of your PhonePe/GPay/PayPal payment confirmation and your Order ID. Your license will be verified and reinstated immediately.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Direct Email Contact Helper -->
+  <div class="card">
+    <div class="card-title">
+      <span>✉️</span> Send a Support Message
+    </div>
+    <p style="font-size:14px;color:var(--text-2);margin-bottom:16px;">
+      Fill in your details below and click <strong>Compose Email</strong>. This will pre-fill your email client directly addressed to <code>cockingkeshav@gmail.com</code>:
+    </p>
+
+    <div class="mail-composer">
+      <div class="form-group">
+        <label class="form-label">Subject / Issue Topic</label>
+        <input type="text" id="contact-subject" class="form-input" value="ApexClash Pro — Help &amp; Support Request" placeholder="e.g. License Activation Issue">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Your Order ID or Transaction ID (if applicable)</label>
+        <input type="text" id="contact-ref" class="form-input" placeholder="e.g. ACB-123456 or PhonePe/PayPal TXN ID">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message Details</label>
+        <textarea id="contact-body" class="form-textarea" placeholder="Describe what you need help with (emulator issue, payment verification, license reset, etc.)..."></textarea>
+      </div>
+      <button class="btn-mail" style="width:100%;justify-content:center;font-size:15px;padding:15px;" onclick="sendMail()">
+        🚀 Open in Email Client (To: cockingkeshav@gmail.com)
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>ApexClash Pro Support &nbsp;•&nbsp; Email: <a href="mailto:cockingkeshav@gmail.com">cockingkeshav@gmail.com</a> &nbsp;•&nbsp; Discord: matrix0456 &nbsp;•&nbsp; Reddit: <a href="https://reddit.com/user/post_matrix" target="_blank">u/post_matrix</a></p>
+    <p style="margin-top:6px;">© 2026 ApexClash Pro. All rights reserved.</p>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DEV_EMAIL = 'cockingkeshav@gmail.com';
+
+function toggleFaq(el) {
+  const item = el.parentElement;
+  item.classList.toggle('open');
+}
+
+function copyText(str, msg) {
+  navigator.clipboard.writeText(str).then(() => {
+    showToast(msg || 'Copied to clipboard!');
+  });
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function sendMail() {
+  const subject = document.getElementById('contact-subject').value.trim() || 'ApexClash Pro Support';
+  const ref = document.getElementById('contact-ref').value.trim();
+  const bodyText = document.getElementById('contact-body').value.trim();
+
+  let body = '';
+  if (ref) body += `Order / Reference ID: ${ref}\n\n`;
+  body += bodyText || 'Hi Keshav,\n\nI need assistance with ApexClash Pro:\n';
+
+  const mailtoUrl = `mailto:${DEV_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailtoUrl;
+  showToast('Opening your email client…');
+}
+</script>
+</body>
+</html>

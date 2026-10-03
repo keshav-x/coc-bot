@@ -25,7 +25,12 @@ from PySide6.QtWidgets import (
 from app.ui.qt.branding import logo_pixmap
 
 from app.services.crypto_license import CryptoLicenseEngine
-from app.services.license import LicenseState, load_saved_key
+from app.services.license import (
+    LicenseClient,
+    LicenseState,
+    _REASON_MESSAGES,
+    load_saved_key,
+)
 from app.ui.qt._constants import (
     PORTAL_USER_ERRORS,
     STRIPE_LIFETIME_URL,
@@ -47,15 +52,22 @@ from app.ui.qt.widgets import (
 
 
 class PurchaseOptionsDialog(QDialog):
-    """Rich interactive dialog with live pack selection and branded logo."""
+    """Rich interactive dialog with live pack selection and instant in-app activation."""
 
-    def __init__(self, parent: Optional[QWidget], machine_id: str, default_tier: str = "Monthly ($3/mo)") -> None:
+    def __init__(
+        self,
+        parent: Optional[QWidget],
+        machine_id: str,
+        default_tier: str = "Monthly (₹249 / $4.99)",
+        controller: Optional[BotController] = None,
+    ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("ApexClash Pro — Official Store")
-        self.setFixedWidth(560)
+        self.setWindowTitle("ApexClash Pro — Official Store & Instant Activation")
+        self.setFixedWidth(580)
         self.setStyleSheet(f"background-color: {TOKENS['surface_lo']}; color: {TOKENS['text']};")
 
         self._machine_id = machine_id
+        self._controller = controller
         if "life" in default_tier.lower():
             self._selected_key = "lifetime"
         elif "week" in default_tier.lower():
@@ -66,10 +78,10 @@ class PurchaseOptionsDialog(QDialog):
             self._selected_key = "monthly"
 
         self._packs = {
-            "weekly": ("Weekly Pass", "$1.00", "7 Days Access", "⚡ Trial"),
-            "monthly": ("Monthly Pass", "$3.00", "30 Days Access", "🔥 Popular"),
-            "annual": ("Annual Pass", "$10.00", "365 Days Access", "⭐ Best Value"),
-            "lifetime": ("Lifetime VIP Pass", "$15.00", "Permanent Access", "👑 VIP Choice"),
+            "weekly": ("Weekly Pass", "₹99 / $1.99", "7 Days Access", "⚡ Trial"),
+            "monthly": ("Monthly Pass", "₹249 / $4.99", "30 Days Access", "🔥 Popular"),
+            "annual": ("Annual Pass", "₹799 / $14.99", "365 Days Access", "⭐ Best Value"),
+            "lifetime": ("Lifetime VIP Pass", "₹1,299 / $24.99", "Permanent Access", "👑 VIP Choice"),
         }
 
         layout = QVBoxLayout(self)
@@ -167,9 +179,45 @@ class PurchaseOptionsDialog(QDialog):
         hw_box.addLayout(hw_row)
         layout.addLayout(hw_box)
 
+        # In-App Instant Activation Box
+        self._activate_frame = QFrame()
+        self._activate_frame.setStyleSheet(
+            f"background-color: {TOKENS['surface_hi']}; border: 1px solid {TOKENS['border_hi']}; "
+            f"border-radius: 8px; padding: 10px 14px;"
+        )
+        act_layout = QVBoxLayout(self._activate_frame)
+        act_layout.setContentsMargins(10, 8, 10, 8)
+        act_layout.setSpacing(6)
+
+        act_title = QLabel("<b>⚡ Instant Activation (PhonePe / UPI / PayPal)</b>")
+        act_title.setTextFormat(Qt.TextFormat.RichText)
+        act_title.setStyleSheet(f"font-size: 12px; color: {TOKENS['accent_gold']}; font-weight: bold;")
+        act_layout.addWidget(act_title)
+
+        act_desc = QLabel(
+            "After paying, enter your <b>12-digit UTR</b> (PhonePe/GPay) or <b>PayPal Txn ID</b> to unlock Pro instantly:"
+        )
+        act_desc.setTextFormat(Qt.TextFormat.RichText)
+        act_desc.setStyleSheet(f"font-size: 11px; color: {TOKENS['text_muted']};")
+        act_layout.addWidget(act_desc)
+
+        act_row = QHBoxLayout()
+        self._txn_input = QLineEdit()
+        self._txn_input.setPlaceholderText("Paste UTR or PayPal ID (e.g. 428391829102 or 5LY...)")
+        self._txn_input.setFont(QFont("Courier New", 10))
+        self._txn_input.setStyleSheet(f"background-color: {TOKENS['neutral_dark']}; color: #38bdf8; padding: 6px 8px; border-radius: 6px;")
+        act_row.addWidget(self._txn_input, stretch=1)
+
+        self._btn_instant_act = primary_button("⚡ Unlock Pro Now", parent=self)
+        self._btn_instant_act.clicked.connect(self._do_instant_activation)
+        act_row.addWidget(self._btn_instant_act)
+        act_layout.addLayout(act_row)
+
+        layout.addWidget(self._activate_frame)
+
         # Payment methods note
         pay_note = QLabel(
-            "<b>Payment Methods:</b> PayPal, UPI, Crypto (USDT/BTC/LTC), Cards • <b>Instant Key Delivery</b>"
+            "<b>Payment Methods:</b> PhonePe / GooglePay QR, UPI, PayPal, Credit/Debit Cards • <b>Instant Activation</b>"
         )
         pay_note.setTextFormat(Qt.TextFormat.RichText)
         pay_note.setStyleSheet(f"color: {TOKENS['text_muted']}; font-size: 11px;")
@@ -185,23 +233,27 @@ class PurchaseOptionsDialog(QDialog):
         row_actions = QHBoxLayout()
         row_actions.setSpacing(8)
 
-        self._btn_portal = primary_button("🌐 Open Web Store (Interactive)", parent=self)
+        self._btn_portal = primary_button("🌐 Open Web Store (PhonePe QR & Cards)", parent=self)
         self._btn_portal.clicked.connect(self._open_portal)
         row_actions.addWidget(self._btn_portal)
 
-        self._btn_gmail = primary_button("📧 Open in Gmail", parent=self)
-        self._btn_gmail.clicked.connect(self._open_gmail)
-        row_actions.addWidget(self._btn_gmail)
+        self._btn_paypal = primary_button("💳 Pay via PayPal", parent=self)
+        self._btn_paypal.clicked.connect(self._open_paypal)
+        row_actions.addWidget(self._btn_paypal)
         btn_box.addLayout(row_actions)
 
         row_secondary = QHBoxLayout()
         row_secondary.setSpacing(8)
 
-        self._btn_reddit = neutral_button("💬 Message on Reddit", parent=self)
+        self._btn_gmail = neutral_button("📧 Email Dev", parent=self)
+        self._btn_gmail.clicked.connect(self._open_gmail)
+        row_secondary.addWidget(self._btn_gmail)
+
+        self._btn_reddit = neutral_button("💬 Reddit", parent=self)
         self._btn_reddit.clicked.connect(self._open_reddit)
         row_secondary.addWidget(self._btn_reddit)
 
-        self._btn_copy_template = neutral_button("📋 Copy Order Message", parent=self)
+        self._btn_copy_template = neutral_button("📋 Copy Order", parent=self)
         self._btn_copy_template.clicked.connect(self._copy_template)
         row_secondary.addWidget(self._btn_copy_template)
 
@@ -245,6 +297,48 @@ class PurchaseOptionsDialog(QDialog):
         QGuiApplication.clipboard().setText(self._hw_input.text())
         self._btn_copy_hw.setText("✓ Copied!")
         QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy ID"))
+
+    def _open_paypal(self) -> None:
+        webbrowser.open("https://paypal.me/cockingkeshav")
+
+    def _do_instant_activation(self) -> None:
+        raw_val = self._txn_input.text().strip()
+        if not raw_val:
+            QMessageBox.warning(
+                self,
+                "Transaction ID Required",
+                "Please enter your 12-digit UPI UTR (from PhonePe/GPay) or PayPal Transaction ID.",
+            )
+            return
+
+        client = LicenseClient()
+        res = client.validate(raw_val)
+
+        if res.get("ok") or res.get("valid"):
+            resolved_key = res.get("license_key", raw_val)
+            expires = res.get("expires_at", "Never")
+            tier = res.get("tier", "Pro")
+            QMessageBox.information(
+                self,
+                "🎉 Pro Unlocked Successfully!",
+                f"Your payment has been verified!\n\n"
+                f"• Access Tier: {tier}\n"
+                f"• Expiry: {expires}\n"
+                f"• Key: {resolved_key}\n\n"
+                f"ApexClash Pro is now fully active on your PC.",
+            )
+            if self._controller:
+                self._controller.recheck_license(new_key=resolved_key)
+            self.accept()
+        else:
+            reason = res.get("reason", "invalid")
+            msg = _REASON_MESSAGES.get(reason, f"Verification failed ({reason}).")
+            QMessageBox.warning(
+                self,
+                "Verification Failed",
+                f"Could not activate with this ID:\n\n{msg}\n\n"
+                f"Make sure you entered your genuine 12-digit UTR or 17-character PayPal Transaction ID.",
+            )
 
     def _open_portal(self) -> None:
         from app.ui.qt.purchase_portal import open_purchase_portal
@@ -412,7 +506,7 @@ class LicensePage(QWidget):
         plan_card = Card()
         plan_card.card_layout.addWidget(SectionTitle("Official Access Passes & Pricing"))
         plan_header = QHBoxLayout()
-        plan_title = QLabel("Weekly: $1.00  |  Monthly: $3.00  |  Annual: $10.00  |  Lifetime: $15.00")
+        plan_title = QLabel("Weekly: ₹99 ($1.99)  |  Monthly: ₹249 ($4.99)  |  Annual: ₹799 ($14.99)  |  Lifetime: ₹1,299 ($24.99)")
         plan_title.setStyleSheet(f"color: {TOKENS['accent_gold']}; font-size: 15px; font-weight: bold;")
         plan_header.addWidget(plan_title)
         plan_header.addStretch()
@@ -422,7 +516,7 @@ class LicensePage(QWidget):
         plan_card.card_layout.addLayout(plan_header)
 
         plan_desc = QLabel(
-            "• Weekly: $1.00 (7D)  •  Monthly: $3.00 (30D)  •  Annual: $10.00 (365D)  •  Lifetime: $15.00 (Permanent VIP)\n"
+            "• Weekly: ₹99 / $1.99 (7D)  •  Monthly: ₹249 / $4.99 (30D)  •  Annual: ₹799 / $14.99 (365D)  •  Lifetime: ₹1,299 / $24.99 (Permanent VIP)\n"
             "• Instant key delivery with 24/7 customer support\n"
             "• Full Access: Autonomous Combat, Smart Loot Filtration, Advanced Anti-Ban Suite\n"
             "• 2 Hours of free trial automatically active on first launch — test everything risk-free"
@@ -451,11 +545,11 @@ class LicensePage(QWidget):
         contact_card = Card()
         contact_card.card_layout.addWidget(SectionTitle("Buy an Activation Key (Instant Delivery)"))
         contact_desc = QLabel(
-            "Copy your <b>Device ID</b> above and message the developer to receive your key:<br>"
-            "• <b>Email:</b> <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
-            "• <b>Discord:</b> <span style='color: #22c55e;'>matrix0456</span><br>"
-            "• <b>Reddit:</b> <span style='color: #f59e0b;'>u/post_matrix</span><br>"
-            "Accepted payments: PayPal, Crypto, UPI, Cards. Fast instant delivery!"
+            "Copy your <b>Device ID</b> above or purchase directly with instant activation:<br>"
+            "• <b>Payment Methods:</b> PhonePe / GooglePay QR, UPI, PayPal, Credit/Debit Cards<br>"
+            "• <b>Developer Email:</b> <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
+            "• <b>PayPal:</b> <a style='color: #38bdf8;' href='https://paypal.me/cockingkeshav'>paypal.me/cockingkeshav</a><br>"
+            "⚡ <i>Pay & enter your 12-digit UTR or PayPal Txn ID directly below to unlock Pro instantly!</i>"
         )
         contact_desc.setTextFormat(Qt.TextFormat.RichText)
         contact_desc.setOpenExternalLinks(True)
@@ -470,7 +564,7 @@ class LicensePage(QWidget):
 
         key_row = QHBoxLayout()
         self._entry = QLineEdit()
-        self._entry.setPlaceholderText("CAL-M30-YYYYMMDD-UNIV-XXXXXXXX")
+        self._entry.setPlaceholderText("Enter CAL- key, TXN- key, or 12-digit UPI UTR / PayPal Txn ID")
         self._entry.setEchoMode(QLineEdit.Password)
         mono = QFont("Courier New", 10)
         self._entry.setFont(mono)
@@ -491,12 +585,12 @@ class LicensePage(QWidget):
         layout.addLayout(key_row)
 
         footer = QHBoxLayout()
-        self._btn_subscribe = primary_button("Buy Subscription ($1/wk, $3/mo)", parent=self)
+        self._btn_subscribe = primary_button("Buy Pass (₹99 / $1.99+)", parent=self)
         self._btn_subscribe.setToolTip("View pricing options and purchase a Weekly, Monthly, or Annual Pass.")
         self._btn_subscribe.clicked.connect(self._open_subscribe_checkout)
         footer.addWidget(self._btn_subscribe)
 
-        self._btn_lifetime = neutral_button("Buy Lifetime ($15 VIP)", parent=self)
+        self._btn_lifetime = neutral_button("Buy Lifetime (₹1,299 / $24.99 VIP)", parent=self)
         self._btn_lifetime.setToolTip("Get a permanent Lifetime VIP pass with unlimited updates.")
         self._btn_lifetime.clicked.connect(self._open_lifetime_checkout)
         footer.addWidget(self._btn_lifetime)
@@ -620,18 +714,18 @@ class LicensePage(QWidget):
     def _open_subscribe_checkout(self) -> None:
         from app.ui.qt.purchase_portal import open_purchase_portal
         try:
-            open_purchase_portal(self._machine_id, "Monthly ($3/mo)")
+            open_purchase_portal(self._machine_id, "Monthly (₹249 / $4.99)")
         except Exception:
             pass
-        PurchaseOptionsDialog(self.window(), self._machine_id, "Monthly ($3/mo)").exec()
+        PurchaseOptionsDialog(self.window(), self._machine_id, "Monthly (₹249 / $4.99)", controller=self._controller).exec()
 
     def _open_lifetime_checkout(self) -> None:
         from app.ui.qt.purchase_portal import open_purchase_portal
         try:
-            open_purchase_portal(self._machine_id, "Lifetime VIP ($15)")
+            open_purchase_portal(self._machine_id, "Lifetime VIP (₹1,299 / $24.99)")
         except Exception:
             pass
-        PurchaseOptionsDialog(self.window(), self._machine_id, "Lifetime VIP ($15)").exec()
+        PurchaseOptionsDialog(self.window(), self._machine_id, "Lifetime VIP (₹1,299 / $24.99)", controller=self._controller).exec()
 
     def _open_billing_portal(self) -> None:
         key = self._entry.text().strip()
