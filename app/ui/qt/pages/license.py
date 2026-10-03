@@ -299,7 +299,7 @@ class PurchaseOptionsDialog(QDialog):
         QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy ID"))
 
     def _open_paypal(self) -> None:
-        webbrowser.open("https://paypal.me/cockingkeshav")
+        webbrowser.open("https://www.paypal.com/qrcodes/p2pqrc/Y6DNBH74UFNYE")
 
     def _do_instant_activation(self) -> None:
         raw_val = self._txn_input.text().strip()
@@ -356,7 +356,7 @@ class PurchaseOptionsDialog(QDialog):
             f"Preferred Payment Method: PayPal / UPI / Crypto / Card\n\n"
             f"Thank you!"
         )
-        gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to=cockingkeshav@gmail.com&su={subject}&body={body}"
+        gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to=keshavchaudhary2609@gmail.com&su={subject}&body={body}"
         webbrowser.open(gmail_url)
 
     def _open_reddit(self) -> None:
@@ -420,7 +420,7 @@ class ManageLicenseDialog(QDialog):
             f"<b>Status:</b> {status_desc}<br>"
             f"<b>Device ID:</b> {machine_id}<br><br>"
             "To renew your subscription pass, upgrade to Lifetime VIP ($24.99), or transfer your license to a new PC, please contact the developer directly:<br>"
-            "• <b>Email:</b> <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
+            "• <b>Email:</b> <a style='color: #38bdf8;' href='mailto:keshavchaudhary2609@gmail.com'>keshavchaudhary2609@gmail.com</a><br>"
             "• <b>Telegram:</b> <a style='color: #38bdf8;' href='https://t.me/Apexlegend_pro_bot'>@Apexlegend_pro_bot</a><br>"
             "• <b>Reddit:</b> <span style='color: #f59e0b; font-weight: bold;'>u/post_matrix</span>"
         )
@@ -456,7 +456,7 @@ class ManageLicenseDialog(QDialog):
             f"Request: (Renewal / Lifetime Upgrade / Device Transfer)\n\n"
             f"Thank you!"
         )
-        gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to=cockingkeshav@gmail.com&su={subject}&body={body}"
+        gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to=keshavchaudhary2609@gmail.com&su={subject}&body={body}"
         webbrowser.open(gmail_url)
 
     def _copy_info(self, key: str, machine_id: str, status_desc: str) -> None:
@@ -547,8 +547,8 @@ class LicensePage(QWidget):
         contact_desc = QLabel(
             "Copy your <b>Device ID</b> above or purchase directly with instant activation:<br>"
             "• <b>Payment Methods:</b> PhonePe / GooglePay QR, UPI, PayPal, Credit/Debit Cards<br>"
-            "• <b>Developer Email:</b> <a style='color: #38bdf8;' href='mailto:cockingkeshav@gmail.com'>cockingkeshav@gmail.com</a><br>"
-            "• <b>PayPal:</b> <a style='color: #38bdf8;' href='https://paypal.me/cockingkeshav'>paypal.me/cockingkeshav</a><br>"
+            "• <b>Developer Email:</b> <a style='color: #38bdf8;' href='mailto:keshavchaudhary2609@gmail.com'>keshavchaudhary2609@gmail.com</a><br>"
+            "• <b>PayPal:</b> <a style='color: #38bdf8;' href='https://www.paypal.com/qrcodes/p2pqrc/Y6DNBH74UFNYE'>Pay via PayPal</a><br>"
             "⚡ <i>Pay & enter your 12-digit UTR or PayPal Txn ID directly below to unlock Pro instantly!</i>"
         )
         contact_desc.setTextFormat(Qt.TextFormat.RichText)

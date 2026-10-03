@@ -12,10 +12,10 @@ EXAMPLE_CONFIG_PATH = Path(__file__).resolve().parent / "config.example.json"
 DEFAULT_CONFIG: Dict[str, Any] = {
     "discord_bot_token": "YOUR_DISCORD_BOT_TOKEN_HERE",
     "admin_discord_id": 0,
-    "phonepe_upi_id": "cockingkeshav@ybl",
-    "payee_name": "ApexClash Pro",
-    # paypal.me link used as direct payment link
-    "paypal_me_url": "https://paypal.me/cockingkeshav",
+    "phonepe_upi_id": "keshav026@axl",
+    "payee_name": "Keshav Chaudhary",
+    # paypal.me / direct QR link used as direct payment link
+    "paypal_me_url": "https://www.paypal.com/qrcodes/p2pqrc/Y6DNBH74UFNYE",
     # Optional: PayPal Orders API (for 100% automated instantaneous PayPal capture)
     "paypal_client_id": "",
     "paypal_client_secret": "",

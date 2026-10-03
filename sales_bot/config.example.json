@@ -1,9 +1,9 @@
 {
     "discord_bot_token": "YOUR_DISCORD_BOT_TOKEN_HERE",
     "admin_discord_id": 0,
-    "phonepe_upi_id": "cockingkeshav@ybl",
-    "payee_name": "ApexClash Pro",
-    "paypal_me_url": "https://paypal.me/cockingkeshav",
+    "phonepe_upi_id": "keshav026@axl",
+    "payee_name": "Keshav Chaudhary",
+    "paypal_me_url": "https://www.paypal.com/qrcodes/p2pqrc/Y6DNBH74UFNYE",
     "paypal_client_id": "",
     "paypal_client_secret": "",
     "paypal_mode": "live",

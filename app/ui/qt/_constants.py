@@ -26,7 +26,7 @@ PLAN_DESCRIPTION = "Pro passes ($1.99/wk, $4.99/mo, $24.99 lifetime) with instan
 
 PAGE_LICENSE = "license"
 
-CONTACT_EMAIL = "cockingkeshav@gmail.com"
+CONTACT_EMAIL = "keshavchaudhary2609@gmail.com"
 CONTACT_REDDIT = "post_matrix"
 CONTACT_TELEGRAM = "@Apexlegend_pro_bot"
 

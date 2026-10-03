@@ -1000,7 +1000,7 @@ async def slash_help(interaction: discord.Interaction):
     embed.add_field(
         name="📧 Direct Developer Contact & Support",
         value=(
-            "• **Developer Email:** `cockingkeshav@gmail.com`\n"
+            "• **Developer Email:** `keshavchaudhary2609@gmail.com`\n"
             "• **Discord:** `matrix0456`\n"
             "• **Reddit:** `u/post_matrix`\n"
             "• **Online Help Center:** [View Full Web Guide](https://keshav-x.github.io/coc-bot/help.html)\n\n"
