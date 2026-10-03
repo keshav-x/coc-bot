@@ -2,7 +2,7 @@
 
 Generates a standalone, ultra-rich interactive HTML checkout website and launches
 the user's default web browser with dynamic pack selection, payment method options,
-and instant contact integration (Gmail, Reddit, Discord).
+and instant contact integration (Gmail, Reddit, Telegram).
 """
 
 from __future__ import annotations
@@ -18,13 +18,14 @@ from typing import Optional
 from PIL import Image
 
 from app.ui.qt._constants import (
-    CONTACT_DISCORD,
     CONTACT_EMAIL,
     CONTACT_REDDIT,
+    CONTACT_TELEGRAM,
 )
 from app.utils.common import ensure_dir, get_resource_path, get_user_app_data_dir
 
 _LOGO_CACHE_B64: Optional[str] = None
+_QR_CACHE_B64: dict[str, str] = {}
 
 
 def get_logo_b64() -> str:
@@ -48,10 +49,30 @@ def get_logo_b64() -> str:
     return ""
 
 
+def get_qr_b64(filename: str) -> str:
+    """Return base64-encoded JPEG string of a QR asset."""
+    if filename in _QR_CACHE_B64:
+        return _QR_CACHE_B64[filename]
+    for rel_dir in ("assets", "docs"):
+        p = get_resource_path(f"{rel_dir}/{filename}")
+        if p.is_file():
+            try:
+                data = base64.b64encode(p.read_bytes()).decode("ascii")
+                _QR_CACHE_B64[filename] = data
+                return data
+            except Exception:
+                pass
+    return ""
+
+
 def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> str:
     """Generate high-aesthetic, interactive dark-mode Cyber HTML checkout website."""
     logo_b64 = get_logo_b64()
     logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
+    phonepe_b64 = get_qr_b64("phonepe_qr_card.jpg")
+    paypal_b64 = get_qr_b64("paypal_qr_card.jpg")
+    phonepe_src = f"data:image/jpeg;base64,{phonepe_b64}" if phonepe_b64 else ""
+    paypal_src = f"data:image/jpeg;base64,{paypal_b64}" if paypal_b64 else ""
     encoded_hw = html.escape(machine_id)
     norm_tier = default_tier.lower()
     if "life" in norm_tier:
@@ -564,12 +585,12 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
     .btn-reddit:hover {{
       box-shadow: 0 8px 20px rgba(255, 69, 0, 0.35);
     }}
-    .btn-discord {{
-      background: linear-gradient(135deg, #5865f2, #4752c4);
+    .btn-telegram {{
+      background: linear-gradient(135deg, #0088cc, #006699);
       color: #ffffff;
     }}
-    .btn-discord:hover {{
-      box-shadow: 0 8px 20px rgba(88, 101, 242, 0.35);
+    .btn-telegram:hover {{
+      box-shadow: 0 8px 20px rgba(0, 136, 204, 0.35);
     }}
     .btn-copy-order {{
       background: var(--surface-hi);
@@ -666,14 +687,14 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
       </div>
       <div class="pack-grid">
         <!-- Weekly -->
-        <div class="pack-card" id="pack-weekly" onclick="selectPack('weekly', 'Weekly Pass', '₹99 / $1.99', '7 Days Access')">
+        <div class="pack-card" id="pack-weekly" onclick="selectPack('weekly', 'Weekly Pass', '$1.99 / ₹99', '7 Days Access')">
           <div class="pack-top">
             <span class="pack-badge badge-blue">Trial</span>
             <div class="radio-circle"><div class="radio-dot"></div></div>
           </div>
           <div>
             <div class="pack-name">Weekly Pass</div>
-            <div class="pack-price">₹99 / $1.99</div>
+            <div class="pack-price">$1.99 / ₹99</div>
             <div class="pack-sub">7 Days Full VIP</div>
           </div>
           <ul class="pack-features">
@@ -684,32 +705,32 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
         </div>
 
         <!-- Monthly -->
-        <div class="pack-card featured" id="pack-monthly" onclick="selectPack('monthly', 'Monthly Pass', '₹249 / $4.99', '30 Days Access')">
+        <div class="pack-card featured" id="pack-monthly" onclick="selectPack('monthly', 'Monthly Pass', '$4.99 / ₹249', '30 Days Access')">
           <div class="pack-top">
             <span class="pack-badge badge-green">Popular</span>
             <div class="radio-circle"><div class="radio-dot"></div></div>
           </div>
           <div>
             <div class="pack-name">Monthly Pass</div>
-            <div class="pack-price">₹249 / $4.99</div>
+            <div class="pack-price">$4.99 / ₹249</div>
             <div class="pack-sub">30 Days Full VIP</div>
           </div>
           <ul class="pack-features">
             <li>Wall Upgrades</li>
-            <li>Discord Webhook</li>
+            <li>Telegram & Push Alerts</li>
             <li>Regular Farming</li>
           </ul>
         </div>
 
         <!-- Annual -->
-        <div class="pack-card" id="pack-annual" onclick="selectPack('annual', 'Annual Pass', '₹799 / $14.99', '365 Days Access')">
+        <div class="pack-card" id="pack-annual" onclick="selectPack('annual', 'Annual Pass', '$14.99 / ₹799', '365 Days Access')">
           <div class="pack-top">
             <span class="pack-badge badge-blue">Best Value</span>
             <div class="radio-circle"><div class="radio-dot"></div></div>
           </div>
           <div>
             <div class="pack-name">Annual Pass</div>
-            <div class="pack-price">₹799 / $14.99</div>
+            <div class="pack-price">$14.99 / ₹799</div>
             <div class="pack-sub">365 Days Full VIP</div>
           </div>
           <ul class="pack-features">
@@ -720,14 +741,14 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
         </div>
 
         <!-- Lifetime -->
-        <div class="pack-card vip" id="pack-lifetime" onclick="selectPack('lifetime', 'Lifetime VIP Pass', '₹1,299 / $24.99', 'Permanent Access')">
+        <div class="pack-card vip" id="pack-lifetime" onclick="selectPack('lifetime', 'Lifetime VIP Pass', '$24.99 / ₹1,299', 'Permanent Access')">
           <div class="pack-top">
             <span class="pack-badge badge-gold">VIP Choice</span>
             <div class="radio-circle"><div class="radio-dot"></div></div>
           </div>
           <div>
             <div class="pack-name">Lifetime VIP</div>
-            <div class="pack-price">₹1,299 / $24.99</div>
+            <div class="pack-price">$24.99 / ₹1,299</div>
             <div class="pack-sub">Permanent Access</div>
           </div>
           <ul class="pack-features">
@@ -747,13 +768,61 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
           <span>🅿️</span> <span>PayPal</span>
         </div>
         <div class="pay-chip" id="pay-upi" onclick="selectPayment('UPI')">
-          <span>⚡</span> <span>UPI (GPay/PhonePe/Paytm)</span>
+          <span>⚡</span> <span>UPI (PhonePe/GPay/Paytm)</span>
         </div>
         <div class="pay-chip" id="pay-crypto" onclick="selectPayment('Crypto')">
           <span>🪙</span> <span>Crypto (USDT / BTC / LTC)</span>
         </div>
         <div class="pay-chip" id="pay-card" onclick="selectPayment('Cards')">
           <span>💳</span> <span>Credit / Debit Cards</span>
+        </div>
+      </div>
+
+      <!-- Live Payment Instructions Box -->
+      <div id="payment-details-box" style="margin-top: 14px; padding: 14px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 12px;">
+        <!-- PayPal Details -->
+        <div id="panel-paypal" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          {f'<img src="{paypal_src}" style="width: 130px; height: 130px; border-radius: 10px; object-fit: contain; background: #fff; padding: 4px;" alt="PayPal QR">' if paypal_src else ''}
+          <div style="flex: 1; min-width: 200px;">
+            <div style="font-size: 14px; font-weight: 800; color: #38bdf8; margin-bottom: 4px;">Official PayPal QR Checkout</div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">Scan with your phone camera or tap below to open the official PayPal checkout link:</div>
+            <a href="https://www.paypal.com/qrcodes/p2pqrc/Y6DNBH74UFNYE" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: #0070ba; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 12px;">
+              <span>💳</span> <span>Open PayPal Direct Checkout</span>
+            </a>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 6px;">Email: {CONTACT_EMAIL}</div>
+          </div>
+        </div>
+
+        <!-- UPI Details -->
+        <div id="panel-upi" style="display: none; align-items: center; gap: 16px; flex-wrap: wrap;">
+          {f'<img src="{phonepe_src}" style="width: 130px; height: 130px; border-radius: 10px; object-fit: contain; background: #fff; padding: 4px;" alt="PhonePe QR">' if phonepe_src else ''}
+          <div style="flex: 1; min-width: 200px;">
+            <div style="font-size: 14px; font-weight: 800; color: #10b981; margin-bottom: 4px;">PhonePe / Google Pay / Paytm (UPI)</div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">Scan QR with PhonePe or any UPI app, or pay directly to UPI ID:</div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <code style="background: #1e293b; color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;">keshav026@axl</code>
+              <button onclick="copyUpiId()" style="background: #334155; border: 1px solid #475569; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;">📋 Copy</button>
+            </div>
+            <div style="font-size: 11px; color: #94a3b8;">Payee: <strong>Keshav Chaudhary</strong> • Instant Key Activation</div>
+          </div>
+        </div>
+
+        <!-- Crypto Details -->
+        <div id="panel-crypto" style="display: none;">
+          <div style="font-size: 14px; font-weight: 800; color: #f59e0b; margin-bottom: 4px;">Crypto Payment (USDT / BTC / LTC)</div>
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">Accepted: USDT (TRC20/BEP20), BTC, LTC. Contact dev on Telegram for instant wallet address:</div>
+          <a href="https://t.me/keshavchaudhary0025" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: #0088cc; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 12px;">
+            <span>📱</span> <span>Get Crypto Wallet on Telegram (@keshavchaudhary0025)</span>
+          </a>
+        </div>
+
+        <!-- Cards Details -->
+        <div id="panel-cards" style="display: none;">
+          <div style="font-size: 14px; font-weight: 800; color: #38bdf8; margin-bottom: 4px;">Credit / Debit Cards (International)</div>
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">Visa, Mastercard, Amex supported worldwide via Stripe invoice:</div>
+          <a href="https://t.me/keshavchaudhary0025" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: #0088cc; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 12px;">
+            <span>📱</span> <span>Request Card Checkout Link on Telegram</span>
+          </a>
         </div>
       </div>
     </div>
@@ -773,7 +842,7 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
         </div>
         <div class="sum-right">
           <div class="sum-label">Total Amount</div>
-          <div class="sum-total" id="sum-price">$3.00</div>
+          <div class="sum-total" id="sum-price">$4.99 / ₹249</div>
         </div>
       </div>
 
@@ -792,10 +861,10 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
           <span>Message on Reddit (u/{CONTACT_REDDIT})</span>
         </a>
 
-        <button class="btn-action btn-discord" onclick="copyDiscordContact()">
-          <span>💬</span>
-          <span>Discord: {CONTACT_DISCORD} (Click to Copy)</span>
-        </button>
+        <a class="btn-action btn-telegram" id="action-telegram" href="https://t.me/keshavchaudhary0025" target="_blank">
+          <span>📱</span>
+          <span>Message on Telegram ({CONTACT_TELEGRAM})</span>
+        </a>
 
         <button class="btn-action btn-copy-order" onclick="copyCompleteOrder()">
           <span id="copy-order-icon">📋</span>
@@ -827,7 +896,7 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
 
     <!-- Footer -->
     <div class="footer">
-      ApexClash Pro • Autonomous Combat Suite • Developer: {CONTACT_EMAIL} • Discord: {CONTACT_DISCORD} • Reddit: u/{CONTACT_REDDIT}<br>
+      ApexClash Pro • Autonomous Combat Suite • Developer: {CONTACT_EMAIL} • Telegram: {CONTACT_TELEGRAM} • Reddit: u/{CONTACT_REDDIT}<br>
       © 2026 ApexClash Pro. All rights reserved.
     </div>
   </div>
@@ -836,21 +905,21 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
     const MACHINE_ID = '{encoded_hw}';
     const DEVELOPER_EMAIL = '{CONTACT_EMAIL}';
     const DEVELOPER_REDDIT = '{CONTACT_REDDIT}';
-    const DEVELOPER_DISCORD = '{CONTACT_DISCORD}';
+    const DEVELOPER_TELEGRAM = '{CONTACT_TELEGRAM}';
 
     let currentPack = {{
       key: '{initial_pack}',
       name: 'Monthly Pass',
-      price: '₹249 / $4.99',
+      price: '$4.99 / ₹249',
       duration: '30 Days Access'
     }};
     let currentPayment = 'PayPal';
 
     const PACKS = {{
-      weekly: {{ name: 'Weekly Pass', price: '₹99 / $1.99', duration: '7 Days Access' }},
-      monthly: {{ name: 'Monthly Pass', price: '₹249 / $4.99', duration: '30 Days Access' }},
-      annual: {{ name: 'Annual Pass', price: '₹799 / $14.99', duration: '365 Days Access' }},
-      lifetime: {{ name: 'Lifetime VIP Pass', price: '₹1,299 / $24.99', duration: 'Permanent VIP Access' }}
+      weekly: {{ name: 'Weekly Pass', price: '$1.99 / ₹99', duration: '7 Days Access' }},
+      monthly: {{ name: 'Monthly Pass', price: '$4.99 / ₹249', duration: '30 Days Access' }},
+      annual: {{ name: 'Annual Pass', price: '$14.99 / ₹799', duration: '365 Days Access' }},
+      lifetime: {{ name: 'Lifetime VIP Pass', price: '$24.99 / ₹1,299', duration: 'Permanent VIP Access' }}
     }};
 
     function selectPack(key) {{
@@ -871,6 +940,15 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
       const chipId = 'pay-' + method.toLowerCase().replace(/[^a-z]/g, '');
       const activeChip = document.getElementById(chipId);
       if (activeChip) activeChip.classList.add('selected');
+
+      const panelPaypal = document.getElementById('panel-paypal');
+      const panelUpi = document.getElementById('panel-upi');
+      const panelCrypto = document.getElementById('panel-crypto');
+      const panelCards = document.getElementById('panel-cards');
+      if (panelPaypal) panelPaypal.style.display = method === 'PayPal' ? 'flex' : 'none';
+      if (panelUpi) panelUpi.style.display = method === 'UPI' ? 'flex' : 'none';
+      if (panelCrypto) panelCrypto.style.display = method === 'Crypto' ? 'block' : 'none';
+      if (panelCards) panelCards.style.display = method === 'Cards' ? 'block' : 'none';
 
       updateLiveSummary();
     }}
@@ -924,11 +1002,11 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
       }});
     }}
 
-    function copyDiscordContact() {{
-      navigator.clipboard.writeText(DEVELOPER_DISCORD).then(() => {{
-        alert('Discord handle "' + DEVELOPER_DISCORD + '" copied to clipboard! Send a direct message or friend request on Discord.');
+    function copyUpiId() {{
+      navigator.clipboard.writeText('keshav026@axl').then(() => {{
+        alert('PhonePe UPI ID "keshav026@axl" (Keshav Chaudhary) copied to clipboard! Paste it into PhonePe, Google Pay, or Paytm.');
       }}).catch(() => {{
-        alert('Discord ID: ' + DEVELOPER_DISCORD);
+        alert('UPI ID: keshav026@axl (Keshav Chaudhary)');
       }});
     }}
 
@@ -939,7 +1017,7 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
         'Pass: ' + currentPack.name + ' (' + currentPack.price + ')\\n' +
         'Device ID: ' + MACHINE_ID + '\\n' +
         'Payment: ' + currentPayment + '\\n' +
-        'Developer: ' + DEVELOPER_EMAIL + ' / Discord: ' + DEVELOPER_DISCORD;
+        'Developer: ' + DEVELOPER_EMAIL + ' / Telegram: ' + DEVELOPER_TELEGRAM;
       
       navigator.clipboard.writeText(orderText).then(() => {{
         const btnTxt = document.getElementById('copy-order-txt');

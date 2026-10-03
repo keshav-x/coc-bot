@@ -29,6 +29,13 @@ PAGE_LICENSE = "license"
 CONTACT_EMAIL = "keshavchaudhary2609@gmail.com"
 CONTACT_REDDIT = "post_matrix"
 CONTACT_TELEGRAM = "@keshavchaudhary0025"
+CONTACT_DISCORD = ""
+
+UPI_ID = "keshav026@axl"
+PAYEE_NAME = "Keshav Chaudhary"
+PAYPAL_URL = "https://www.paypal.com/qrcodes/p2pqrc/Y6DNBH74UFNYE"
+TELEGRAM_URL = "https://t.me/keshavchaudhary0025"
+STORE_URL = "https://keshav-x.github.io/coc-bot/"
 
 STRIPE_LIFETIME_URL = "https://keshav-x.github.io/coc-bot/?pack=lifetime"
 SUBSCRIBE_CHECKOUT_URL = "https://keshav-x.github.io/coc-bot/?pack=monthly"

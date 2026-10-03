@@ -15,7 +15,7 @@
   <b>100% External Vision</b> • <b>Humanized Bézier Movement</b> • <b>Zero Memory Injection</b> • <b>24/7 Automated Loot Velocity</b>
 </p>
 
-[**📥 Download Latest Release (v1.3.2)**](https://github.com/keshav-x/coc-bot/releases/tag/v1.3.2) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**💬 Join Support on Discord**](https://discord.com)
+[**📥 Download Latest Release (v1.3.2)**](https://github.com/keshav-x/coc-bot/releases/tag/v1.3.2) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**📱 Telegram Support**](https://t.me/keshavchaudhary0025)
 
 </div>
 
@@ -127,10 +127,10 @@ ApexClash Pro includes an automatic **2-Hour Free Trial** on first launch — te
 | Pass Tier | Price | Validity | Features |
 | :--- | :--- | :--- | :--- |
 | **⚡ Free Trial** | **FREE** | 2 Hours | Full Access, Instant Activation, No Card Required |
-| **🌟 Weekly Pass** | **₹99 / $1.99** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
-| **🚀 Monthly Pass** | **₹249 / $4.99** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
-| **👑 Annual Pass** | **₹799 / $14.99** | 365 Days | Full Access, All Future Updates, Priority Support |
-| **💎 Lifetime VIP** | **₹1,299 / $24.99** | **Permanent** | Lifetime Access, All Major Upgrades, VIP Priority Support |
+| **🌟 Weekly Pass** | **$1.99 / ₹99** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+| **🚀 Monthly Pass** | **$4.99 / ₹249** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+| **👑 Annual Pass** | **$14.99 / ₹799** | 365 Days | Full Access, All Future Updates, Priority Support |
+| **💎 Lifetime VIP** | **$24.99 / ₹1,299** | **Permanent** | Lifetime Access, All Major Upgrades, VIP Priority Support |
 
 ---
 
