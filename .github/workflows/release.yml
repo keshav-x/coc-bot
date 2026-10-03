@@ -96,23 +96,20 @@ jobs:
 
             ---
 
-            ## 🔑 Access Passes & Purchase Information
-
-            Clash AutoLoot includes an automatic **2-Hour Free Trial** on first launch. To purchase an activation key:
+            ## 🔑 Access Passes & In-App Activation
+            
+            ApexClash Pro includes an automatic **2-Hour Free Trial** on first launch.
 
             | Pass Tier | Price | Duration | Features |
             | :--- | :--- | :--- | :--- |
-            | **Weekly Pass** | **$1.00** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
-            | **Monthly Pass** | **$3.00** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
-            | **Annual Pass** | **$10.00** | 365 Days | Full Access, All Updates, Priority Support |
-            | **Lifetime Pass** | **$15.00** | Lifetime | Permanent VIP Access, All Future Updates, Priority Support |
+            | **Weekly Pass** | **₹99 / $1.99** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+            | **Monthly Pass** | **₹249 / $4.99** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+            | **Annual Pass** | **₹799 / $14.99** | 365 Days | Full Access, All Updates, Priority Support |
+            | **Lifetime VIP Pass** | **₹1,299 / $24.99** | Lifetime | Permanent VIP Access, All Future Updates, Priority Support |
 
-            ### 🛒 How to Order
-            1. Download and run Clash AutoLoot on your PC.
-            2. Go to the **License** page and click **📋 Copy HW ID**.
-            3. Contact the developer with your Machine ID and preferred pass tier:
-               - 📧 **Email**: [cockingkeshav@gmail.com](mailto:cockingkeshav@gmail.com)
-               - 💬 **Discord**: `matrix0456`
-               - 🌐 **Reddit**: `u/post_matrix`
-            4. Accepted payment methods: **PayPal, Crypto (USDT/BTC/LTC), UPI, Cards**.
-            5. Keys are cryptographically signed with private Ed25519 signatures and delivered immediately!
+            ### 🛒 Instant In-App Activation (New in v1.3.2)
+            1. Launch ApexClash Pro and click **Buy Subscription** or **Buy Lifetime**.
+            2. Scan the PhonePe QR code (`cockingkeshav@ybl`) or click **Pay via PayPal** (`paypal.me/cockingkeshav`).
+            3. Paste your **12-digit UTR** or **PayPal Transaction ID** into the Instant Activation field.
+            4. Click **⚡ Unlock Pro Now** — the bot binds to your machine and unlocks Pro immediately!
+            5. *Official Web Store & Help*: https://keshav-x.github.io/coc-bot/

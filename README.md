@@ -15,7 +15,7 @@
   <b>100% External Vision</b> • <b>Humanized Bézier Movement</b> • <b>Zero Memory Injection</b> • <b>24/7 Automated Loot Velocity</b>
 </p>
 
-[**📥 Download Latest Release**](https://github.com/keshav-x/coc-bot/releases/tag/v1.3.1) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**💬 Join Support on Discord**](https://discord.com)
+[**📥 Download Latest Release (v1.3.2)**](https://github.com/keshav-x/coc-bot/releases/tag/v1.3.2) • [**🔑 View Passes & Pricing**](#-access-passes--pricing) • [**💬 Join Support on Discord**](https://discord.com)
 
 </div>
 
@@ -94,7 +94,7 @@ Account safety is our highest priority. Unlike unsafe cheat tools that hook into
 
 ## 🚀 1-Click Launch Guide (Windows)
 
-1. Download **`ApexClashPro-Windows-x64.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.3.1).
+1. Download **`ApexClashPro-Windows-x64.zip`** from [GitHub Releases](https://github.com/keshav-x/coc-bot/releases/tag/v1.3.2).
 2. Extract the ZIP folder to any directory on your PC.
 3. Double-click **`ApexClashPro.exe`** to launch! *(Or double-click `start_windows.bat`)*.
 4. Launch Google Play Games on PC, open Clash of Clans, and ensure the village is loaded.
@@ -127,25 +127,31 @@ ApexClash Pro includes an automatic **2-Hour Free Trial** on first launch — te
 | Pass Tier | Price | Validity | Features |
 | :--- | :--- | :--- | :--- |
 | **⚡ Free Trial** | **FREE** | 2 Hours | Full Access, Instant Activation, No Card Required |
-| **🌟 Weekly Pass** | **$1.00** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
-| **🚀 Monthly Pass** | **$3.00** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
-| **👑 Annual Pass** | **$10.00** | 365 Days | Full Access, All Future Updates, Priority Support |
-| **💎 Lifetime VIP** | **$15.00** | **Permanent** | Lifetime Access, All Major Upgrades, VIP Priority Support |
+| **🌟 Weekly Pass** | **₹99 / $1.99** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+| **🚀 Monthly Pass** | **₹249 / $4.99** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+| **👑 Annual Pass** | **₹799 / $14.99** | 365 Days | Full Access, All Future Updates, Priority Support |
+| **💎 Lifetime VIP** | **₹1,299 / $24.99** | **Permanent** | Lifetime Access, All Major Upgrades, VIP Priority Support |
 
 ---
 
-## 🛒 How to Order an Activation Key
+## 🛒 How to Order & Instant In-App Activation
 
-> 🌐 **Live Web Store**: Visit the official [**ApexClash Pro Purchase Portal**](https://keshav-x.github.io/coc-bot/) to configure your pack, select your payment method (PayPal, UPI, Crypto, Cards), and order with 1 click!
+> 🌐 **Live Web Store**: Visit the official [**ApexClash Pro Purchase Portal**](https://keshav-x.github.io/coc-bot/) to scan the PhonePe QR code, pay via PayPal, or submit your UTR!
 
-1. Launch **ApexClash Pro** and navigate to the **License** page (or use the web store above).
-2. Click **📋 Copy Device ID** to copy your unique ID to your clipboard.
-3. Send a message to the developer with your Device ID and chosen pass tier:
+### ⚡ Option A: Instant In-App Activation (Recommended — Zero Waiting)
+1. In ApexClash Pro, click **Buy Subscription** or **Buy Lifetime**.
+2. Scan the PhonePe QR code (or tap **Pay via PayPal**).
+3. Copy your **12-digit UTR** from PhonePe/GooglePay (or 17-char PayPal Transaction ID).
+4. Paste it into the **⚡ Instant Activation** box and click **Unlock Pro Now**.
+5. ApexClash Pro activates instantly on your PC!
+
+### 📧 Option B: Manual Key Delivery
+1. Click **📋 Copy Device ID** in the app.
+2. Send your Device ID to the developer:
    - 📧 **Email**: [cockingkeshav@gmail.com](mailto:cockingkeshav@gmail.com)
    - 💬 **Discord**: `matrix0456`
    - 🌐 **Reddit**: `u/post_matrix`
-4. **Accepted Payments**: PayPal, Crypto (USDT, BTC, LTC), UPI, Credit/Debit Cards.
-5. Activation keys are delivered instantly upon payment confirmation!
+3. Receive your cryptographically signed key immediately upon payment confirmation!
 
 ---
 

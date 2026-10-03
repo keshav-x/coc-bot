@@ -287,7 +287,7 @@ class LicenseClient:
     def __init__(self, api_base: str = _API_BASE) -> None:
         self._api_base = api_base
 
-    def validate(self, license_key: str, bot_version: str = "1.3.1") -> dict:
+    def validate(self, license_key: str, bot_version: str = "1.3.2") -> dict:
         """Validates license_key cryptographically via CryptoLicenseEngine.
 
         Steps
@@ -349,12 +349,12 @@ class LicenseClient:
             "license_key": normalized_key,
         }
 
-    def unpair(self, license_key: str, bot_version: str = "1.3.1") -> dict:
+    def unpair(self, license_key: str, bot_version: str = "1.3.2") -> dict:
         """Unpairs the machine from this key locally."""
         clear_saved_key()
         return {"ok": True}
 
-    def portal(self, license_key: str, bot_version: str = "1.3.1") -> dict:
+    def portal(self, license_key: str, bot_version: str = "1.3.2") -> dict:
         """Returns the checkout / billing portal URL."""
         from app.ui.qt._constants import SUBSCRIBE_CHECKOUT_URL
         return {"ok": True, "url": SUBSCRIBE_CHECKOUT_URL}
@@ -421,7 +421,7 @@ UI callbacks are invoked from that thread; GUI code must marshal via
 ``app.after(0, ...)`` when updating widgets.
 """
 
-    def __init__(self, bot_version: str = "1.3.1") -> None:
+    def __init__(self, bot_version: str = "1.3.2") -> None:
         self._bot_version = bot_version
         self._client = LicenseClient()
         self._lock = threading.Lock()
