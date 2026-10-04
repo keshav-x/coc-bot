@@ -102,14 +102,15 @@ jobs:
 
             | Pass Tier | Price | Duration | Features |
             | :--- | :--- | :--- | :--- |
-            | **Weekly Pass** | **₹99 / $1.99** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
-            | **Monthly Pass** | **₹249 / $4.99** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
-            | **Annual Pass** | **₹799 / $14.99** | 365 Days | Full Access, All Updates, Priority Support |
-            | **Lifetime VIP Pass** | **₹1,299 / $24.99** | Lifetime | Permanent VIP Access, All Future Updates, Priority Support |
+            | **Weekly Pass** | **$1.99 / ₹99** | 7 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+            | **Monthly Pass** | **$4.99 / ₹249** | 30 Days | Full Access, Autonomous Farming, Smart Loot Filter |
+            | **Annual Pass** | **$14.99 / ₹799** | 365 Days | Full Access, All Updates, Priority Support |
+            | **Lifetime VIP Pass** | **$24.99 / ₹1,299** | Lifetime | Permanent VIP Access, All Future Updates, Priority Support |
 
-            ### 🛒 Instant In-App Activation (New in v1.3.2)
-            1. Launch ApexClash Pro and click **Buy Subscription** or **Buy Lifetime**.
-            2. Scan the PhonePe QR code (`cockingkeshav@ybl`) or click **Pay via PayPal** (`paypal.me/cockingkeshav`).
+            ### 🛒 Instant In-App Activation (v1.3.2)
+            1. Launch ApexClash Pro and click **Buy Pass** or **Buy Lifetime**.
+            2. Visit the official store ([keshav-x.github.io/coc-bot](https://keshav-x.github.io/coc-bot/)) to pay via PayPal or PhonePe UPI (`keshav026@axl`).
             3. Paste your **12-digit UTR** or **PayPal Transaction ID** into the Instant Activation field.
             4. Click **⚡ Unlock Pro Now** — the bot binds to your machine and unlocks Pro immediately!
-            5. *Official Web Store & Help*: https://keshav-x.github.io/coc-bot/
+            5. *Support on Telegram*: [@keshavchaudhary0025](https://t.me/keshavchaudhary0025)
+            6. *Official Web Store & Help*: https://keshav-x.github.io/coc-bot/
