@@ -51,3 +51,7 @@ sales_bot/revoked_keys.json
 # Local payment QR codes (keep out of main repo)
 assets/*qr*.jpg
 
+# Large promotional media and video binaries
+*.mp4
+promo_assets/*.mp4
+
