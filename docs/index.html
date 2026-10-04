@@ -1307,8 +1307,6 @@ const CONFIG = {
   payeeName: 'Keshav Chaudhary',
   paypalEmail: 'keshavchaudhary2609@gmail.com',
   paypalCheckoutUrl: 'https://www.paypal.com/qrcodes/p2pqrc/Y6DNBH74UFNYE',
-  telegramBotToken: '8902345750:AAHgmc6NshICnd9N6I07uqGo-Ytsl0B11hs',
-  telegramChatId: '5221219235',
 };
 
 const PLANS = {
@@ -1434,31 +1432,6 @@ function generateKeyFromWeb(method) {
   // Display key
   keyTextEl.textContent = generatedKey;
   resultBox.style.display = 'block';
-
-  // Send instant Telegram notification to developer
-  if (CONFIG.telegramBotToken && CONFIG.telegramChatId) {
-    const alertText = 
-      `🚨 <b>New Web Store Key Generation!</b>\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `💳 <b>UTR / Txn ID:</b> <code>${cleanTxn}</code>\n` +
-      `🔑 <b>Generated Key:</b> <code>${generatedKey}</code>\n` +
-      `📦 <b>Plan:</b> ${plan.name} (${currentCurrency === 'USD' ? '$' + plan.usd : '₹' + plan.inr})\n` +
-      `📱 <b>Payment Method:</b> ${method.toUpperCase()}\n` +
-      `⏰ <b>Timestamp:</b> ${new Date().toUTCString()}\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `👉 <b>Action:</b> Check PhonePe / PayPal statement.\n` +
-      `• If UNPAID (fake ID): <code>python revoke.py ${cleanTxn} fake</code>`;
-
-    fetch(`https://api.telegram.org/bot${CONFIG.telegramBotToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: CONFIG.telegramChatId,
-        text: alertText,
-        parse_mode: 'HTML'
-      })
-    }).catch(() => {});
-  }
 
   showToast('License Key generated successfully!');
 }

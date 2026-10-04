@@ -184,10 +184,6 @@ def _get_activation_webhook_url() -> str:
     return ""
 
 
-_DEFAULT_TG_TOKEN = "8902345750:AAHgmc6NshICnd9N6I07uqGo-Ytsl0B11hs"
-_DEFAULT_TG_CHAT = "5221219235"
-
-
 def _get_telegram_config() -> tuple[str, str]:
     token = _os.environ.get("APEXCLASH_TELEGRAM_BOT_TOKEN", "").strip()
     chat_id = _os.environ.get("APEXCLASH_TELEGRAM_CHAT_ID", "").strip()
@@ -207,7 +203,7 @@ def _get_telegram_config() -> tuple[str, str]:
                     return cfg_token, cfg_chat
         except Exception:
             pass
-    return _DEFAULT_TG_TOKEN, _DEFAULT_TG_CHAT
+    return "", ""
 
 
 def send_activation_alert(
