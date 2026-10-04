@@ -48,3 +48,6 @@ sales_bot/config.json
 sales_bot/orders.json
 sales_bot/revoked_keys.json
 
+# Local payment QR codes (keep out of main repo)
+assets/*qr*.jpg
+

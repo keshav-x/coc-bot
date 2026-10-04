@@ -7,7 +7,7 @@ import webbrowser
 from typing import Optional, Tuple
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QFont, QGuiApplication, QPixmap
+from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import (
     QDialog,
     QFrame,
@@ -23,7 +23,6 @@ from PySide6.QtWidgets import (
 )
 
 from app.ui.qt.branding import logo_pixmap
-from app.utils.common import get_resource_path
 
 from app.services.crypto_license import CryptoLicenseEngine
 from app.services.license import (
@@ -57,107 +56,6 @@ from app.ui.qt.widgets import (
     primary_button,
     neutral_button,
 )
-
-
-class QRCodeDialog(QDialog):
-    """Modal dialog displaying official PhonePe or PayPal QR cards directly in the app."""
-
-    def __init__(
-        self,
-        parent: Optional[QWidget],
-        method: str = "phonepe",
-        selected_plan: str = "Monthly Pass ($4.99 / ₹249)",
-    ) -> None:
-        super().__init__(parent)
-        is_upi = method.lower() == "phonepe" or "upi" in method.lower()
-        title = "PhonePe / GPay / Paytm (UPI) QR" if is_upi else "Official PayPal QR Checkout"
-        self.setWindowTitle(f"ApexClash Pro — {title}")
-        self.setFixedWidth(420)
-        self.setStyleSheet(f"background-color: {TOKENS['surface_lo']}; color: {TOKENS['text']};")
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
-
-        # Header Title
-        lbl = QLabel(f"<b>{title}</b>")
-        lbl.setTextFormat(Qt.TextFormat.RichText)
-        lbl.setStyleSheet(f"font-size: 15px; font-weight: 800; color: {'#10b981' if is_upi else '#38bdf8'};")
-        layout.addWidget(lbl, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        plan_lbl = QLabel(f"Selected: <b>{selected_plan}</b>")
-        plan_lbl.setTextFormat(Qt.TextFormat.RichText)
-        plan_lbl.setStyleSheet(f"font-size: 12px; color: {TOKENS['text_muted']};")
-        layout.addWidget(plan_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # QR Image
-        qr_file = "assets/phonepe_qr_card.jpg" if is_upi else "assets/paypal_qr_card.jpg"
-        p = get_resource_path(qr_file)
-        if not p.is_file():
-            p = get_resource_path(f"docs/{qr_file.split('/')[-1]}")
-
-        qr_lbl = QLabel()
-        if p.is_file():
-            pix = QPixmap(str(p))
-            if not pix.isNull():
-                qr_lbl.setPixmap(
-                    pix.scaled(
-                        260,
-                        260,
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                )
-                qr_lbl.setStyleSheet(
-                    "border-radius: 12px; border: 2px solid rgba(255,255,255,0.15); background: #ffffff;"
-                )
-        layout.addWidget(qr_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        if is_upi:
-            info_box = QVBoxLayout()
-            info_box.setSpacing(6)
-            upi_row = QHBoxLayout()
-            upi_edit = QLineEdit(UPI_ID)
-            upi_edit.setReadOnly(True)
-            upi_edit.setFont(QFont("Courier New", 10))
-            upi_edit.setStyleSheet(
-                f"background-color: {TOKENS['neutral_dark']}; color: #38bdf8; padding: 5px 8px; border-radius: 6px;"
-            )
-            upi_row.addWidget(upi_edit, stretch=1)
-            btn_copy = primary_button("📋 Copy UPI", parent=self)
-            btn_copy.clicked.connect(
-                lambda: (QGuiApplication.clipboard().setText(UPI_ID), btn_copy.setText("✓ Copied!"))
-            )
-            upi_row.addWidget(btn_copy)
-            info_box.addLayout(upi_row)
-
-            sub_lbl = QLabel(
-                f"Payee: <b>{PAYEE_NAME}</b> • Scan with PhonePe, GPay, or Paytm<br>"
-                "⚡ After paying, enter your 12-digit UTR below to unlock Pro instantly."
-            )
-            sub_lbl.setTextFormat(Qt.TextFormat.RichText)
-            sub_lbl.setStyleSheet(f"font-size: 11px; color: {TOKENS['text_muted']};")
-            info_box.addWidget(sub_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
-            layout.addLayout(info_box)
-        else:
-            info_box = QVBoxLayout()
-            info_box.setSpacing(6)
-            btn_link = primary_button("💳 Open Direct PayPal Link", parent=self)
-            btn_link.clicked.connect(lambda: webbrowser.open(PAYPAL_URL))
-            info_box.addWidget(btn_link)
-
-            sub_lbl = QLabel(
-                f"Payee Email: <b>{CONTACT_EMAIL}</b><br>"
-                "⚡ Scan with PayPal app or camera, or tap button above to checkout."
-            )
-            sub_lbl.setTextFormat(Qt.TextFormat.RichText)
-            sub_lbl.setStyleSheet(f"font-size: 11px; color: {TOKENS['text_muted']};")
-            info_box.addWidget(sub_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
-            layout.addLayout(info_box)
-
-        btn_close = neutral_button("Close", parent=self)
-        btn_close.clicked.connect(self.accept)
-        layout.addWidget(btn_close)
 
 
 class PurchaseOptionsDialog(QDialog):
@@ -416,12 +314,10 @@ class PurchaseOptionsDialog(QDialog):
         QTimer.singleShot(2000, lambda: self._btn_copy_hw.setText("📋 Copy ID"))
 
     def _show_phonepe_qr(self) -> None:
-        name, price, dur, tag = self._packs[self._selected_key]
-        QRCodeDialog(self, method="phonepe", selected_plan=f"{name} ({price})").exec()
+        webbrowser.open(f"{STORE_URL}?pack={self._selected_key}&pay=upi&hwid={self._machine_id}")
 
     def _open_paypal(self) -> None:
-        name, price, dur, tag = self._packs[self._selected_key]
-        QRCodeDialog(self, method="paypal", selected_plan=f"{name} ({price})").exec()
+        webbrowser.open(f"{STORE_URL}?pack={self._selected_key}&pay=paypal&hwid={self._machine_id}")
 
     def _do_instant_activation(self) -> None:
         raw_val = self._txn_input.text().strip()

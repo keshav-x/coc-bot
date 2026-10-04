@@ -25,7 +25,6 @@ from app.ui.qt._constants import (
 from app.utils.common import ensure_dir, get_resource_path, get_user_app_data_dir
 
 _LOGO_CACHE_B64: Optional[str] = None
-_QR_CACHE_B64: dict[str, str] = {}
 
 
 def get_logo_b64() -> str:
@@ -49,30 +48,10 @@ def get_logo_b64() -> str:
     return ""
 
 
-def get_qr_b64(filename: str) -> str:
-    """Return base64-encoded JPEG string of a QR asset."""
-    if filename in _QR_CACHE_B64:
-        return _QR_CACHE_B64[filename]
-    for rel_dir in ("assets", "docs"):
-        p = get_resource_path(f"{rel_dir}/{filename}")
-        if p.is_file():
-            try:
-                data = base64.b64encode(p.read_bytes()).decode("ascii")
-                _QR_CACHE_B64[filename] = data
-                return data
-            except Exception:
-                pass
-    return ""
-
-
 def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> str:
     """Generate high-aesthetic, interactive dark-mode Cyber HTML checkout website."""
     logo_b64 = get_logo_b64()
     logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
-    phonepe_b64 = get_qr_b64("phonepe_qr_card.jpg")
-    paypal_b64 = get_qr_b64("paypal_qr_card.jpg")
-    phonepe_src = f"data:image/jpeg;base64,{phonepe_b64}" if phonepe_b64 else ""
-    paypal_src = f"data:image/jpeg;base64,{paypal_b64}" if paypal_b64 else ""
     encoded_hw = html.escape(machine_id)
     norm_tier = default_tier.lower()
     if "life" in norm_tier:
@@ -782,10 +761,9 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
       <div id="payment-details-box" style="margin-top: 14px; padding: 14px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 12px;">
         <!-- PayPal Details -->
         <div id="panel-paypal" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-          {f'<img src="{paypal_src}" style="width: 130px; height: 130px; border-radius: 10px; object-fit: contain; background: #fff; padding: 4px;" alt="PayPal QR">' if paypal_src else ''}
           <div style="flex: 1; min-width: 200px;">
-            <div style="font-size: 14px; font-weight: 800; color: #38bdf8; margin-bottom: 4px;">Official PayPal QR Checkout</div>
-            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">Scan with your phone camera or tap below to open the official PayPal checkout link:</div>
+            <div style="font-size: 14px; font-weight: 800; color: #38bdf8; margin-bottom: 4px;">Official PayPal Checkout</div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">Tap below to open the official PayPal direct checkout page:</div>
             <a href="https://www.paypal.com/qrcodes/p2pqrc/Y6DNBH74UFNYE" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: #0070ba; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 12px;">
               <span>💳</span> <span>Open PayPal Direct Checkout</span>
             </a>
@@ -795,10 +773,9 @@ def generate_purchase_html(machine_id: str, default_tier: str = "monthly") -> st
 
         <!-- UPI Details -->
         <div id="panel-upi" style="display: none; align-items: center; gap: 16px; flex-wrap: wrap;">
-          {f'<img src="{phonepe_src}" style="width: 130px; height: 130px; border-radius: 10px; object-fit: contain; background: #fff; padding: 4px;" alt="PhonePe QR">' if phonepe_src else ''}
           <div style="flex: 1; min-width: 200px;">
             <div style="font-size: 14px; font-weight: 800; color: #10b981; margin-bottom: 4px;">PhonePe / Google Pay / Paytm (UPI)</div>
-            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">Scan QR with PhonePe or any UPI app, or pay directly to UPI ID:</div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;">Pay directly using any UPI app to the developer UPI ID:</div>
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
               <code style="background: #1e293b; color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;">keshav026@axl</code>
               <button onclick="copyUpiId()" style="background: #334155; border: 1px solid #475569; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;">📋 Copy</button>
