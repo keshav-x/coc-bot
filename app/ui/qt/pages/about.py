@@ -1,4 +1,4 @@
-"""About page — ApexClash Pro features, Anti-Ban technology, and developer contacts."""
+﻿"""About page â€” ApexClash Pro features, Anti-Ban technology, and developer contacts."""
 from __future__ import annotations
 
 import platform
@@ -91,7 +91,7 @@ class AboutPage(QWidget):
 
         # Anti-Ban Engine 3.0 Card (Featured Pillar)
         antiban_card = Card()
-        antiban_card.card_layout.addWidget(SectionTitle("🛡️ Humanized Anti-Ban Engine 3.0"))
+        antiban_card.card_layout.addWidget(SectionTitle("ðŸ›¡ï¸ Humanized Anti-Ban Engine 3.0"))
         
         antiban_desc = QLabel(
             "<b>100% External Vision (Zero Memory Injection):</b><br>"
@@ -99,10 +99,10 @@ class AboutPage(QWidget):
             "externally using computer vision (OpenCV) and optical character recognition (Tesseract). It never reads, "
             "hooks, or modifies game memory, making it completely undetectable to internal client integrity checks.<br><br>"
             "<b>Key Anti-Ban Protections:</b><br>"
-            "• <b>Bézier Curve Mouse Physics:</b> Every swipe, tap, and drag follows organic, non-linear acceleration curves with micro-jitter.<br>"
-            "• <b>Gaussian Coordinate Scatter:</b> Randomized tap offsets guarantee no two clicks land on the same pixel.<br>"
-            "• <b>Circadian Rest Cycles:</b> Automated human fatigue breaks simulate real player rest and sleep intervals.<br>"
-            "• <b>Erratic Timing Delays:</b> Randomized variable delays between base scans prevent robotic timing signatures."
+            "â€¢ <b>BÃ©zier Curve Mouse Physics:</b> Every swipe, tap, and drag follows organic, non-linear acceleration curves with micro-jitter.<br>"
+            "â€¢ <b>Gaussian Coordinate Scatter:</b> Randomized tap offsets guarantee no two clicks land on the same pixel.<br>"
+            "â€¢ <b>Circadian Rest Cycles:</b> Automated human fatigue breaks simulate real player rest and sleep intervals.<br>"
+            "â€¢ <b>Erratic Timing Delays:</b> Randomized variable delays between base scans prevent robotic timing signatures."
         )
         antiban_desc.setTextFormat(Qt.TextFormat.RichText)
         antiban_desc.setWordWrap(True)
@@ -112,14 +112,14 @@ class AboutPage(QWidget):
 
         # Core Features Card
         features_card = Card()
-        features_card.card_layout.addWidget(SectionTitle("⚡ Feature Highlights"))
+        features_card.card_layout.addWidget(SectionTitle("âš¡ Feature Highlights"))
         features_text = QLabel(
-            "• <b>Surgical Sneaky Goblin Farming:</b> High-efficiency funneling that strips collectors and mines with minimal troop cost.<br>"
-            "• <b>Smart OCR Loot Filtration:</b> Real-time base scan filters for gold, elixir, and dark elixir thresholds with instant skips.<br>"
-            "• <b>Autonomous Wall Upgrader:</b> Prevents resource waste by automatically sinking excess gold & elixir into wall upgrades.<br>"
-            "• <b>Tactical Hero Ability Timing:</b> Deploys King, Queen, Warden, and Champion with delayed ability activation.<br>"
-            "• <b>Discord Webhooks:</b> Live raid reports, loot summaries, and status alerts sent straight to your phone.<br>"
-            "• <b>Multi-Platform Support:</b> 1-Click native execution on Windows, Linux, and macOS."
+            "â€¢ <b>Surgical Sneaky Goblin Farming:</b> High-efficiency funneling that strips collectors and mines with minimal troop cost.<br>"
+            "â€¢ <b>Smart OCR Loot Filtration:</b> Real-time base scan filters for gold, elixir, and dark elixir thresholds with instant skips.<br>"
+            "â€¢ <b>Autonomous Wall Upgrader:</b> Prevents resource waste by automatically sinking excess gold & elixir into wall upgrades.<br>"
+            "â€¢ <b>Tactical Hero Ability Timing:</b> Deploys King, Queen, Warden, and Champion with delayed ability activation.<br>"
+            "â€¢ <b>Discord Webhooks:</b> Live raid reports, loot summaries, and status alerts sent straight to your phone.<br>"
+            "â€¢ <b>Multi-Platform Support:</b> 1-Click native execution on Windows, Linux, and macOS."
         )
         features_text.setTextFormat(Qt.TextFormat.RichText)
         features_text.setWordWrap(True)
@@ -129,13 +129,13 @@ class AboutPage(QWidget):
 
         # Pricing & Access Passes Card
         pricing_card = Card()
-        pricing_card.card_layout.addWidget(SectionTitle("🔑 Access Passes & Pricing"))
+        pricing_card.card_layout.addWidget(SectionTitle("ðŸ”‘ Access Passes & Pricing"))
         pricing_text = QLabel(
-            "• <b>2-Hour Free Trial:</b> Automatically active on first launch — test everything risk-free.<br>"
-            "• <b>Weekly Pass:</b> <b>$1.99 / ₹99</b> (7 Days) — Quick trial & weekend farming.<br>"
-            "• <b>Monthly Pass:</b> <b>$4.99 / ₹249</b> (30 Days) — Continuous regular farming (Most Popular).<br>"
-            "• <b>Annual Pass:</b> <b>$14.99 / ₹799</b> (365 Days) — 50% discount & all updates included.<br>"
-            "• <b>Lifetime Pass:</b> <b>$24.99 / ₹1,299</b> (Permanent) — Permanent VIP Access with priority support."
+            "â€¢ <b>2-Hour Free Trial:</b> Automatically active on first launch â€” test everything risk-free.<br>"
+            "â€¢ <b>Weekly Pass:</b> <b>$1.99 / â‚¹99</b> (7 Days) â€” Quick trial & weekend farming.<br>"
+            "â€¢ <b>Monthly Pass:</b> <b>$4.99 / â‚¹249</b> (30 Days) â€” Continuous regular farming (Most Popular).<br>"
+            "â€¢ <b>Annual Pass:</b> <b>$14.99 / â‚¹799</b> (365 Days) â€” 50% discount & all updates included.<br>"
+            "â€¢ <b>Lifetime Pass:</b> <b>$24.99 / â‚¹1,299</b> (Permanent) â€” Permanent VIP Access with priority support."
         )
         pricing_text.setTextFormat(Qt.TextFormat.RichText)
         pricing_text.setWordWrap(True)
@@ -145,13 +145,13 @@ class AboutPage(QWidget):
 
         # Developer & Purchase Support Card
         contact_card = Card()
-        contact_card.card_layout.addWidget(SectionTitle("💬 Help & Support"))
+        contact_card.card_layout.addWidget(SectionTitle("ðŸ’¬ Help & Support"))
         contact_text = QLabel(
             "Reach out directly for purchase activations, license transfers, questions, or custom setups:<br>"
-            "• 📧 <b>Email:</b> <a style='color: #38bdf8;' href='mailto:keshavchaudhary2609@gmail.com'>keshavchaudhary2609@gmail.com</a><br>"
-            "• 📱 <b>Telegram:</b> <a style='color: #38bdf8;' href='https://t.me/keshavchaudhary0025'>@keshavchaudhary0025</a><br>"
-            "• 🌐 <b>Reddit:</b> <span style='color: #f59e0b;'>u/post_matrix</span><br>"
-            "• 📖 <b>Help &amp; Setup Center:</b> <a style='color: #38bdf8;' href='https://keshav-x.github.io/coc-bot/help.html'>https://keshav-x.github.io/coc-bot/help.html</a><br>"
+            "â€¢ ðŸ“§ <b>Email:</b> <a style='color: #38bdf8;' href='mailto:keshavchaudhary0005@gmail.com'>keshavchaudhary0005@gmail.com</a><br>"
+            "â€¢ ðŸ“± <b>Telegram:</b> <a style='color: #38bdf8;' href='https://t.me/keshavchaudhary0025'>@keshavchaudhary0025</a><br>"
+            "â€¢ ðŸŒ <b>Reddit:</b> <span style='color: #f59e0b;'>u/post_matrix</span><br>"
+            "â€¢ ðŸ“– <b>Help &amp; Setup Center:</b> <a style='color: #38bdf8;' href='https://keshav-x.github.io/coc-bot/help.html'>https://keshav-x.github.io/coc-bot/help.html</a><br>"
             "<i>Accepted Payment Methods: PayPal, Cards, PhonePe, GPay, Paytm (UPI).</i>"
         )
         contact_text.setTextFormat(Qt.TextFormat.RichText)
@@ -162,13 +162,13 @@ class AboutPage(QWidget):
 
         # Environment Details Card
         env_card = Card()
-        env_card.card_layout.addWidget(SectionTitle("⚙️ System Environment"))
+        env_card.card_layout.addWidget(SectionTitle("âš™ï¸ System Environment"))
         py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
         env_text = QLabel(
-            f"• <b>OS:</b> {platform.system()} {platform.release()} ({platform.machine()})<br>"
-            f"• <b>Python:</b> {py_ver}<br>"
-            f"• <b>GUI Framework:</b> PySide6 (Qt6 Modern Aurora Cyber)<br>"
-            f"• <b>Status:</b> All subsystems operational"
+            f"â€¢ <b>OS:</b> {platform.system()} {platform.release()} ({platform.machine()})<br>"
+            f"â€¢ <b>Python:</b> {py_ver}<br>"
+            f"â€¢ <b>GUI Framework:</b> PySide6 (Qt6 Modern Aurora Cyber)<br>"
+            f"â€¢ <b>Status:</b> All subsystems operational"
         )
         env_text.setTextFormat(Qt.TextFormat.RichText)
         env_text.setStyleSheet(f"color: {TOKENS['text_muted']}; font-size: 11px; line-height: 1.5;")
@@ -178,3 +178,4 @@ class AboutPage(QWidget):
         layout.addStretch()
         scroll.setWidget(container)
         outer_layout.addWidget(scroll)
+

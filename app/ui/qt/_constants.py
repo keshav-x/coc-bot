@@ -1,4 +1,4 @@
-"""UI constants ported from the legacy theme module."""
+﻿"""UI constants ported from the legacy theme module."""
 
 ATTACK_STRATEGIES: dict[str, int] = {
     "Sneaky Goblins": 1,
@@ -16,17 +16,17 @@ BUILDER_BASE_ATTACK_STRATEGIES_UNDER_DEV: tuple[str, ...] = ()
 
 BUILDER_BASE_PRIORITISE_LABELS = ("Gold", "Both", "Elixir")
 
-PLAN_PRICE_WEEKLY = "$1.99 / ₹99 / week"
-PLAN_PRICE_MONTHLY = "$4.99 / ₹249 / month"
-PLAN_PRICE_ANNUAL = "$14.99 / ₹799 / year"
-PLAN_PRICE_LIFETIME = "$24.99 / ₹1,299 lifetime"
+PLAN_PRICE_WEEKLY = "$1.99 / â‚¹99 / week"
+PLAN_PRICE_MONTHLY = "$4.99 / â‚¹249 / month"
+PLAN_PRICE_ANNUAL = "$14.99 / â‚¹799 / year"
+PLAN_PRICE_LIFETIME = "$24.99 / â‚¹1,299 lifetime"
 PLAN_DEVICE_LIMIT = "1 Device (Hardware Bound)"
 PLAN_TRIAL_HOURS = 2
 PLAN_DESCRIPTION = "Pro passes ($1.99/wk, $4.99/mo, $24.99 lifetime) with instant PayPal & UPI activation"
 
 PAGE_LICENSE = "license"
 
-CONTACT_EMAIL = "keshavchaudhary2609@gmail.com"
+CONTACT_EMAIL = "keshavchaudhary0005@gmail.com"
 CONTACT_REDDIT = "post_matrix"
 CONTACT_TELEGRAM = "@keshavchaudhary0025"
 CONTACT_DISCORD = ""
@@ -46,7 +46,7 @@ PORTAL_USER_ERRORS: dict[str, str] = {
     "not_found": "That license key was not found.",
     "revoked": "This license key has been revoked.",
     "machine_mismatch": "This license key is paired to another PC, so billing cannot be opened here.",
-    "no_billing_account": "No Stripe billing account is linked to this key — it was likely issued manually. Contact support and we'll sort out your billing.",
+    "no_billing_account": "No Stripe billing account is linked to this key â€” it was likely issued manually. Contact support and we'll sort out your billing.",
     "portal_not_configured": "Billing management is not available yet. Contact support.",
     "network_unreachable": "Could not reach the license server. Check your internet and try again.",
     "failed": "The server declined the request. Try again or contact support.",
@@ -62,3 +62,4 @@ UNPAIR_USER_ERRORS: dict[str, str] = {
     "network_unreachable": "Could not reach the license server. Check your internet and try again.",
     "failed": "The server declined the request. Try again or contact support.",
 }
+

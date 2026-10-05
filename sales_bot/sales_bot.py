@@ -1,27 +1,27 @@
-"""
-ApexClash Pro — Discord Sales & License Automation Bot  (v3 — TXN-ID verification)
+﻿"""
+ApexClash Pro â€” Discord Sales & License Automation Bot  (v3 â€” TXN-ID verification)
 
 Payment flow
-────────────────────────────────────────────────────────────────────────────────
-1. /store  → user picks plan
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+1. /store  â†’ user picks plan
 2. Bot shows PayPal link (pre-filled amount) + GPay/UPI QR (pre-filled amount)
 3. User pays with either method
-4. User clicks "I've Paid" → modal asks for Transaction ID
+4. User clicks "I've Paid" â†’ modal asks for Transaction ID
 5. Bot validates the Transaction ID:
-     PayPal   → format check + PayPal Captures API verify (auto, zero-touch)
-     UPI/GPay → format check + duplicate check (optimistic: key delivered,
+     PayPal   â†’ format check + PayPal Captures API verify (auto, zero-touch)
+     UPI/GPay â†’ format check + duplicate check (optimistic: key delivered,
                 30-min admin approval window)
 6. Key is generated & DM'd to user automatically
 7. Admin gets a notification DM with Approve / Revoke buttons
-8. /revoke <order_id>  → revokes the key, DMs the user, pushes to revocation Gist
+8. /revoke <order_id>  â†’ revokes the key, DMs the user, pushes to revocation Gist
 
 Admin commands
-───────────────
-/store    — open the public store
-/genkey   — manually generate a key (optionally DM to a member)
-/verify   — inspect any key
-/orders   — list recent orders
-/revoke   — revoke a key by order ID (can also flag it as fraud)
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/store    â€” open the public store
+/genkey   â€” manually generate a key (optionally DM to a member)
+/verify   â€” inspect any key
+/orders   â€” list recent orders
+/revoke   â€” revoke a key by order ID (can also flag it as fraud)
 """
 
 from __future__ import annotations
@@ -70,7 +70,7 @@ logger = logging.getLogger("SalesBot")
 
 ORDERS_DB_PATH = SALES_BOT_DIR / "orders.json"
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _fmt_ts(ts: int) -> str:
     return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%b %d %H:%M UTC") if ts else "?"
@@ -106,14 +106,14 @@ def is_txn_id_used(txn_id: str, exclude_order_id: Optional[str] = None) -> bool:
         if o.get("status") not in ("rejected", "revoked", "awaiting_payment")
     )
 
-# ── Embed builders ─────────────────────────────────────────────────────────────
+# â”€â”€ Embed builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _delivery_embed(tier: str, order_id: str, key: str) -> discord.Embed:
     plan = config["pricing"].get(tier, {})
     days  = plan.get("days", 0)
     expiry = "Never (Lifetime)" if not days else f"{days} days from today"
     embed = discord.Embed(
-        title="🎉 You're Unlocked — ApexClash Pro is Active!",
+        title="ðŸŽ‰ You're Unlocked â€” ApexClash Pro is Active!",
         description=(
             f"Your **{plan.get('name', tier.capitalize())} license** has been delivered.\n\n"
             f"**Your Activation Key:**\n"
@@ -121,7 +121,7 @@ def _delivery_embed(tier: str, order_id: str, key: str) -> discord.Embed:
             f"**How to activate (30 seconds):**\n"
             f"1. Open **ApexClash Bot** on your PC.\n"
             f"2. Navigate to the **License** tab.\n"
-            f"3. Paste your key → click **Check Key**.\n"
+            f"3. Paste your key â†’ click **Check Key**.\n"
             f"4. Green light = bot unlocked. Farming begins automatically."
         ),
         color=0x10B981,
@@ -129,10 +129,10 @@ def _delivery_embed(tier: str, order_id: str, key: str) -> discord.Embed:
     embed.add_field(name="Plan",    value=plan.get("name", tier), inline=True)
     embed.add_field(name="Expires", value=expiry,                 inline=True)
     embed.add_field(name="Order",   value=f"`{order_id}`",        inline=True)
-    embed.set_footer(text="Ed25519 signed • hardware-bound • offline verification • Store this key safely.")
+    embed.set_footer(text="Ed25519 signed â€¢ hardware-bound â€¢ offline verification â€¢ Store this key safely.")
     return embed
 
-# ── Services (loaded after config) ────────────────────────────────────────────
+# â”€â”€ Services (loaded after config) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 config = load_config()
 save_example_config()
@@ -154,15 +154,15 @@ AUTO_REVOKE_UNCONFIRMED: bool = config.get("auto_revoke_unconfirmed", False)
 UPI_APPROVAL_SECS: int  = config.get("upi_approval_window_seconds", 1800)   # 30 min (if auto_revoke_unconfirmed is enabled)
 PAYPAL_APPROVAL_SECS: int = config.get("paypal_approval_window_seconds", 300)  # 5 min without API
 
-# ── Bot setup ─────────────────────────────────────────────────────────────────
+# â”€â”€ Bot setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # MODALS
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class TxnIdModal(discord.ui.Modal):
     txn_id = discord.ui.TextInput(
@@ -193,11 +193,11 @@ class TxnIdModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True, thinking=True)
         raw_txn = self.txn_id.value.strip()
 
-        # ── Step 1: known fake ID ─────────────────────────────────────────────
+        # â”€â”€ Step 1: known fake ID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if is_known_test_id(raw_txn):
             await interaction.followup.send(
                 embed=discord.Embed(
-                    title="❌ Rejected — Example / Test ID",
+                    title="âŒ Rejected â€” Example / Test ID",
                     description=(
                         f"`{raw_txn}` matches a known example or placeholder value.\n\n"
                         "Please enter your **actual transaction ID** from your payment confirmation."
@@ -208,7 +208,7 @@ class TxnIdModal(discord.ui.Modal):
             )
             return
 
-        # ── Step 2: format validation with method auto-detection ──────────────
+        # â”€â”€ Step 2: format validation with method auto-detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         method = self.method
         if method == "paypal":
             ok, result = validate_paypal_txn_id(raw_txn)
@@ -232,7 +232,7 @@ class TxnIdModal(discord.ui.Modal):
         if not ok:
             await interaction.followup.send(
                 embed=discord.Embed(
-                    title="❌ Invalid Transaction ID",
+                    title="âŒ Invalid Transaction ID",
                     description=result,
                     color=0xEF4444,
                 ),
@@ -242,11 +242,11 @@ class TxnIdModal(discord.ui.Modal):
 
         clean_txn = result  # sanitised value
 
-        # ── Step 3: duplicate check ────────────────────────────────────────────
+        # â”€â”€ Step 3: duplicate check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if is_txn_id_used(clean_txn, exclude_order_id=self.order_id):
             await interaction.followup.send(
                 embed=discord.Embed(
-                    title="❌ Transaction ID Already Used",
+                    title="âŒ Transaction ID Already Used",
                     description=(
                         f"`{clean_txn}` has already been submitted for another order.\n\n"
                         "Each payment can only be used for one license key.\n"
@@ -258,7 +258,7 @@ class TxnIdModal(discord.ui.Modal):
             )
             return
 
-        # ── Step 4: record the order (before verification, to lock TXN ID) ────
+        # â”€â”€ Step 4: record the order (before verification, to lock TXN ID) â”€â”€â”€â”€
         orders = load_orders()
         order = orders.get(self.order_id, {})
         order.update({
@@ -269,7 +269,7 @@ class TxnIdModal(discord.ui.Modal):
         orders[self.order_id] = order
         save_orders(orders)
 
-        # ── Step 5: PayPal API verification (if configured) ────────────────────
+        # â”€â”€ Step 5: PayPal API verification (if configured) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if self.method == "paypal" and paypal_svc.is_configured:
             verified = paypal_svc.capture_order(clean_txn)
             if verified:
@@ -278,17 +278,17 @@ class TxnIdModal(discord.ui.Modal):
                     clean_txn, self.method, verified_auto=True
                 )
             else:
-                # API says not captured yet — could be wrong TXN ID
+                # API says not captured yet â€” could be wrong TXN ID
                 await interaction.followup.send(
                     embed=discord.Embed(
-                        title="⚠️ PayPal Payment Not Found",
+                        title="âš ï¸ PayPal Payment Not Found",
                         description=(
                             f"The PayPal Transaction ID `{clean_txn}` could not be verified as **Completed**.\n\n"
                             "**Please check:**\n"
-                            "• You copied the correct **Transaction ID** (not the order ID).\n"
-                            "• The payment status is **Completed** in your PayPal app.\n"
-                            "• PayPal → Activity → tap the payment → Transaction ID.\n\n"
-                            "If your payment is confirmed, try again in 2–3 minutes or contact the admin."
+                            "â€¢ You copied the correct **Transaction ID** (not the order ID).\n"
+                            "â€¢ The payment status is **Completed** in your PayPal app.\n"
+                            "â€¢ PayPal â†’ Activity â†’ tap the payment â†’ Transaction ID.\n\n"
+                            "If your payment is confirmed, try again in 2â€“3 minutes or contact the admin."
                         ),
                         color=0xF59E0B,
                     ),
@@ -296,16 +296,16 @@ class TxnIdModal(discord.ui.Modal):
                 )
             return
 
-        # ── Step 6: optimistic delivery (UPI / PayPal without API) ────────────
+        # â”€â”€ Step 6: optimistic delivery (UPI / PayPal without API) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         await _deliver_key_and_notify(
             interaction, self.order_id, self.tier,
             clean_txn, self.method, verified_auto=False
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Core delivery function
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def _deliver_key_and_notify(
     interaction: discord.Interaction,
@@ -320,7 +320,7 @@ async def _deliver_key_and_notify(
         key = generate_license_for_tier(tier)
     except Exception as exc:
         await interaction.followup.send(
-            f"❌ Key generation error: `{exc}`. Contact admin.", ephemeral=True
+            f"âŒ Key generation error: `{exc}`. Contact admin.", ephemeral=True
         )
         return
 
@@ -337,7 +337,7 @@ async def _deliver_key_and_notify(
 
     plan = config["pricing"].get(tier, {})
     amount_label = (
-        f"₹{plan.get('inr', '?')}"
+        f"â‚¹{plan.get('inr', '?')}"
         if method == "upi"
         else f"${plan.get('usd', '?'):.2f}"
     )
@@ -347,12 +347,12 @@ async def _deliver_key_and_notify(
         else f"{PAYPAL_APPROVAL_SECS // 60} min"
     )
 
-    # ── Deliver to user ────────────────────────────────────────────────────────
+    # â”€â”€ Deliver to user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     verification_note = (
-        "✅ **Payment auto-verified via PayPal API.**"
+        "âœ… **Payment auto-verified via PayPal API.**"
         if verified_auto
         else (
-            f"⚡ **License is active immediately!**\n"
+            f"âš¡ **License is active immediately!**\n"
             f"Keep your Order ID `{order_id}` for reference.\n"
             f"*(Note: Transaction IDs are cross-checked with banking records. Fraudulent IDs are blacklisted and revoked).* "
         )
@@ -363,7 +363,7 @@ async def _deliver_key_and_notify(
 
     await interaction.followup.send(embed=user_embed, ephemeral=True)
 
-    # ── Admin notification ─────────────────────────────────────────────────────
+    # â”€â”€ Admin notification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if ADMIN_ID:
         try:
             admin = bot.get_user(ADMIN_ID) or await bot.fetch_user(ADMIN_ID)
@@ -371,12 +371,12 @@ async def _deliver_key_and_notify(
             admin = None
 
         if admin:
-            method_emoji = "⚡" if method == "upi" else "💳"
+            method_emoji = "âš¡" if method == "upi" else "ðŸ’³"
             admin_embed = discord.Embed(
-                title=f"{method_emoji} New Sale — {plan.get('name', tier)} ({amount_label})",
+                title=f"{method_emoji} New Sale â€” {plan.get('name', tier)} ({amount_label})",
                 description=(
                     f"A key has been **auto-delivered** to <@{interaction.user.id}>.\n"
-                    f"{'Payment was verified via PayPal API ✅' if verified_auto else 'Check your PhonePe / PayPal app to confirm funds, then click **Confirm** or **Revoke** below.'}"
+                    f"{'Payment was verified via PayPal API âœ…' if verified_auto else 'Check your PhonePe / PayPal app to confirm funds, then click **Confirm** or **Revoke** below.'}"
                 ),
                 color=0x10B981 if verified_auto else 0x38BDF8,
             )
@@ -390,7 +390,7 @@ async def _deliver_key_and_notify(
 
             if not verified_auto:
                 admin_embed.set_footer(
-                    text=f"Verify in {'PhonePe app — check ₹' + str(plan.get('inr','?')) + ' received' if method == 'upi' else 'PayPal — check $' + str(plan.get('usd','?')) + ' received'}. Tap Revoke below if fake."
+                    text=f"Verify in {'PhonePe app â€” check â‚¹' + str(plan.get('inr','?')) + ' received' if method == 'upi' else 'PayPal â€” check $' + str(plan.get('usd','?')) + ' received'}. Tap Revoke below if fake."
                 )
 
             view = AdminReviewView(
@@ -406,7 +406,7 @@ async def _deliver_key_and_notify(
             except Exception as exc:
                 logger.error("Could not DM admin: %s", exc)
 
-    # ── Auto-revocation timer (only if explicitly enabled in config) ───────────
+    # â”€â”€ Auto-revocation timer (only if explicitly enabled in config) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if not verified_auto and AUTO_REVOKE_UNCONFIRMED:
         window = UPI_APPROVAL_SECS if method == "upi" else PAYPAL_APPROVAL_SECS
         asyncio.create_task(
@@ -425,14 +425,14 @@ async def _auto_revocation_check(order_id: str, key: str, window_seconds: int):
     order = orders.get(order_id, {})
 
     if order.get("status") == "confirmed":
-        logger.info("Order %s was confirmed by admin — no auto-revocation.", order_id)
+        logger.info("Order %s was confirmed by admin â€” no auto-revocation.", order_id)
         return
     if order.get("status") == "revoked":
         logger.info("Order %s was already manually revoked.", order_id)
         return
 
     # Auto-revoke
-    logger.warning("Order %s — approval window expired. Auto-revoking.", order_id)
+    logger.warning("Order %s â€” approval window expired. Auto-revoking.", order_id)
     order["status"] = "revoked"
     order["revoke_reason"] = "auto_expired"
     order["revoked_at"] = int(time.time())
@@ -450,14 +450,14 @@ async def _auto_revocation_check(order_id: str, key: str, window_seconds: int):
             buyer = bot.get_user(buyer_id) or await bot.fetch_user(buyer_id)
             await buyer.send(
                 embed=discord.Embed(
-                    title="🚫 Access Revoked — Payment Unverified",
+                    title="ðŸš« Access Revoked â€” Payment Unverified",
                     description=(
                         f"Your license key for order `{order_id}` has been **revoked** "
                         f"because the payment transaction ID `{order.get('txn_id', '?')}` "
                         f"could not be verified within the allowed time window.\n\n"
                         "If your payment was genuine, please contact support with:\n"
-                        "• A **screenshot** of your payment confirmation.\n"
-                        "• Your **Order ID**: `{order_id}`"
+                        "â€¢ A **screenshot** of your payment confirmation.\n"
+                        "â€¢ Your **Order ID**: `{order_id}`"
                     ),
                     color=0xEF4444,
                 )
@@ -468,9 +468,9 @@ async def _auto_revocation_check(order_id: str, key: str, window_seconds: int):
     logger.info("Auto-revocation complete for order %s.", order_id)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Admin Review View
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class AdminReviewView(discord.ui.View):
     def __init__(
@@ -494,12 +494,12 @@ class AdminReviewView(discord.ui.View):
             # Remove revoke-for-fraud from auto-verified; keep only revoke
             pass
 
-    @discord.ui.button(label="✅ Confirm — Payment Genuine", style=discord.ButtonStyle.green, emoji="🔒")
+    @discord.ui.button(label="âœ… Confirm â€” Payment Genuine", style=discord.ButtonStyle.green, emoji="ðŸ”’")
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         orders = load_orders()
         order  = orders.get(self.order_id, {})
         if order.get("status") == "revoked":
-            await interaction.response.send_message("⚠️ Already revoked.", ephemeral=True)
+            await interaction.response.send_message("âš ï¸ Already revoked.", ephemeral=True)
             return
         order["status"] = "confirmed"
         order["confirmed_at"] = int(time.time())
@@ -510,19 +510,19 @@ class AdminReviewView(discord.ui.View):
             child.disabled = True
         await interaction.response.edit_message(
             embed=discord.Embed(
-                title=f"✅ Order {self.order_id} — Confirmed",
+                title=f"âœ… Order {self.order_id} â€” Confirmed",
                 description=f"Payment confirmed. Key remains active for <@{self.buyer_id}>.",
                 color=0x10B981,
             ),
             view=self,
         )
 
-    @discord.ui.button(label="🚫 Revoke — Fake / Fraudulent", style=discord.ButtonStyle.danger, emoji="❌")
+    @discord.ui.button(label="ðŸš« Revoke â€” Fake / Fraudulent", style=discord.ButtonStyle.danger, emoji="âŒ")
     async def revoke(self, interaction: discord.Interaction, button: discord.ui.Button):
         orders = load_orders()
         order  = orders.get(self.order_id, {})
         if order.get("status") == "revoked":
-            await interaction.response.send_message("⚠️ Already revoked.", ephemeral=True)
+            await interaction.response.send_message("âš ï¸ Already revoked.", ephemeral=True)
             return
 
         order["status"]       = "revoked"
@@ -542,7 +542,7 @@ class AdminReviewView(discord.ui.View):
             buyer = bot.get_user(self.buyer_id) or await bot.fetch_user(self.buyer_id)
             await buyer.send(
                 embed=discord.Embed(
-                    title="🚫 License Revoked",
+                    title="ðŸš« License Revoked",
                     description=(
                         f"Your license key for order `{self.order_id}` has been revoked.\n\n"
                         "The transaction ID you submitted could not be verified as a genuine payment.\n\n"
@@ -558,7 +558,7 @@ class AdminReviewView(discord.ui.View):
             child.disabled = True
         await interaction.response.edit_message(
             embed=discord.Embed(
-                title=f"🚫 Order {self.order_id} — Revoked (Fraud)",
+                title=f"ðŸš« Order {self.order_id} â€” Revoked (Fraud)",
                 description=(
                     f"Key revoked and added to revocation list.\n"
                     f"TXN ID `{self.txn_id}` blacklisted.\n"
@@ -570,9 +570,9 @@ class AdminReviewView(discord.ui.View):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Payment method selection views
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class PaymentView(discord.ui.View):
     """
@@ -608,13 +608,13 @@ class PaymentView(discord.ui.View):
 
         # Link buttons (row 0)
         self.add_item(discord.ui.Button(
-            label=f"📱 Open PhonePe / GPay (₹{self.inr})",
+            label=f"ðŸ“± Open PhonePe / GPay (â‚¹{self.inr})",
             url=self._upi_intent,
             style=discord.ButtonStyle.link,
             row=0,
         ))
         self.add_item(discord.ui.Button(
-            label=f"💳 Pay via PayPal (${self.usd:.2f})",
+            label=f"ðŸ’³ Pay via PayPal (${self.usd:.2f})",
             url=self._paypal_url,
             style=discord.ButtonStyle.link,
             row=0,
@@ -632,7 +632,7 @@ class PaymentView(discord.ui.View):
         return True
 
     @discord.ui.button(
-        label="⚡ Paid with PhonePe / UPI — Submit TXN ID",
+        label="âš¡ Paid with PhonePe / UPI â€” Submit TXN ID",
         style=discord.ButtonStyle.success,
         row=1,
     )
@@ -648,7 +648,7 @@ class PaymentView(discord.ui.View):
         )
 
     @discord.ui.button(
-        label="💳 Paid with PayPal — Submit TXN ID",
+        label="ðŸ’³ Paid with PayPal â€” Submit TXN ID",
         style=discord.ButtonStyle.primary,
         row=1,
     )
@@ -664,42 +664,42 @@ class PaymentView(discord.ui.View):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Plan selection
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class PlanSelect(discord.ui.Select):
     def __init__(self):
         p = config.get("pricing", {})
         options = [
             discord.SelectOption(
-                label=f"⚡ Weekly Pass  — ₹{p['weekly']['inr']} / ${p['weekly']['usd']}",
+                label=f"âš¡ Weekly Pass  â€” â‚¹{p['weekly']['inr']} / ${p['weekly']['usd']}",
                 value="weekly",
                 description="7 Days VIP",
-                emoji="🗓️",
+                emoji="ðŸ—“ï¸",
             ),
             discord.SelectOption(
-                label=f"🌟 Monthly VIP  — ₹{p['monthly']['inr']} / ${p['monthly']['usd']}",
+                label=f"ðŸŒŸ Monthly VIP  â€” â‚¹{p['monthly']['inr']} / ${p['monthly']['usd']}",
                 value="monthly",
-                description="30 Days • Most Popular",
-                emoji="⭐",
+                description="30 Days â€¢ Most Popular",
+                emoji="â­",
                 default=True,
             ),
             discord.SelectOption(
-                label=f"🏆 Annual Pass  — ₹{p['annual']['inr']} / ${p['annual']['usd']}",
+                label=f"ðŸ† Annual Pass  â€” â‚¹{p['annual']['inr']} / ${p['annual']['usd']}",
                 value="annual",
-                description="365 Days • 50% cheaper than monthly",
-                emoji="📅",
+                description="365 Days â€¢ 50% cheaper than monthly",
+                emoji="ðŸ“…",
             ),
             discord.SelectOption(
-                label=f"👑 Lifetime VIP — ₹{p['lifetime']['inr']} / ${p['lifetime']['usd']}",
+                label=f"ðŸ‘‘ Lifetime VIP â€” â‚¹{p['lifetime']['inr']} / ${p['lifetime']['usd']}",
                 value="lifetime",
                 description="Never expires",
-                emoji="♾️",
+                emoji="â™¾ï¸",
             ),
         ]
         super().__init__(
-            placeholder="🛒  Pick a plan to continue…",
+            placeholder="ðŸ›’  Pick a plan to continueâ€¦",
             min_values=1, max_values=1,
             options=options,
         )
@@ -712,12 +712,12 @@ class PlanSelect(discord.ui.Select):
         pview = PaymentView(tier)
 
         embed = discord.Embed(
-            title=f"{'👑' if tier == 'lifetime' else '✅'}  {plan['name']} — Payment Details",
+            title=f"{'ðŸ‘‘' if tier == 'lifetime' else 'âœ…'}  {plan['name']} â€” Payment Details",
             description=(
                 f"**Duration:** {days_str}\n"
-                f"**UPI / PhonePe (India):** ₹{plan['inr']}\n"
+                f"**UPI / PhonePe (India):** â‚¹{plan['inr']}\n"
                 f"**PayPal / Cards (Global):** ${plan['usd']:.2f}\n\n"
-                f"**Pay using either button below, then click the matching '✅ I've Paid' button "
+                f"**Pay using either button below, then click the matching 'âœ… I've Paid' button "
                 f"to enter your Transaction ID and receive your key automatically.**"
             ),
             color=0xF59E0B if tier == "lifetime" else 0x38BDF8,
@@ -734,11 +734,11 @@ class PlanSelect(discord.ui.Select):
             inline=True,
         )
         embed.add_field(
-            name="⚠️ Important",
+            name="âš ï¸ Important",
             value=(
-                "• Send **exact** amount — no more, no less.\n"
-                "• Each payment = one key only.\n"
-                "• Fake TXN IDs are auto-detected and access is revoked."
+                "â€¢ Send **exact** amount â€” no more, no less.\n"
+                "â€¢ Each payment = one key only.\n"
+                "â€¢ Fake TXN IDs are auto-detected and access is revoked."
             ),
             inline=False,
         )
@@ -752,9 +752,9 @@ class StoreView(discord.ui.View):
         self.add_item(PlanSelect())
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Events & Slash Commands
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @bot.event
 async def on_ready():
@@ -766,30 +766,30 @@ async def on_ready():
         logger.error("Sync failed: %s", exc)
 
 
-@bot.tree.command(name="store", description="Open the ApexClash Pro store — instant key via PhonePe or PayPal")
+@bot.tree.command(name="store", description="Open the ApexClash Pro store â€” instant key via PhonePe or PayPal")
 async def slash_store(interaction: discord.Interaction):
     p = config.get("pricing", {})
     embed = discord.Embed(
-        title="⚔️  ApexClash Pro — Official Store",
+        title="âš”ï¸  ApexClash Pro â€” Official Store",
         description=(
             "24/7 autonomous Clash of Clans farming: Zero-Gem Guard, smart OCR loot filter, "
-            "and Bézier-curve humanizer for anti-ban protection.\n\n"
-            "**Pay → Submit TXN ID → Key delivered automatically in seconds.**\n\n"
-            f"⚡ **Weekly**   ₹{p['weekly']['inr']} / ${p['weekly']['usd']:.2f}  •  7 days\n"
-            f"🌟 **Monthly**  ₹{p['monthly']['inr']} / ${p['monthly']['usd']:.2f}  •  30 days *(Popular)*\n"
-            f"🏆 **Annual**   ₹{p['annual']['inr']} / ${p['annual']['usd']:.2f}  •  365 days *(50% off)*\n"
-            f"👑 **Lifetime** ₹{p['lifetime']['inr']} / ${p['lifetime']['usd']:.2f}  •  Forever"
+            "and BÃ©zier-curve humanizer for anti-ban protection.\n\n"
+            "**Pay â†’ Submit TXN ID â†’ Key delivered automatically in seconds.**\n\n"
+            f"âš¡ **Weekly**   â‚¹{p['weekly']['inr']} / ${p['weekly']['usd']:.2f}  â€¢  7 days\n"
+            f"ðŸŒŸ **Monthly**  â‚¹{p['monthly']['inr']} / ${p['monthly']['usd']:.2f}  â€¢  30 days *(Popular)*\n"
+            f"ðŸ† **Annual**   â‚¹{p['annual']['inr']} / ${p['annual']['usd']:.2f}  â€¢  365 days *(50% off)*\n"
+            f"ðŸ‘‘ **Lifetime** â‚¹{p['lifetime']['inr']} / ${p['lifetime']['usd']:.2f}  â€¢  Forever"
         ),
         color=0x38BDF8,
     )
     embed.add_field(
-        name="💳 Payment Methods",
-        value="🇮🇳 PhonePe · GPay · Paytm (UPI)  |  🌍 PayPal · Visa · Mastercard",
+        name="ðŸ’³ Payment Methods",
+        value="ðŸ‡®ðŸ‡³ PhonePe Â· GPay Â· Paytm (UPI)  |  ðŸŒ PayPal Â· Visa Â· Mastercard",
         inline=False,
     )
     embed.add_field(
-        name="⚡ How fast?",
-        value="Submit your TXN ID → key in your DMs within **60 seconds**.",
+        name="âš¡ How fast?",
+        value="Submit your TXN ID â†’ key in your DMs within **60 seconds**.",
         inline=False,
     )
     embed.set_footer(text="Select your plan from the dropdown below.")
@@ -807,21 +807,21 @@ async def slash_revoke(
     reason: str = "admin_manual",
 ):
     if ADMIN_ID and interaction.user.id != ADMIN_ID:
-        await interaction.response.send_message("❌ Admin only.", ephemeral=True)
+        await interaction.response.send_message("âŒ Admin only.", ephemeral=True)
         return
 
     orders = load_orders()
     order  = orders.get(order_id.upper().strip())
     if not order:
-        await interaction.response.send_message(f"❌ Order `{order_id}` not found.", ephemeral=True)
+        await interaction.response.send_message(f"âŒ Order `{order_id}` not found.", ephemeral=True)
         return
     if order.get("status") == "revoked":
-        await interaction.response.send_message(f"⚠️ Order `{order_id}` is already revoked.", ephemeral=True)
+        await interaction.response.send_message(f"âš ï¸ Order `{order_id}` is already revoked.", ephemeral=True)
         return
 
     key = order.get("license_key", "")
     if not key:
-        await interaction.response.send_message(f"⚠️ No key found in order `{order_id}`.", ephemeral=True)
+        await interaction.response.send_message(f"âš ï¸ No key found in order `{order_id}`.", ephemeral=True)
         return
 
     order["status"]       = "revoked"
@@ -841,7 +841,7 @@ async def slash_revoke(
             buyer = bot.get_user(buyer_id) or await bot.fetch_user(buyer_id)
             await buyer.send(
                 embed=discord.Embed(
-                    title="🚫 Your ApexClash Pro License Has Been Revoked",
+                    title="ðŸš« Your ApexClash Pro License Has Been Revoked",
                     description=(
                         f"License for order `{order_id}` was revoked.\n"
                         f"**Reason:** {reason.replace('_', ' ').title()}\n\n"
@@ -855,7 +855,7 @@ async def slash_revoke(
 
     await interaction.response.send_message(
         embed=discord.Embed(
-            title=f"🚫 Order {order_id} — Revoked",
+            title=f"ðŸš« Order {order_id} â€” Revoked",
             description=f"Key revoked, blacklisted, and Gist updated.\nReason: `{reason}`",
             color=0xEF4444,
         ),
@@ -871,12 +871,12 @@ async def slash_genkey(
     member: Optional[discord.Member] = None,
 ):
     if ADMIN_ID and interaction.user.id != ADMIN_ID:
-        await interaction.response.send_message("❌ Admin only.", ephemeral=True)
+        await interaction.response.send_message("âŒ Admin only.", ephemeral=True)
         return
     try:
         key = generate_license_for_tier(tier.lower())
     except Exception as exc:
-        await interaction.response.send_message(f"❌ `{exc}`", ephemeral=True)
+        await interaction.response.send_message(f"âŒ `{exc}`", ephemeral=True)
         return
 
     order_id = _make_order_id()
@@ -899,10 +899,10 @@ async def slash_genkey(
         except Exception:
             note = f"Could not DM {member.mention} (DMs closed)."
     else:
-        note = "No member specified — key below for manual delivery."
+        note = "No member specified â€” key below for manual delivery."
 
     await interaction.response.send_message(
-        f"✅ {note}\n**Order ID:** `{order_id}`\n```\n{key}\n```",
+        f"âœ… {note}\n**Order ID:** `{order_id}`\n```\n{key}\n```",
         ephemeral=True,
     )
 
@@ -916,10 +916,10 @@ async def slash_verify(interaction: discord.Interaction, key: str):
     revoked_locally = is_key_revoked(key.strip())
     color = 0xEF4444 if not res.is_valid or revoked_locally else 0x10B981
     status = (
-        "🚫 Revoked (in local blacklist)" if revoked_locally
-        else ("✅ Valid" if res.is_valid else f"❌ Invalid — {res.reason}")
+        "ðŸš« Revoked (in local blacklist)" if revoked_locally
+        else ("âœ… Valid" if res.is_valid else f"âŒ Invalid â€” {res.reason}")
     )
-    embed = discord.Embed(title="🔍 Key Inspection", color=color)
+    embed = discord.Embed(title="ðŸ” Key Inspection", color=color)
     embed.add_field(name="Status", value=status,                          inline=False)
     embed.add_field(name="Tier",   value=res.tier or "N/A",               inline=True)
     embed.add_field(name="Expiry", value=res.expiry_date_str or "N/A",    inline=True)
@@ -931,7 +931,7 @@ async def slash_verify(interaction: discord.Interaction, key: str):
 @app_commands.describe(limit="Number of orders (default 10, max 25)")
 async def slash_orders(interaction: discord.Interaction, limit: int = 10):
     if ADMIN_ID and interaction.user.id != ADMIN_ID:
-        await interaction.response.send_message("❌ Admin only.", ephemeral=True)
+        await interaction.response.send_message("âŒ Admin only.", ephemeral=True)
         return
     all_orders = load_orders()
     recent = sorted(all_orders.values(), key=lambda o: o.get("created_at", 0), reverse=True)[: min(limit, 25)]
@@ -939,18 +939,18 @@ async def slash_orders(interaction: discord.Interaction, limit: int = 10):
         await interaction.response.send_message("No orders yet.", ephemeral=True)
         return
     status_icons = {
-        "delivered": "✅", "confirmed": "🔒", "revoked": "🚫",
-        "awaiting_payment": "⏳", "auto_expired": "❌",
+        "delivered": "âœ…", "confirmed": "ðŸ”’", "revoked": "ðŸš«",
+        "awaiting_payment": "â³", "auto_expired": "âŒ",
     }
-    embed = discord.Embed(title=f"📋 Last {len(recent)} Orders", color=0x38BDF8)
+    embed = discord.Embed(title=f"ðŸ“‹ Last {len(recent)} Orders", color=0x38BDF8)
     for o in recent:
-        icon = status_icons.get(o.get("status", ""), "❓")
+        icon = status_icons.get(o.get("status", ""), "â“")
         embed.add_field(
-            name=f"{icon} `{o['order_id']}` — {o.get('tier','?').upper()}",
+            name=f"{icon} `{o['order_id']}` â€” {o.get('tier','?').upper()}",
             value=(
-                f"{o.get('method','?').upper()} • "
-                f"<@{o.get('user_id',0)}> • "
-                f"`{o.get('txn_id','manual')[:20]}` • "
+                f"{o.get('method','?').upper()} â€¢ "
+                f"<@{o.get('user_id',0)}> â€¢ "
+                f"`{o.get('txn_id','manual')[:20]}` â€¢ "
                 f"{_fmt_ts(o.get('created_at', 0))}"
             ),
             inline=False,
@@ -961,17 +961,17 @@ async def slash_orders(interaction: discord.Interaction, limit: int = 10):
 @bot.tree.command(name="help", description="Get activation help, emulator setup guides, and developer contact support")
 async def slash_help(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="⚔️ ApexClash Pro — Help & Support Center",
+        title="âš”ï¸ ApexClash Pro â€” Help & Support Center",
         description=(
             "Autonomous Clash of Clans farming suite with 100% external computer vision, "
-            "Zero-Gem Guard, and Bézier-curve humanized anti-ban protection."
+            "Zero-Gem Guard, and BÃ©zier-curve humanized anti-ban protection."
         ),
         color=0x38BDF8,
     )
     embed.add_field(
-        name="🛒 How to Purchase & Auto-Deliver",
+        name="ðŸ›’ How to Purchase & Auto-Deliver",
         value=(
-            "1. Type `/store` and choose your pass (Weekly ₹99, Monthly ₹249, Annual ₹799, Lifetime ₹1,299).\n"
+            "1. Type `/store` and choose your pass (Weekly â‚¹99, Monthly â‚¹249, Annual â‚¹799, Lifetime â‚¹1,299).\n"
             "2. Pay using the dynamic **PhonePe / GPay QR** (India) or **PayPal Link** (Global).\n"
             "3. Click **Submit TXN ID** and enter your 12-digit UTR, PhonePe `T...` ID, or PayPal ID.\n"
             "4. Your key is generated and DM'd to you automatically in seconds!"
@@ -979,7 +979,7 @@ async def slash_help(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
-        name="🔑 How to Activate",
+        name="ðŸ”‘ How to Activate",
         value=(
             "1. Open **ApexClash Pro** on your Windows PC.\n"
             "2. Go to the **License** tab on the sidebar.\n"
@@ -989,26 +989,26 @@ async def slash_help(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
-        name="🖥️ Recommended Emulator Settings",
+        name="ðŸ–¥ï¸ Recommended Emulator Settings",
         value=(
-            "• **Emulator:** BlueStacks 5 (Pie 64-bit) or LDPlayer 9 / MuMu 12.\n"
-            "• **Resolution:** 1600 × 900 or 1280 × 720 (240 DPI).\n"
-            "• **Game Language:** English (required for OCR text recognition)."
+            "â€¢ **Emulator:** BlueStacks 5 (Pie 64-bit) or LDPlayer 9 / MuMu 12.\n"
+            "â€¢ **Resolution:** 1600 Ã— 900 or 1280 Ã— 720 (240 DPI).\n"
+            "â€¢ **Game Language:** English (required for OCR text recognition)."
         ),
         inline=False,
     )
     embed.add_field(
-        name="📧 Direct Developer Contact & Support",
+        name="ðŸ“§ Direct Developer Contact & Support",
         value=(
-            "• **Developer Email:** `keshavchaudhary2609@gmail.com`\n"
-            "• **Discord:** `matrix0456`\n"
-            "• **Reddit:** `u/post_matrix`\n"
-            "• **Online Help Center:** [View Full Web Guide](https://keshav-x.github.io/coc-bot/help.html)\n\n"
+            "â€¢ **Developer Email:** `keshavchaudhary0005@gmail.com`\n"
+            "â€¢ **Discord:** `matrix0456`\n"
+            "â€¢ **Reddit:** `u/post_matrix`\n"
+            "â€¢ **Online Help Center:** [View Full Web Guide](https://keshav-x.github.io/coc-bot/help.html)\n\n"
             "*For hardware resets or payment verification, email with your Order ID.*"
         ),
         inline=False,
     )
-    embed.set_footer(text="ApexClash Pro • Autonomous 24/7 Farming Suite")
+    embed.set_footer(text="ApexClash Pro â€¢ Autonomous 24/7 Farming Suite")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -1032,7 +1032,7 @@ async def slash_claim(
     if is_known_test_id(raw_txn):
         await interaction.followup.send(
             embed=discord.Embed(
-                title="❌ Rejected — Example / Test ID",
+                title="âŒ Rejected â€” Example / Test ID",
                 description=f"`{raw_txn}` matches a known test ID. Please provide your real payment reference from PhonePe/PayPal.",
                 color=0xEF4444,
             ),
@@ -1052,7 +1052,7 @@ async def slash_claim(
     if not ok:
         await interaction.followup.send(
             embed=discord.Embed(
-                title="❌ Invalid Transaction ID",
+                title="âŒ Invalid Transaction ID",
                 description=result,
                 color=0xEF4444,
             ),
@@ -1066,7 +1066,7 @@ async def slash_claim(
     if is_txn_id_used(clean_txn):
         await interaction.followup.send(
             embed=discord.Embed(
-                title="❌ Transaction ID Already Used",
+                title="âŒ Transaction ID Already Used",
                 description=f"Transaction ID `{clean_txn}` has already been submitted for another order.",
                 color=0xEF4444,
             ),
@@ -1096,7 +1096,7 @@ async def slash_claim(
         if not verified_auto:
             await interaction.followup.send(
                 embed=discord.Embed(
-                    title="⚠️ PayPal Payment Not Found",
+                    title="âš ï¸ PayPal Payment Not Found",
                     description=(
                         f"Transaction ID `{clean_txn}` could not be confirmed as Completed in PayPal API.\n"
                         "Check your PayPal app and try again in 2 minutes, or contact support."
@@ -1129,21 +1129,21 @@ async def slash_status(interaction: discord.Interaction, reference: str):
 
     if not matched:
         await interaction.response.send_message(
-            f"❌ No order found matching `{reference[:35]}`.", ephemeral=True
+            f"âŒ No order found matching `{reference[:35]}`.", ephemeral=True
         )
         return
 
     status = matched.get("status", "unknown")
     status_map = {
-        "confirmed": ("🔒 Confirmed & Genuine", 0x10B981),
-        "delivered": ("✅ Delivered (Active)", 0x10B981),
-        "revoked":   ("🚫 Revoked", 0xEF4444),
-        "awaiting_payment": ("⏳ Awaiting Payment", 0xF59E0B),
+        "confirmed": ("ðŸ”’ Confirmed & Genuine", 0x10B981),
+        "delivered": ("âœ… Delivered (Active)", 0x10B981),
+        "revoked":   ("ðŸš« Revoked", 0xEF4444),
+        "awaiting_payment": ("â³ Awaiting Payment", 0xF59E0B),
     }
-    status_text, color = status_map.get(status, (f"❓ {status.capitalize()}", 0x94A3B8))
+    status_text, color = status_map.get(status, (f"â“ {status.capitalize()}", 0x94A3B8))
 
     embed = discord.Embed(
-        title=f"📋 Order Status: {matched.get('order_id')}",
+        title=f"ðŸ“‹ Order Status: {matched.get('order_id')}",
         color=color,
     )
     embed.add_field(name="Status", value=status_text, inline=True)
@@ -1160,18 +1160,19 @@ async def slash_status(interaction: discord.Interaction, reference: str):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Entry point
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def main():
     token = config.get("discord_bot_token", "").strip()
     if not token or token == "YOUR_DISCORD_BOT_TOKEN_HERE":
         print(f"\n[!] Set discord_bot_token in: {CONFIG_PATH}\n")
         sys.exit(1)
-    logger.info("Starting ApexClash Sales Bot…")
+    logger.info("Starting ApexClash Sales Botâ€¦")
     bot.run(token, log_handler=None)
 
 
 if __name__ == "__main__":
     main()
+

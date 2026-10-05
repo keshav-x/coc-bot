@@ -1122,30 +1122,18 @@
 
     <!-- ── PayPal Panel (Default) ── -->
     <div class="pay-panel active" id="panel-paypal">
-      <div class="paypal-grid">
-        <div class="qr-frame" style="background:#fff;">
-          <img src="paypal_qr_card.jpg" alt="PayPal QR Code — Keshav Chaudhary" loading="eager" decoding="async" style="width:100%;max-width:180px;height:auto;display:block;border-radius:10px;">
+      <div style="padding:12px 0 16px 0;">
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">Pay with PayPal</div>
+        <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:10px;">
+          Amount: <span id="paypal-btn-amount">$4.99</span>
         </div>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Pay with PayPal Checkout</div>
-          <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:6px;">
-            Amount: <span id="paypal-btn-amount">$4.99</span>
-          </div>
-          <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">
-            Scan the official QR code using the PayPal app, or tap below to pay Keshav Chaudhary directly.
-          </p>
-
-          <div class="paypal-btn-group" style="margin-top:0;margin-bottom:14px;">
-            <a id="paypal-pay-link" href="https://www.paypal.com/qrcodes/p2pqrc/Y6DNBH74UFNYE" target="_blank" class="paypal-cta-btn">
-              🅿️ Pay <span id="paypal-cta-amount">$4.99</span> on PayPal
-            </a>
-          </div>
-
-          <div class="paypal-direct-email" style="margin-top:0;">
-            <span>Or send to PayPal email:</span>
-            <code>keshavchaudhary2609@gmail.com</code>
-            <button class="nav-btn" style="padding:4px 12px;font-size:11px;cursor:pointer;" onclick="copyText('keshavchaudhary2609@gmail.com', 'PayPal email copied!')">📋 Copy Email</button>
-          </div>
+        <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:18px;">
+          Send payment directly to the PayPal email below. After paying, copy your <strong>17-character Transaction ID</strong> from your PayPal receipt and paste it in Step 2 to get your key instantly.
+        </p>
+        <div class="paypal-direct-email" style="margin-bottom:14px;">
+          <span>PayPal Business Email:</span>
+          <code id="paypal-email-display">keshavchaudhary0005@gmail.com</code>
+          <button class="nav-btn" style="padding:4px 12px;font-size:11px;cursor:pointer;" onclick="copyText('keshavchaudhary0005@gmail.com', 'PayPal email copied!')">📋 Copy Email</button>
         </div>
       </div>
 
@@ -1265,11 +1253,11 @@
           <span>@keshavchaudhary0025 (Fastest)</span>
         </div>
       </a>
-      <a href="mailto:keshavchaudhary2609@gmail.com" class="support-tile">
+      <a href="mailto:keshavchaudhary0005@gmail.com" class="support-tile">
         <div class="support-icon">📧</div>
         <div>
           <strong>Direct Email</strong>
-          <span>keshavchaudhary2609@gmail.com</span>
+          <span>keshavchaudhary0005@gmail.com</span>
         </div>
       </a>
       <a href="https://reddit.com/user/post_matrix" target="_blank" class="support-tile">
@@ -1287,7 +1275,7 @@
     <div class="footer-links">
       <a href="help.html" class="footer-link">❓ Help &amp; Emulator Setup</a>
       <a href="https://t.me/keshavchaudhary0025" target="_blank" class="footer-link">📱 Telegram: @keshavchaudhary0025</a>
-      <a href="mailto:keshavchaudhary2609@gmail.com" class="footer-link">📧 keshavchaudhary2609@gmail.com</a>
+      <a href="mailto:keshavchaudhary0005@gmail.com" class="footer-link">📧 keshavchaudhary0005@gmail.com</a>
       <a href="https://reddit.com/user/post_matrix" target="_blank" class="footer-link">🌐 Reddit: u/post_matrix</a>
     </div>
     <p>© 2026 ApexClash Pro • Autonomous Clash of Clans Automation Suite • All Rights Reserved</p>
@@ -1305,8 +1293,7 @@
 const CONFIG = {
   upiId: 'keshav026@axl',
   payeeName: 'Keshav Chaudhary',
-  paypalEmail: 'keshavchaudhary2609@gmail.com',
-  paypalCheckoutUrl: 'https://www.paypal.com/qrcodes/p2pqrc/Y6DNBH74UFNYE',
+  paypalEmail: 'keshavchaudhary0005@gmail.com',
 };
 
 const PLANS = {
@@ -1362,11 +1349,9 @@ function updateDisplay() {
   document.getElementById('sum-name').textContent = `${plan.name} (${plan.duration})`;
   document.getElementById('sum-price').textContent = priceStr;
 
-  // PayPal links
+  // PayPal amount display
   const ppAmount = `$${plan.usd.toFixed(2)}`;
   document.getElementById('paypal-btn-amount').textContent = ppAmount;
-  document.getElementById('paypal-cta-amount').textContent = ppAmount;
-  document.getElementById('paypal-pay-link').href = CONFIG.paypalCheckoutUrl;
 
   // PhonePe / UPI deep link
   const upiUri = `upi://pay?pa=${encodeURIComponent(CONFIG.upiId)}&pn=${encodeURIComponent(CONFIG.payeeName)}&am=${plan.inr}&cu=INR&tn=${encodeURIComponent('ApexClash-' + plan.tier)}`;
